@@ -108,7 +108,7 @@ class RosettaCartesianddGAnalyser:
         ]
         df = pd.read_csv(path_and_file_name, skiprows=0, sep=" +", names=header_text)
 
-        labels = [l for l in df.columns if l.endswith("label")]
+        labels = [label for label in df.columns if label.endswith("label")]
         df.drop(["COMPLEX"] + labels, axis=1, inplace=True)
 
         # rename wt
