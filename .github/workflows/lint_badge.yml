@@ -1,0 +1,58 @@
+name: Pylint
+
+on:
+  workflow_dispatch:
+
+  push:
+    paths:
+      - '.github/workflows/lint_badge.yml' # monitor the main workflow script.
+      - 'tests/*.py' # monitor the unit tests
+      - 'src/*' # monitor the REvoDesign project source code
+      - '!CHANGELOG.md'
+    branches:
+        - main
+
+env:
+  lint-python-version: '3.11'
+
+jobs:
+  UpdateLinting:
+    runs-on: 'ubuntu-latest'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+            python-version: ${{ env.lint-python-version }}
+
+      - name: Install Packages
+        run:
+            pip install '.[test]'
+
+      - name: Linting
+        uses: YaoYinYing/pylint-github-action@v3.0
+        with:
+          lint-path: src  # lint src package
+          python-version: ${{ env.lint-python-version }}  # python version which will lint the package
+          badge-text: pylint score
+          badge-file-name: pylint_scan
+
+
+      - name: PyLint Badge Fetching
+        id: pylint-badge-fetch
+        uses: actions/download-artifact@v4
+        with:
+          name: upload-my-awesome-badge
+          path: badge_dir_with_uniq_name-${{ github.run_id }}
+
+      - name: Display structure of downloaded files
+        run: ls -R badge_dir_with_uniq_name
+
+      - name: Upload to R2
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          command: r2 object put  ${{ secrets.R2_BUCKET }}/badge_dir_with_uniq_name/RosettaPy/pylint/pylint_scan.svg --file badge_dir_with_uniq_name-${{ github.run_id }}/pylint_scan.svg --content-type image/svg+xml
