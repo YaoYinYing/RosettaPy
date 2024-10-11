@@ -33,7 +33,7 @@ jobs:
             pip install '.[test]'
 
       - name: Linting
-        uses: YaoYinYing/pylint-github-action@v3.0
+        uses: YaoYinYing/pylint-github-action@b2d380e8ed4c41d56b38ce857f9be22c475d8122
         with:
           lint-path: src  # lint src package
           python-version: ${{ env.lint-python-version }}  # python version which will lint the package
