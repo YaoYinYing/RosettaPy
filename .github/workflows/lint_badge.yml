@@ -39,14 +39,14 @@ jobs:
           python-version: ${{ env.lint-python-version }}  # python version which will lint the package
           badge-text: pylint score
           badge-file-name: pylint_scan
-
+          badge-artifact-name: upload-my-awesome-badge-${{ github.run_id }}
 
       - name: PyLint Badge Fetching
         id: pylint-badge-fetch
         uses: actions/download-artifact@v4
         with:
-          name: upload-my-awesome-badge
-          path: badge_dir_with_uniq_name-${{ github.run_id }}
+          name: upload-my-awesome-badge-${{ github.run_id }}
+          path: badge_dir_with_uniq_name
 
       - name: Display structure of downloaded files
         run: ls -R badge_dir_with_uniq_name
@@ -55,4 +55,4 @@ jobs:
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          command: r2 object put  ${{ secrets.R2_BUCKET }}/badge_dir_with_uniq_name/RosettaPy/pylint/pylint_scan.svg --file badge_dir_with_uniq_name-${{ github.run_id }}/pylint_scan.svg --content-type image/svg+xml
+          command: r2 object put  ${{ secrets.R2_BUCKET }}/badge_dir_with_uniq_name/RosettaPy/pylint/pylint_scan.svg --file badge_dir_with_uniq_name/pylint_scan.svg --content-type image/svg+xml
