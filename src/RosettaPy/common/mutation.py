@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 import os
-from typing import List, Union
+from typing import List, Union, ValuesView
 import warnings
 
 
@@ -353,7 +353,7 @@ class Mutant:
         return mutants
 
 
-def mutants2mutfile(mutants: List[Mutant], file_path: str) -> str:
+def mutants2mutfile(mutants: Union[List[Mutant], ValuesView[Mutant]], file_path: str) -> str:
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     mutants_dict = {m.raw_mutant_id: m for m in mutants}
     as_mutfile = "\n".join(mutant.as_mutfile for _, mutant in mutants_dict.items())

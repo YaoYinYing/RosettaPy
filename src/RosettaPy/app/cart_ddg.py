@@ -75,7 +75,6 @@ class CartesianDDG:
                 f"{self.instance}_cart_ddg.sc",
                 "-ddg:json",
                 "true",
-                "-ddg:mut_only",
                 "-ddg::legacy",
                 "true" if self.use_legacy else "false",
                 "-ddg:iterations",
@@ -118,8 +117,13 @@ class CartesianDDG:
         return mutfiles, list(mutants_dict.values())
 
 
-def main():
-    cart_ddg = CartesianDDG(pdb="tests/data/3fap_hf3_A_short.pdb")
+def main(legacy: bool = False):
+    cart_ddg = CartesianDDG(
+        pdb="tests/data/3fap_hf3_A_short.pdb",
+        nstruct_relax=4,
+        use_legacy=legacy,
+        job_id="cart_ddg" if not legacy else "cart_ddg_legacy",
+    )
 
     pdb_path = cart_ddg.relax()
     df = cart_ddg.cartesian_ddg(input_pdb=pdb_path)
@@ -128,4 +132,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(True)

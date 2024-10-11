@@ -243,7 +243,7 @@ def main():
     pross = PROSS(
         pdb="tests/data/3fap_hf3_A_short.pdb", pssm="tests/data/3fap_hf3_A_ascii_mtx_file_short", job_id="pross_reduced"
     )
-    best_refined = pross.refine(8)
+    best_refined = pross.refine(4)
 
     filters = pross.filterscan(best_refined)
     pross.design(filters=filters, refined_pdb=best_refined)

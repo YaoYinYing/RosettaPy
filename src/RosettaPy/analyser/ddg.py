@@ -37,6 +37,13 @@ class RosettaCartesianddGAnalyser:
 
     def __post_init__(self):
         self.files = self.gather_files()
+        if not self.files and self.prefer_json:
+            warnings.warn(
+                "No .json files found in the directory. Falling back to .ddg files. "
+                "This is not recommended as the .ddg files are not fully supported and may not be accurate."
+            )
+            self.prefer_json = False
+            self.files = self.gather_files()
 
     def gather_files(self) -> List[str]:
         if self.recursive:
@@ -99,14 +106,18 @@ class RosettaCartesianddGAnalyser:
             "cart_bonded_label",
             "cart_bonded",
         ]
-        df = pd.read_csv(path_and_file_name, skiprows=0, sep="\s+", names=header_text)
+        df = pd.read_csv(path_and_file_name, skiprows=0, sep=" +", names=header_text)
 
         labels = [l for l in df.columns if l.endswith("label")]
         df.drop(["COMPLEX"] + labels, axis=1, inplace=True)
 
-        df_tot_ = df.groupby(["Baseline"])["total"].apply(get_stats).unstack().reset_index()
+        # rename wt
+        wt_labels = ["WT_:", "WT:"]
+        mask = df["Baseline"].isin(wt_labels)
+        df.loc[mask, "Baseline"] = "WT"
 
-        df_tot_["ddG_cart"] = df_tot_["mean"] - df_tot_["mean"].loc[(df_tot_["Baseline"] == "WT_:")].values[0]
+        # Drop ending `:`
+        df["Baseline"] = df["Baseline"].str.rstrip(":")
 
         return df
 
@@ -123,9 +134,9 @@ class RosettaCartesianddGAnalyser:
             scores: Dict[str, Any] = _j["scores"]
 
             if RosettaCartesianddGAnalyser.is_wild_type(mutations):
-                mutant_id = "WT_:"
+                mutant_id = "WT"
             else:
-                mutant_id = RosettaCartesianddGAnalyser.mutinfo2id(mutations) + ":"
+                mutant_id = RosettaCartesianddGAnalyser.mutinfo2id(mutations)
 
             # round counts
             if id_cache != mutant_id:
@@ -156,30 +167,32 @@ class RosettaCartesianddGAnalyser:
         else:
             self.dg_df_raws = [self.read_ddg(f) for f in self.files]
 
-        ddg_summary = pd.concat([self.raw_to_ddg(df) for df in self.dg_df_raws])
+        self.dg_df_raws = list(filter(lambda df: not df.empty, self.dg_df_raws))
 
+        ddg_summary = pd.concat([self.raw_to_ddg(df) for df in self.dg_df_raws])
         ddg_summary.loc[(ddg_summary["ddG_cart"] < ddg_summary["cutoff"]), "Accepted"] = 1
         ddg_summary.loc[(ddg_summary["ddG_cart"] >= ddg_summary["cutoff"]), "Accepted"] = 0
-        ddg_summary = ddg_summary.loc[ddg_summary["Baseline"].str.contains("MUT"), :]
+        ddg_summary = ddg_summary.loc[ddg_summary["Baseline"].str.startswith("MUT_"), :]
 
         self.ddg_summary = ddg_summary
         return ddg_summary
 
     @staticmethod
     def raw_to_ddg(df_raw: pd.DataFrame) -> pd.DataFrame:
+
         df_tot_ = df_raw.groupby(["Baseline"])["total"].apply(get_stats).unstack().reset_index()
-        df_tot_["ddG_cart"] = df_tot_["mean"] - df_tot_["mean"].loc[(df_tot_["Baseline"] == "WT_:")].values[0]
+        df_tot_["ddG_cart"] = df_tot_["mean"] - df_tot_["mean"].loc[(df_tot_["Baseline"] == "WT")].values[0]
 
         cutoff = (
-            df_tot_[df_tot_["Baseline"] == "WT_:"]["ddG_cart"].values[0]
-            + 2 * df_tot_[df_tot_["Baseline"] == "WT_:"]["std"].values[0]
+            df_tot_[df_tot_["Baseline"] == "WT"]["ddG_cart"].values[0]
+            + 2 * df_tot_[df_tot_["Baseline"] == "WT"]["std"].values[0]
         )
 
-        df_tot_["WT_mean"] = df_tot_["mean"].loc[(df_tot_["Baseline"] == "WT_:")].values[0]
-        df_tot_["WT_mean_std"] = df_tot_["std"].loc[(df_tot_["Baseline"] == "WT_:")].values[0]
+        df_tot_["WT_mean"] = df_tot_["mean"].loc[(df_tot_["Baseline"] == "WT")].values[0]
+        df_tot_["WT_mean_std"] = df_tot_["std"].loc[(df_tot_["Baseline"] == "WT")].values[0]
         df_tot_["cutoff"] = cutoff
 
-        df_tot_.drop(df_tot_[df_tot_["Baseline"] == "WT_:"].index, inplace=True)
+        df_tot_.drop(df_tot_[df_tot_["Baseline"] == "WT"].index, inplace=True)
         return df_tot_
 
 
@@ -187,7 +200,6 @@ def main():
     ddg_analyser = RosettaCartesianddGAnalyser(
         "tests/data/ddg_runtimes",
         recursive=True,
-        # prefer_json=False,
     )
     df = ddg_analyser.parse_ddg_files()
 

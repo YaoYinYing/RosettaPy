@@ -1,5 +1,5 @@
 import os
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from dataclasses import dataclass, field
 import warnings
 from RosettaPy import Rosetta, RosettaScriptsVariableGroup, RosettaEnergyUnitAnalyser
@@ -25,9 +25,8 @@ class RosettaLigand:
     move_distance: float = 0.5
     gridwidth: int = 45
     chain_id_for_dock = "B"
-    x_coords: Optional[float] = None
-    y_coords: Optional[float] = None
-    z_coords: Optional[float] = None
+
+    start_from_xyz: Optional[Tuple[float, float, float]] = None
 
     # internal
     startfrom_mover = ""
@@ -45,8 +44,10 @@ class RosettaLigand:
         os.makedirs(os.path.join(self.save_dir, self.job_id), exist_ok=True)
         self.save_dir = os.path.abspath(self.save_dir)
 
-        if all(isinstance(c, float) for c in [self.x_coords, self.y_coords, self.z_coords]):
-            self.startfrom_mover = f'<StartFrom name="startfrom" chain="{self.chain_id_for_dock}"><Coordinates x="{self.x_coords}" y="{self.y_coords}" z="{self.z_coords}"/></StartFrom>'
+        if isinstance(self.start_from_xyz, tuple) and all(
+            isinstance(c, float) for c in [self.start_from_xyz[0], self.start_from_xyz[1], self.start_from_xyz[2]]
+        ):
+            self.startfrom_mover = f'<StartFrom name="startfrom" chain="{self.chain_id_for_dock}"><Coordinates x="{self.start_from_xyz[0]}" y="{self.start_from_xyz[1]}" z="{self.start_from_xyz[2]}"/></StartFrom>'
             self.startfrom_protocol = '<Add mover_name="startfrom"/>'
 
         if self.cst and os.path.isfile(self.cst):
@@ -63,7 +64,7 @@ class RosettaLigand:
                 ligands.extend(["-extra_res_fa", os.path.abspath(l)])
         return ligands
 
-    def dock(self, nstruct=1) -> str:
+    def dock(self) -> str:
         docking_dir = os.path.join(self.save_dir, self.job_id, "docking")
 
         rosetta = Rosetta(
@@ -97,7 +98,7 @@ class RosettaLigand:
         )
 
         with timing("RosettaLigand: Docking"):
-            rosetta.run(nstruct=nstruct)
+            rosetta.run(nstruct=self.nstruct)
 
         analyser = RosettaEnergyUnitAnalyser(score_file=rosetta.output_scorefile_dir)
         best_hit = analyser.best_decoy
@@ -114,10 +115,16 @@ class RosettaLigand:
         return pdb_path
 
 
-def main():
-    runner = RosettaLigand(pdb="tests/data/6zcy_lig.pdb", ligands=["tests/data/lig/lig.fa.params"])
+def main(startfrom=None):
+    runner = RosettaLigand(
+        pdb="tests/data/6zcy_lig.pdb",
+        ligands=["tests/data/lig/lig.fa.params"],
+        nstruct=4,
+        start_from_xyz=startfrom,
+        job_id="rosettaligand" if startfrom is None else "rosettaligand_startfrom",
+    )
 
-    runner.dock(nstruct=10)
+    runner.dock()
 
 
 if __name__ == "__main__":

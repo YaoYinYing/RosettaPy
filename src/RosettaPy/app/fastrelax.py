@@ -105,11 +105,13 @@ class FastRelax:
 
 def main(dualspace: bool = False):
     if dualspace:
-        scorer = FastRelax(pdb="tests/data/3fap_hf3_A.pdb", dualspace=True, job_id="fastrelax_dualspace")
+        scorer = FastRelax(
+            pdb="tests/data/3fap_hf3_A.pdb", dualspace=True, job_id="fastrelax_dualspace", default_repeats=3
+        )
     else:
-        scorer = FastRelax(pdb="tests/data/3fap_hf3_A.pdb")
+        scorer = FastRelax(pdb="tests/data/3fap_hf3_A.pdb", default_repeats=3)
 
-    analyser = scorer.run(8)
+    analyser = scorer.run(4)
     best_hit = analyser.best_decoy
 
     print("Analysis of the best decoy:")
