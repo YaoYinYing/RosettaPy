@@ -32,7 +32,8 @@ dependencies = [
     "biopython",
     "rdkit",
     "numpy>=1.20.3,<3",
-    "matplotlib"
+    "matplotlib",
+    "docker>=7.1.0"
 ]
 
 [project.optional-dependencies]

@@ -5,6 +5,7 @@ import warnings
 from RosettaPy import Rosetta, RosettaScriptsVariableGroup, RosettaEnergyUnitAnalyser
 from RosettaPy.rosetta import IgnoreMissingFileWarning
 from RosettaPy.utils import timing
+from RosettaPy.node import RosettaContainer
 
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -95,6 +96,7 @@ class RosettaLigand:
             save_all_together=False,
             job_id=f"{self.instance}_{self.job_id}",
             # mpi_node=MPI_node(nproc=os.cpu_count()),
+            run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi"),
         )
 
         with timing("RosettaLigand: Docking"):
@@ -110,7 +112,7 @@ class RosettaLigand:
 
         print("-" * 79)
 
-        print(f'Best Hit on this PROSS run: {best_hit["decoy"]} - {best_hit["score"]}: {pdb_path}')
+        print(f'Best Hit on this RosettaLigand run: {best_hit["decoy"]} - {best_hit["score"]}: {pdb_path}')
 
         return pdb_path
 

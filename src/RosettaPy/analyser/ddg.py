@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import os
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal
 import warnings
 
 import json
@@ -106,7 +106,7 @@ class RosettaCartesianddGAnalyser:
             "cart_bonded_label",
             "cart_bonded",
         ]
-        df = pd.read_csv(path_and_file_name, skiprows=0, sep=" +", names=header_text)
+        df = pd.read_csv(path_and_file_name, skiprows=0, sep="\s+", names=header_text)
 
         labels = [label for label in df.columns if label.endswith("label")]
         df.drop(["COMPLEX"] + labels, axis=1, inplace=True)
@@ -197,10 +197,7 @@ class RosettaCartesianddGAnalyser:
 
 
 def main():
-    ddg_analyser = RosettaCartesianddGAnalyser(
-        "tests/data/ddg_runtimes",
-        recursive=True,
-    )
+    ddg_analyser = RosettaCartesianddGAnalyser("tests/data/ddg_runtimes", recursive=True)
     df = ddg_analyser.parse_ddg_files()
 
     print(df)

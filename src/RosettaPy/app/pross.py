@@ -2,7 +2,8 @@ import os
 from typing import List, Optional
 from dataclasses import dataclass
 from RosettaPy import Rosetta, RosettaScriptsVariableGroup, RosettaEnergyUnitAnalyser, MPI_node
-from RosettaPy.utils import timing
+from RosettaPy.utils import timing, RosettaCmdTask
+from RosettaPy.node import RosettaContainer
 from RosettaPy.app.utils import PDBProcessor
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -61,7 +62,7 @@ class PROSS:
             output_dir=refinement_dir,
             save_all_together=False,
             job_id="pross_refinement",
-            mpi_node=MPI_node(),
+            # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi"),
         )
 
         with timing("PROSS: Refinement"):
@@ -122,6 +123,7 @@ class PROSS:
             output_dir=self.filterscan_dir,
             save_all_together=True,
             job_id=f"{self.instance}.filterscan",
+            # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:latest"),
         )
 
         with timing("PROSS: Filterscan"):
@@ -210,6 +212,7 @@ class PROSS:
             output_dir=design_dir,
             save_all_together=False,
             job_id=f"{self.instance}_design",
+            # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:latest"),
         )
 
         with timing("PROSS: Design"):

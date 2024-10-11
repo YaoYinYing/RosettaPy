@@ -10,14 +10,11 @@ import pytest
 
 # Import the classes from your module
 from RosettaPy.rosetta import (
-    RosettaCmdTask,
-    RosettaScriptsVariable,
-    RosettaScriptsVariableGroup,
     MPI_node,
     Rosetta,
     MPI_IncompatibleInputWarning,
 )
-from RosettaPy.utils import timing
+from RosettaPy.utils import timing, RosettaScriptsVariable, RosettaScriptsVariableGroup, RosettaCmdTask
 from RosettaPy import RosettaFinder, RosettaBinary
 
 from tests.conftest import github_rosetta_test
@@ -196,7 +193,7 @@ def test_rosetta_run_mpi(mock_popen, mock_isfile, mock_which, temp_dir, user, ui
     rosetta_binary = RosettaBinary(temp_dir, "rosetta_scripts", "mpi", "linux", "gcc", "release")
     mpi_node = MPI_node(nproc=4)
     mpi_node.user = uid
-    rosetta = Rosetta(bin=rosetta_binary, mpi_node=mpi_node)
+    rosetta = Rosetta(bin=rosetta_binary, run_node=mpi_node)
 
     # Mock the process
     mock_process = MagicMock()
@@ -208,11 +205,13 @@ def test_rosetta_run_mpi(mock_popen, mock_isfile, mock_which, temp_dir, user, ui
 
     if user == "root":
         with pytest.warns(UserWarning) as record:
-            rosetta.run_mpi(base_cmd=base_cmd, nstruct=2)
+            tasks = rosetta.setup_tasks_mpi(base_cmd=base_cmd, nstruct=2)
+
             assert any("Running Rosetta with MPI as Root User" in str(warning.message) for warning in record)
 
     else:
-        rosetta.run_mpi(base_cmd=base_cmd, nstruct=2)
+        tasks = rosetta.setup_tasks_mpi(base_cmd=base_cmd, nstruct=2)
+    rosetta.run_mpi(tasks=tasks)
 
     # Verify that the execute method was called once
     mock_popen.assert_called_once()
@@ -240,7 +239,7 @@ def test_rosetta_init_no_mpi_executable(mock_which, temp_dir):
     rosetta_binary = RosettaFinder().find_binary("rosetta_scripts")
 
     with pytest.warns(UserWarning) as record:
-        Rosetta(bin=rosetta_binary, mpi_node=MPI_node(0, {"node1": 1}))
+        Rosetta(bin=rosetta_binary, run_node=MPI_node(0, {"node1": 1}))
 
     assert any("MPI nodes are given yet not supported" in str(warning.message) for warning in record)
 
@@ -325,7 +324,7 @@ def test_rosetta_mpi_incompatible_input_warning(mock_which, mock_popen, temp_dir
     rosetta_binary = RosettaFinder().find_binary("rosetta_scripts")
 
     mpi_node = MPI_node(nproc=4)
-    rosetta = Rosetta(bin=rosetta_binary, mpi_node=mpi_node)
+    rosetta = Rosetta(bin=rosetta_binary, run_node=mpi_node)
 
     # Mock the process
     mock_process = MagicMock()

@@ -1,4 +1,3 @@
-
 import contextlib
 import copy
 from dataclasses import dataclass
@@ -23,7 +22,7 @@ class MPI_node:
 
     def __post_init__(self):
 
-        for mpi_exec in ["mpirun", "mpicc", ...]:
+        for mpi_exec in ["mpirun", ...]:
             self.mpi_excutable = shutil.which(mpi_exec)
             if self.mpi_excutable is not None:
                 break

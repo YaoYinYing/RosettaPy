@@ -1,6 +1,7 @@
 import os
 from typing import List, Optional
 from RosettaPy import Rosetta
+from RosettaPy.node import RosettaContainer
 from RosettaPy.rosetta import RosettaCmdTask
 
 
@@ -49,6 +50,7 @@ def supercharge(
         ],
         save_all_together=True,
         isolation=True,
+        run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:latest"),
     )
     instance = os.path.basename(pdb)[:-4]
 

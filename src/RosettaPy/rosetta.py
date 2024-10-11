@@ -1,94 +1,27 @@
 import copy
 from dataclasses import dataclass, field
 
-from typing import Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 import subprocess
 import os
+import functools
 
 import warnings
 from datetime import datetime
 
+from joblib import Parallel, delayed
+
 
 # internal imports
 from .rosetta_finder import RosettaBinary, RosettaFinder
-from .utils import isolate
-from .node import MPI_node
+from .utils import (
+    isolate,
+    RosettaScriptsVariableGroup,
+    RosettaCmdTask,
+    IgnoreMissingFileWarning,
+)
+from .node import MPI_node, RosettaContainer
 from .node.mpi import MPI_IncompatibleInputWarning
-
-
-class RosettaScriptVariableWarning(RuntimeWarning): ...
-
-
-class RosettaScriptVariableNotExistWarning(RosettaScriptVariableWarning): ...
-
-
-class IgnoreMissingFileWarning(UserWarning): ...
-
-
-@dataclass(frozen=True)
-class RosettaScriptsVariable:
-    k: str
-    v: str
-
-    @property
-    def aslist(self) -> List[str]:
-        return [
-            "-parser:script_vars",
-            f"{self.k}={self.v}",
-        ]
-
-
-@dataclass(frozen=True)
-class RosettaScriptsVariableGroup:
-    variables: List[RosettaScriptsVariable]
-
-    @property
-    def empty(self):
-        return len(self.variables) == 0
-
-    @property
-    def aslonglist(self) -> List[str]:
-        return [i for v in self.variables for i in v.aslist]
-
-    @property
-    def asdict(self) -> Dict[str, str]:
-        return {rsv.k: rsv.v for rsv in self.variables}
-
-    @classmethod
-    def from_dict(cls, var_pair: Dict[str, str]) -> "RosettaScriptsVariableGroup":
-        variables = [RosettaScriptsVariable(k=k, v=str(v)) for k, v in var_pair.items()]
-        instance = cls(variables)
-        if instance.empty:
-            raise ValueError()
-        return instance
-
-    def apply_to_xml_content(self, xml_content: str):
-        xml_content_copy = copy.deepcopy(xml_content)
-        for k, v in self.asdict.items():
-            if f"%%{k}%%" not in xml_content_copy:
-                warnings.warn(RosettaScriptVariableNotExistWarning(f"Variable {k} not in Rosetta Script content."))
-                continue
-            xml_content_copy = xml_content_copy.replace(f"%%{k}%%", v)
-
-        return xml_content_copy
-
-
-@dataclass
-class RosettaCmdTask:
-    cmd: List[str]
-    task_label: Optional[str] = None
-    base_dir: Optional[str] = "tests/outputs/runtimes/"  # a base directory for run local task
-
-    @property
-    def runtime_dir(self) -> str:  # The directory for storing runtime output
-        if not self.task_label:
-            raise ValueError("task_label is required for calling this attribute")
-
-        if not self.base_dir:
-            warnings.warn("Fixing base_dir to `runtime`")
-            self.base_dir = os.path.abspath("runtime")
-
-        return os.path.join(self.base_dir, self.task_label)
 
 
 @dataclass
@@ -111,13 +44,14 @@ class Rosetta:
     flags: Optional[List[str]] = field(default_factory=list)
     opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = field(default_factory=list)
     use_mpi: bool = False
-    mpi_node: Optional[MPI_node] = None
+    run_node: Optional[Union[MPI_node, RosettaContainer]] = None
 
     job_id: str = "default"
     output_dir: str = ""
     save_all_together: bool = False
 
     isolation: bool = False
+    verbose: bool = False
 
     @staticmethod
     def expand_input_dict(d: Dict[str, Union[str, RosettaScriptsVariableGroup]]) -> List[str]:
@@ -172,9 +106,14 @@ class Rosetta:
             self.opts = []
 
         if isinstance(self.bin, str):
-            self.bin = RosettaFinder().find_binary(self.bin)
+            if not isinstance(self.run_node, RosettaContainer):
+                # local direct runs
+                self.bin = RosettaFinder().find_binary(self.bin)
+            else:
+                # to container
+                self.bin = RosettaBinary(dirname="/usr/local/bin/", binary_name=self.bin)
 
-        if self.mpi_node is not None:
+        if self.run_node is not None:
             if self.bin.mode != "mpi":
                 warnings.warn(
                     UserWarning("MPI nodes are given yet not supported. Maybe in Dockerized Rosetta container?")
@@ -188,7 +127,7 @@ class Rosetta:
             self.use_mpi = False
 
     @staticmethod
-    def _isolated_execute(task: RosettaCmdTask) -> RosettaCmdTask:
+    def _isolated_execute(task: RosettaCmdTask, func: Callable) -> RosettaCmdTask:
         if not task.task_label:
             raise ValueError("Task label is required when executing the command in isolated mode.")
 
@@ -196,13 +135,15 @@ class Rosetta:
             raise ValueError("Base directory is required when executing the command in isolated mode.")
 
         with isolate(save_to=task.runtime_dir):
-            return Rosetta._non_isolated_execute(task)
+            return func(task)
 
     @staticmethod
-    def execute(task: RosettaCmdTask) -> RosettaCmdTask:
+    def execute(task: RosettaCmdTask, func: Optional[Callable] = None) -> RosettaCmdTask:
+        if func is None:
+            func = Rosetta._non_isolated_execute
         if not task.task_label:
-            return Rosetta._non_isolated_execute(task)
-        return Rosetta._isolated_execute(task)
+            return func(task)
+        return Rosetta._isolated_execute(task, func)
 
     @staticmethod
     def _non_isolated_execute(task: RosettaCmdTask) -> RosettaCmdTask:
@@ -227,59 +168,26 @@ class Rosetta:
 
         return task
 
-    def run_mpi(
+    def setup_tasks_local(
         self,
         base_cmd: List[str],
         inputs: Optional[List[Dict[str, Union[str, RosettaScriptsVariableGroup]]]] = None,
         nstruct: Optional[int] = None,
     ) -> List[RosettaCmdTask]:
         """
-        Runs a command using MPI.
+        Setups a command locally, possibly in parallel.
 
         :param cmd: Base command to be executed.
         :param inputs: List of input dictionaries.
         :param nstruct: Number of structures to generate.
-        :return: List of Nones for counting.
+        :return: List of RosettaCmdTask.
         """
-        assert isinstance(self.mpi_node, MPI_node), "MPI node instance is not initialized."
-
-        _base_cmd = copy.copy(base_cmd)
-        if inputs:
-            for i, _i in enumerate(inputs):
-                _base_cmd.extend(self.expand_input_dict(_i))
-
-        if nstruct:
-            ret = _base_cmd.extend(["-nstruct", str(nstruct)])
-
-        with self.mpi_node.apply(_base_cmd) as updated_cmd:
-            if self.isolation:
-                warnings.warn(RuntimeWarning("Ignoring isolated mode for MPI run."))
-            ret = Rosetta._non_isolated_execute(RosettaCmdTask(cmd=updated_cmd))
-
-        return [ret]
-
-    def run_local(
-        self,
-        base_cmd: List[str],
-        inputs: Optional[List[Dict[str, Union[str, RosettaScriptsVariableGroup]]]] = None,
-        nstruct: Optional[int] = None,
-    ) -> List[RosettaCmdTask]:
-        """
-        Runs a command locally, possibly in parallel.
-
-        :param cmd: Base command to be executed.
-        :param inputs: List of input dictionaries.
-        :param nstruct: Number of structures to generate.
-        :return: List of Nones for counting.
-        """
-        from joblib import Parallel, delayed
-
         _base_cmd = copy.copy(base_cmd)
 
         now = datetime.now().strftime("%Y%m%d_%H%M%S")  # formatted date-time
 
         if nstruct and nstruct > 0:
-
+            # if inputs are given and nstruct is specified, flatten and pass inputs to all tasks
             if inputs:
                 for i, _i in enumerate(inputs):
                     __i = self.expand_input_dict(_i)
@@ -302,7 +210,9 @@ class Rosetta:
                 for i in range(1, nstruct + 1)
             ]
             warnings.warn(UserWarning(f"Processing {len(cmd_jobs)} commands on {nstruct} decoys."))
-        elif inputs:
+            return cmd_jobs
+        if inputs:
+            # if nstruct is not given and inputs are given, expand input and distribute them as task payload
             cmd_jobs = [
                 RosettaCmdTask(
                     cmd=_base_cmd + self.expand_input_dict(input_arg),
@@ -312,13 +222,78 @@ class Rosetta:
                 for i, input_arg in enumerate(inputs)
             ]
             warnings.warn(UserWarning(f"Processing {len(cmd_jobs)} commands"))
-        else:
-            cmd_jobs = [_base_cmd]
+            return cmd_jobs
 
-            warnings.warn(UserWarning("No inputs are given. Running single job."))
+        cmd_jobs = [RosettaCmdTask(cmd=_base_cmd)]
 
-        ret = Parallel(n_jobs=self.nproc, verbose=100)(delayed(Rosetta.execute)(cmd_job) for cmd_job in cmd_jobs)
-        # warnings.warn(UserWarning(str(ret)))
+        warnings.warn(UserWarning("No inputs are given. Running single job."))
+        return cmd_jobs
+
+    def setup_tasks_mpi(
+        self,
+        base_cmd: List[str],
+        inputs: Optional[List[Dict[str, Union[str, RosettaScriptsVariableGroup]]]] = None,
+        nstruct: Optional[int] = None,
+        dockerized: bool = False,
+    ) -> List[RosettaCmdTask]:
+        """
+        Setup a command using MPI.
+
+        :param cmd: Base command to be executed.
+        :param inputs: List of input dictionaries.
+        :param nstruct: Number of structures to generate.
+        :return: List of RosettaCmdTask
+        """
+        assert isinstance(
+            self.run_node, (MPI_node, RosettaContainer)
+        ), "MPI node/RosettaContainer instance is not initialized."
+
+        _base_cmd = copy.copy(base_cmd)
+        if inputs:
+            for i, _i in enumerate(inputs):
+                _base_cmd.extend(self.expand_input_dict(_i))
+
+        if nstruct:
+            _base_cmd.extend(["-nstruct", str(nstruct)])
+
+        if dockerized:
+            # skip setups of MPI_node because we have already recomposed.
+            return [RosettaCmdTask(cmd=_base_cmd)]
+
+        assert isinstance(self.run_node, (MPI_node)), "MPI node instance is required for MPI run."
+
+        with self.run_node.apply(_base_cmd) as updated_cmd:
+            if self.isolation:
+                warnings.warn(RuntimeWarning("Ignoring isolated mode for MPI run."))
+            return [RosettaCmdTask(cmd=updated_cmd)]
+
+    def run_mpi(
+        self,
+        tasks: List[RosettaCmdTask],
+    ) -> List[RosettaCmdTask]:
+
+        ret = Rosetta._non_isolated_execute(tasks[0])
+
+        return [ret]
+
+    def run_local(
+        self,
+        tasks: List[RosettaCmdTask],
+    ) -> List[RosettaCmdTask]:
+
+        ret = Parallel(n_jobs=self.nproc, verbose=100)(delayed(Rosetta.execute)(cmd_job) for cmd_job in tasks)
+        return list(ret)  # type: ignore
+
+    def run_local_docker(
+        self,
+        tasks: List[RosettaCmdTask],
+    ) -> List[RosettaCmdTask]:
+        assert isinstance(
+            self.run_node, RosettaContainer
+        ), "To run with local docker comtainer, you need to initialize RosettaContainer instance as self.run_node"
+
+        run_func = functools.partial(Rosetta.execute, func=self.run_node.run_single_task)
+        ret = Parallel(n_jobs=self.nproc, verbose=100)(delayed(run_func)(cmd_job) for cmd_job in tasks)
         return list(ret)  # type: ignore
 
     def run(
@@ -334,16 +309,29 @@ class Rosetta:
         :return: List of Nones.
         """
         cmd = self.compose(opts=self.opts)
-        if self.use_mpi and isinstance(self.mpi_node, MPI_node):
+        if self.use_mpi and isinstance(self.run_node, MPI_node):
             if inputs is not None:
                 warnings.warn(
                     MPI_IncompatibleInputWarning(
                         "Customized Inputs for MPI nodes will be flattened and passed to master node"
                     )
                 )
-            return self.run_mpi(cmd, inputs=inputs, nstruct=nstruct)
+            tasks = self.setup_tasks_mpi(base_cmd=cmd, inputs=inputs, nstruct=nstruct)
+            return self.run_mpi(tasks)
 
-        return self.run_local(cmd, inputs, nstruct)
+        if isinstance(self.run_node, RosettaContainer):
+            recomposed_cmd = self.run_node.recompose(cmd)
+            print(f"Recomposed Command: \n{recomposed_cmd}")
+            if self.run_node.mpi_available:
+                tasks = self.setup_tasks_mpi(base_cmd=recomposed_cmd, inputs=inputs, nstruct=nstruct, dockerized=True)
+                assert len(tasks) == 1, "Only one task should be returned from setup_tasks_mpi"
+                return [self.run_node.run_single_task(task=tasks[0])]
+            else:
+                tasks = self.setup_tasks_local(base_cmd=recomposed_cmd, inputs=inputs, nstruct=nstruct)
+                return self.run_local_docker(tasks)
+
+        tasks = self.setup_tasks_local(cmd, inputs, nstruct)
+        return self.run_local(tasks)
 
     def compose(self, **kwargs) -> List[str]:
         """
@@ -354,7 +342,11 @@ class Rosetta:
         assert isinstance(self.bin, RosettaBinary), "Rosetta binary must be a RosettaBinary object"
 
         cmd = [
-            self.bin.full_path,
+            (
+                self.bin.full_path
+                if not isinstance(self.run_node, RosettaContainer)
+                else f"/usr/local/bin/{self.bin.binary_name}"
+            )
         ]
         if self.flags:
             for flag in self.flags:
@@ -382,5 +374,7 @@ class Rosetta:
                     os.path.abspath(self.output_scorefile_dir),
                 ]
             )
+        if not self.verbose:
+            cmd.extend(["-mute", "all"])
 
         return cmd
