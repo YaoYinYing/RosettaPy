@@ -10,7 +10,7 @@ import pandas as pd
 from Bio.Data import IUPACData
 
 
-def get_stats(group):
+def get_stats(group: pd.DataFrame) -> Dict[str, Any]:
     return {"std": np.std(group), "mean": group.mean(), "nr": len(group)}
 
 

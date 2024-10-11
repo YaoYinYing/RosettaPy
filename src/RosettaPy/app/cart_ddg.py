@@ -1,7 +1,9 @@
 import os
 from typing import List, Optional, Tuple
 from dataclasses import dataclass
-from RosettaPy import Rosetta, RosettaScriptsVariableGroup, RosettaEnergyUnitAnalyser, MPI_node
+
+import pandas as pd
+from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser, RosettaCartesianddGAnalyser
 from RosettaPy.common.mutation import Mutant, mutants2mutfile
 from RosettaPy.utils import timing
 
@@ -91,9 +93,14 @@ class CartesianDDG:
         tasks = [{"-ddg:mut_file": mf, "-ddg:out": f"{m.raw_mutant_id}.out"} for mf, m in zip(mutfiles, mutants)]
 
         with timing("Cartesian ddG: Evaluation"):
-            rosetta.run(inputs=tasks)
+            task_list = rosetta.run(inputs=tasks)  # type: ignore
 
-        return RosettaEnergyUnitAnalyser(rosetta.output_scorefile_dir)
+        return pd.concat(
+            [
+                RosettaCartesianddGAnalyser(runtime_dir=task.runtime_dir, recursive=True).parse_ddg_files()
+                for task in task_list
+            ]
+        )
 
     def mut2mutfile(self) -> Tuple[List[str], List[Mutant]]:
         pdbs = [os.path.join(self.mutant_pdb_dir, f) for f in os.listdir(self.mutant_pdb_dir)]
@@ -115,8 +122,9 @@ def main():
     cart_ddg = CartesianDDG(pdb="tests/data/3fap_hf3_A_short.pdb")
 
     pdb_path = cart_ddg.relax()
+    df = cart_ddg.cartesian_ddg(input_pdb=pdb_path)
 
-    cart_ddg.cartesian_ddg(input_pdb=pdb_path)
+    print(df)
 
 
 if __name__ == "__main__":

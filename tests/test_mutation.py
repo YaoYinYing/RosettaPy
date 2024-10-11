@@ -158,8 +158,7 @@ def test_mutant_from_pdb():
     """
     Test creating Mutant objects from PDB files using mock data.
     """
-    # mocker.patch("biotite.structure.io.load_structure")
-    # mocker.patch("biotite.structure.to_sequence", return_value=("AAAAAAA", 1))
+
 
     mutants = Mutant.from_pdb(sample_wt_pdb, sample_mutant_pdbs)
 

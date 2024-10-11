@@ -30,7 +30,6 @@ dependencies = [
     "absl-py",
     "pandas",
     "biopython",
-    "biotite",
     "rdkit",
     "numpy>=1.20.3,<3",
     "matplotlib"

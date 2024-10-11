@@ -1,11 +1,14 @@
 from dataclasses import dataclass, field
 import os
-from typing import List
+from typing import List, Union
 import warnings
 
-import biotite.structure as struc
-import biotite.structure.io as strucio
-import numpy as np
+
+from Bio.PDB.PDBExceptions import PDBConstructionWarning
+
+from Bio.PDB import PDBParser, PPBuilder  # type: ignore
+
+warnings.filterwarnings("ignore", category=PDBConstructionWarning)
 
 
 @dataclass
@@ -41,6 +44,52 @@ class Chain:
         Returns the length of the chain sequence.
         """
         return len(self.sequence)
+
+
+def parse_pdb_sequences(pdb_filename: str) -> Union[List[Chain], None]:
+    """
+    Parse sequences from a PDB file using Biopython.
+
+    Parameters:
+    pdb_filename (str): Path to the PDB file.
+
+    Returns:
+    dict: A dictionary mapping chain IDs to their sequences.
+    """
+    if not os.path.exists(pdb_filename):
+        raise FileNotFoundError(f"PDB file {pdb_filename} not found.")
+
+    parser = PDBParser()
+    try:
+        structure = parser.get_structure(os.path.basename(pdb_filename)[:-4], pdb_filename)
+    except AttributeError:
+        warnings.warn(
+            UserWarning(
+                "Failed to parse PDB file. " "This might be due to the use of a deprecated version of Biopython."
+            )
+        )
+        import Bio
+
+        raise NotImplementedError(f"Biopython version ({Bio.__version__}) not supported.")
+    ppb = PPBuilder()
+
+    if structure is None or len(structure) == 0:
+        raise ValueError("Invalid PDB file.")
+
+    chains: List[Chain] = []
+
+    for model in structure:
+
+        for chain in model:
+            chain_id = chain.get_id()
+            polypeptides = ppb.build_peptides(chain)
+
+            seq = "".join([str(pp.get_sequence()) for pp in polypeptides])
+
+            chains.append(Chain(chain_id=str(chain_id), sequence=seq))
+
+        # only the first model is considered
+        return chains
 
 
 @dataclass
@@ -93,34 +142,38 @@ class RosettaPyProteinSequence:
             ProteinSequence: An instance of ProteinSequence populated with chains
                              from the PDB structure.
         """
-        # Load PDB file
-        structure = strucio.load_structure(pdb_file, model=1)
 
-        chains = []
-        unique_chains = np.unique(structure.chain_id)  # type: ignore # Use numpy.unique() instead of .unique() on the array
-        for chain_id in unique_chains:
-            # Get atoms from the current chain
-            chain_atoms = structure[structure.chain_id == chain_id]  # type: ignore
+        chains = parse_pdb_sequences(pdb_file)
+        if chains is None:
+            raise RuntimeError(f"Failed to parse PDB file {pdb_file}.")
+        # # Load PDB file
+        # structure = strucio.load_structure(pdb_file, model=1)
 
-            # Convert the chain atoms to a sequence of amino acids
-            if hasattr(struc, "to_sequence"):  # Biotite v1.0.1
-                sequence, chain_starts = struc.to_sequence(chain_atoms)  # type: ignore
-                sequence = str(sequence[0])
-            else:
-                import biotite
-                import biotite.structure.residues as res
-                from Bio.Data import IUPACData
+        # chains = []
+        # unique_chains = np.unique(structure.chain_id)  # type: ignore # Use numpy.unique() instead of .unique() on the array
+        # for chain_id in unique_chains:
+        #     # Get atoms from the current chain
+        #     chain_atoms = structure[structure.chain_id == chain_id]  # type: ignore
 
-                warnings.warn(DeprecationWarning(f"Detected Biotite v{biotite.__version__}."))
+        # # Convert the chain atoms to a sequence of amino acids
+        # if hasattr(struc, "to_sequence"):  # Biotite v1.0.1
+        #     sequence, chain_starts = struc.to_sequence(chain_atoms)  # type: ignore
+        #     sequence = str(sequence[0])
+        # else:
+        #     import biotite
+        #     import biotite.structure.residues as res
+        #     from Bio.Data import IUPACData
 
-                # Get residue codes for the current chain
-                residue_ids = res.get_residues(chain_atoms)[1]  # Get residue indices
+        #     warnings.warn(DeprecationWarning(f"Detected Biotite v{biotite.__version__}."))
 
-                # Convert the ProteinSequence to a string of one-letter codes
-                sequence = "".join([IUPACData.protein_letters_3to1[str(resn).title()] for resn in residue_ids])
+        #     # Get residue codes for the current chain
+        #     residue_ids = res.get_residues(chain_atoms)[1]  # Get residue indices
 
-            # Add the chain to the ProteinSequence
-            chains.append(Chain(chain_id=str(chain_id), sequence=str(sequence)))
+        #     # Convert the ProteinSequence to a string of one-letter codes
+        #     sequence = "".join([IUPACData.protein_letters_3to1[str(resn).title()] for resn in residue_ids])
+
+        # # Add the chain to the ProteinSequence
+        # chains.append(Chain(chain_id=str(chain_id), sequence=str(sequence)))
 
         return cls(chains=chains)
 
