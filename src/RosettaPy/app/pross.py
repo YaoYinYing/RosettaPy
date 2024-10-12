@@ -62,7 +62,7 @@ class PROSS:
             output_dir=refinement_dir,
             save_all_together=False,
             job_id="pross_refinement",
-            # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi"),
+            # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi", prohibit_mpi=True),
         )
 
         with timing("PROSS: Refinement"):
@@ -123,7 +123,7 @@ class PROSS:
             output_dir=self.filterscan_dir,
             save_all_together=True,
             job_id=f"{self.instance}.filterscan",
-            # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:latest"),
+            # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi", prohibit_mpi=True),
         )
 
         with timing("PROSS: Filterscan"):
@@ -212,7 +212,7 @@ class PROSS:
             output_dir=design_dir,
             save_all_together=False,
             job_id=f"{self.instance}_design",
-            # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:latest"),
+            # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi", prohibit_mpi=True),
         )
 
         with timing("PROSS: Design"):

@@ -26,12 +26,16 @@ class RosettaContainer:
     mpi_available: bool = False
     user: str = f"{os.geteuid()}:{os.getegid()}"
     nproc: int = 0
+    prohibit_mpi: bool = False  # to overide the mpi_available flag
 
     def __post_init__(self):
         if self.image.endswith("mpi"):
             self.mpi_available = True
         if self.nproc <= 0:
             self.nproc = 4
+
+        if self.prohibit_mpi:
+            self.mpi_available = False
 
     @staticmethod
     def mounted_name(path: str) -> str:
@@ -59,7 +63,7 @@ class RosettaContainer:
             # file and dir exists
             if os.path.isfile(_cmd) or os.path.isdir(_cmd):
                 mount, mounted = self._create_mount(self.mounted_name(_cmd), _cmd)
-                if mounted not in _mounted_paths:
+                if all(m != mount for m in _mounts):
                     _mounts.append(mount)
                     _mounted_paths.append(mounted)
                 mounted_cmd.append(mounted)
@@ -71,7 +75,8 @@ class RosettaContainer:
                 _flag_file = _cmd[1:]
                 mount, mounted = self._create_mount(self.mounted_name(_flag_file), _flag_file)
                 mounted_cmd.append(f"@{mounted}")
-                _mounts.append(mount)
+                if all(m != mount for m in _mounts):
+                    _mounts.append(mount)
                 continue
 
             # Rosetta_script vars input, k=v
@@ -80,7 +85,7 @@ class RosettaContainer:
                 if os.path.isfile(script_vars[1]) or os.path.isdir(script_vars[1]):
 
                     mount, mounted = self._create_mount(self.mounted_name(script_vars[1]), script_vars[1])
-                    if mounted not in _mounted_paths:
+                    if all(m != mount for m in _mounts):
                         _mounts.append(mount)
                         _mounted_paths.append(mounted)
                     mounted_cmd.append(f"{script_vars[0]}={mounted}")
@@ -94,10 +99,18 @@ class RosettaContainer:
         if input_task.base_dir is not None:
             os.makedirs(input_task.base_dir, exist_ok=True)
             mount, mounted_base_dir = self._create_mount(self.mounted_name(input_task.base_dir), input_task.base_dir)
-            if mounted_base_dir not in _mounted_paths:
+            if all(m != mount for m in _mounts):
                 _mounts.append(mount)
+                _mounted_paths.append(mounted_base_dir)
         else:
             mounted_base_dir = ""
+
+        curdir = os.getcwd()
+        mount, mounted_curdir = self._create_mount(self.mounted_name(curdir), curdir)
+        print(f"Curdir ({curdir}) is mounted as {mounted_curdir}")
+        if all(m != mount for m in _mounts):
+            _mounts.append(mount)
+            _mounted_paths.append(mounted_curdir)
 
         mounted_task = RosettaCmdTask(cmd=mounted_cmd, task_label=input_task.task_label, base_dir=mounted_base_dir)
 
@@ -128,6 +141,11 @@ class RosettaContainer:
             user=self.user,
             stdout=True,
             stderr=True,
+            working_dir=(
+                mounted_task.runtime_dir
+                if mounted_task.base_dir is not None and mounted_task.task_label is not None
+                else None
+            ),
         )
 
         # Add signal handler to ensure CTRL+C also stops the running container.

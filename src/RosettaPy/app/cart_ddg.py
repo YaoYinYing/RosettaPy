@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import pandas as pd
 from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser, RosettaCartesianddGAnalyser
 from RosettaPy.common.mutation import Mutant, mutants2mutfile
+from RosettaPy.node import RosettaContainer
 from RosettaPy.utils import timing
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -48,6 +49,7 @@ class CartesianDDG:
             save_all_together=True,
             output_dir=os.path.join(self.save_dir, f"{self.job_id}_relax"),
             job_id=f"cart_ddg_relax_{self.instance}",
+            # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi"),
         )
 
         with timing("Cartesian ddG: Relax"):
@@ -86,6 +88,7 @@ class CartesianDDG:
             save_all_together=True,
             output_dir=os.path.join(self.save_dir, f"{self.job_id}_cart_ddg"),
             job_id=f"cart_ddg_run_{self.instance}",
+            # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi", prohibit_mpi=True),
         )
 
         mutfiles, mutants = self.mut2mutfile()

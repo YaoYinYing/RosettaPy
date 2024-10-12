@@ -50,7 +50,7 @@ def supercharge(
         ],
         save_all_together=True,
         isolation=True,
-        # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:latest"),
+        # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi", prohibit_mpi=True),
     )
     instance = os.path.basename(pdb)[:-4]
 

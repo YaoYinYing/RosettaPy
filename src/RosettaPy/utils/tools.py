@@ -26,14 +26,15 @@ def tmpdir_manager(base_dir: Optional[str] = None):
 
 
 @contextlib.contextmanager
-def isolate(save_to: str = "./save", base_dir: Optional[str] = None):
+def isolate(save_to: str = "./save"):
     """Context manager that isolate threads from file system."""
     save_to = os.path.abspath(save_to)
-    tmpdir = tempfile.mkdtemp(dir=base_dir)
+    os.makedirs(save_to, exist_ok=True)
+    # tmpdir = tempfile.mkdtemp(dir=base_dir)
     curdir = os.getcwd()  # save current directory path
-    os.chdir(tmpdir)  # change to tmp dir
+    os.chdir(save_to)  # change to tmp dir
     try:
         yield
     finally:
         os.chdir(curdir)  # change back to previous curdir
-        shutil.move(tmpdir, save_to)  # move any files to target dir
+        # shutil.move(tmpdir, save_to)  # move any files to target dir

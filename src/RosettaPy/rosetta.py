@@ -100,8 +100,6 @@ class Rosetta:
         """
         Post-initialization setup for the Rosetta job configuration.
         """
-        if self.isolation and isinstance(self.run_node, RosettaContainer):
-            raise NotImplementedError("Container mode does not support isolation.")
 
         if self.flags is None:
             self.flags = []
