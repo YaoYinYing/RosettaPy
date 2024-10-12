@@ -1,12 +1,10 @@
-import copy
-from dataclasses import dataclass, field
-
-from typing import Callable, Dict, List, Optional, Union
-import subprocess
 import os
+import copy
+import subprocess
 import functools
-
 import warnings
+from dataclasses import dataclass, field
+from typing import Callable, Dict, List, Optional, Union
 from datetime import datetime
 
 from joblib import Parallel, delayed
@@ -128,10 +126,30 @@ class Rosetta:
             self.use_mpi = False
 
     @staticmethod
-    def _isolated_execute(task: RosettaCmdTask, func: Callable) -> RosettaCmdTask:
+    def _isolated_execute(task: RosettaCmdTask, func: Callable[[RosettaCmdTask], RosettaCmdTask]) -> RosettaCmdTask:
+        """
+        Executes a given task in an isolated environment.
+
+        This method is used to run a specific function within an isolated context,
+        ensuring that the execution of the task is separated from the global environment.
+        It is typically used for scenarios requiring a clean or restricted execution context.
+
+        Parameters:
+        - task (RosettaCmdTask): A task object containing necessary information.
+        - func (Callable[[RosettaCmdTask], RosettaCmdTask]): A function that takes and returns a RosettaCmdTask object,
+        which will be executed within the isolated environment.
+
+        Returns:
+        - RosettaCmdTask: The task object after execution.
+
+        Raises:
+        - ValueError: If the task label (task_label) or base directory (base_dir) is missing.
+        """
+        # Check if the task label exists; raise an exception if it does not
         if not task.task_label:
             raise ValueError("Task label is required when executing the command in isolated mode.")
 
+        # Check if the base directory exists; raise an exception if it does not
         if not task.base_dir:
             raise ValueError("Base directory is required when executing the command in isolated mode.")
 
@@ -139,7 +157,24 @@ class Rosetta:
             return func(task)
 
     @staticmethod
-    def execute(task: RosettaCmdTask, func: Optional[Callable] = None) -> RosettaCmdTask:
+    def execute(
+        task: RosettaCmdTask, func: Optional[Callable[[RosettaCmdTask], RosettaCmdTask]] = None
+    ) -> RosettaCmdTask:
+        """
+        Executes the given task with support for both non-isolated and isolated execution modes,
+        which can be customized via the provided function argument.
+
+        :param task: The task object to be executed, encapsulating the specific content to run.
+        :param func: An optional parameter specifying the function to execute the task. If not provided,
+                     defaults to a non-isolated execution mode.
+        :return: The task object after execution.
+
+        Notes:
+        - If no task label (task_label) is specified, the task is executed directly using the specified function.
+        - Otherwise, the task is executed in an isolated mode.
+        - If the function argument func is not provided, a default non-isolated execution mode is used.
+        """
+        # Use the default non-isolated execution mode if no function is provided
         if func is None:
             func = Rosetta._non_isolated_execute
         if not task.task_label:
@@ -151,17 +186,23 @@ class Rosetta:
         """
         Executes a command and handles its output and errors.
 
-        :param cmd: Command to be executed.
+        :param task: The command task to execute, containing the command and its configuration.
+        :return: Returns the command task object after execution, including the command execution results.
         """
+        # Use subprocess.Popen to execute the command, redirecting output and setting encoding to UTF-8.
         process = subprocess.Popen(
             task.cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, encoding="utf-8"
         )
 
-        print(f'Lauching command: {" ".join(task.cmd)}')
+        # Print command execution information.
+        print(f'Launching command: {" ".join(task.cmd)}')
+        # Communicate to get the command's output and error.
         stdout, stderr = process.communicate()
+        # Wait for the command to complete and get the return code.
         retcode = process.wait()
 
         if retcode:
+            # If the command fails, print the failure message and raise an exception.
             print(f"Command failed with return code {retcode}")
             print(stdout)
             warnings.warn(RuntimeWarning(stderr))
@@ -272,16 +313,46 @@ class Rosetta:
         self,
         tasks: List[RosettaCmdTask],
     ) -> List[RosettaCmdTask]:
+        """
+        Execute tasks using MPI.
 
+        This method is designed to execute a given list of tasks using MPI (Message Passing Interface), which is a programming model for distributed memory systems that allows developers to write highly scalable parallel applications.
+
+        Parameters:
+        - self: Instance reference, allowing access to other methods and attributes of the class.
+        - tasks: A list of RosettaCmdTask objects representing the tasks to be executed.
+
+        Returns:
+        - A list containing RosettaCmdTask objects representing the results of the executed tasks.
+
+        Note:
+        - This method is particularly suitable for tasks requiring execution in a parallel computing environment.
+        - The current implementation only executes the first task in the list, ignoring the rest.
+        """
+
+        # Execute the first task non-isolately
         ret = Rosetta._non_isolated_execute(tasks[0])
 
+        # Return the result as a list
         return [ret]
 
     def run_local(
         self,
         tasks: List[RosettaCmdTask],
     ) -> List[RosettaCmdTask]:
+        """
+        Execute a list of Rosetta command tasks locally in parallel.
 
+        This method runs the provided Rosetta command tasks concurrently using multiple processors
+        to improve efficiency and speed up the execution of large sets of tasks.
+
+        Parameters:
+        - self: The instance of the class.
+        - tasks (List[RosettaCmdTask]): A list of Rosetta command tasks to be executed.
+
+        Returns:
+        - List[RosettaCmdTask]: A list of executed Rosetta command tasks.
+        """
         ret = Parallel(n_jobs=self.nproc, verbose=100)(delayed(Rosetta.execute)(cmd_job) for cmd_job in tasks)
         return list(ret)  # type: ignore
 
@@ -289,12 +360,27 @@ class Rosetta:
         self,
         tasks: List[RosettaCmdTask],
     ) -> List[RosettaCmdTask]:
+        """
+        Executes a list of Rosetta command tasks using a local Docker container.
+
+        Parameters:
+            tasks (List[RosettaCmdTask]): A list of Rosetta command tasks to be executed.
+
+        Returns:
+            List[RosettaCmdTask]: The results of the executed tasks.
+        """
+        # Ensure that the run_node is an instance of RosettaContainer
         assert isinstance(
             self.run_node, RosettaContainer
-        ), "To run with local docker comtainer, you need to initialize RosettaContainer instance as self.run_node"
+        ), "To run with local docker container, you need to initialize RosettaContainer instance as self.run_node"
 
+        # Define a partial function to execute tasks using the run_node
         run_func = functools.partial(Rosetta.execute, func=self.run_node.run_single_task)
+
+        # Execute tasks in parallel using multiple jobs
         ret = Parallel(n_jobs=self.nproc, verbose=100)(delayed(run_func)(cmd_job) for cmd_job in tasks)
+
+        # Convert the result to a list and return
         return list(ret)  # type: ignore
 
     def run(
@@ -307,7 +393,7 @@ class Rosetta:
 
         :param inputs: List of input dictionaries.
         :param nstruct: Number of structures to generate.
-        :return: List of Nones.
+        :return: List of RosettaCmdTask.
         """
         cmd = self.compose(opts=self.opts)
         if self.use_mpi and isinstance(self.run_node, MPI_node):

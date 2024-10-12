@@ -64,17 +64,30 @@ class RosettaScriptsVariableGroup:
 
 @dataclass
 class RosettaCmdTask:
-    cmd: List[str]
-    task_label: Optional[str] = None
+    cmd: List[str]  # The command list for the task
+    task_label: Optional[str] = None  # The label of the task, optional
     base_dir: Optional[str] = None  # a base directory for run local task
 
     @property
     def runtime_dir(self) -> str:  # The directory for storing runtime output
+        """
+        Determine the runtime directory for the task.
+
+        If the task_label is not provided, it returns the current working directory or the base directory as specified.
+        If the task_label is provided, it joins the base directory (or the current working directory if base_dir is not set)
+        with the task_label to form the runtime directory.
+
+        Returns:
+            str: The runtime directory path.
+        """
         if not self.task_label:
+            # Return the current working directory or the base directory based on the configuration
             return os.getcwd() if not self.base_dir else self.base_dir
 
         if self.base_dir is None:
+            # Warn the user if base_dir is not set and fix it to the current working directory
             warnings.warn("Fixing base_dir to curdir")
             self.base_dir = os.getcwd()
 
+        # Return the runtime directory composed of base_dir and task_label
         return os.path.join(self.base_dir, self.task_label)

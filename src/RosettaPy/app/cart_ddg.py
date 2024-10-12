@@ -1,11 +1,10 @@
 import os
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 from dataclasses import dataclass
 
 import pandas as pd
 from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser, RosettaCartesianddGAnalyser
 from RosettaPy.common.mutation import Mutant, mutants2mutfile
-from RosettaPy.node import RosettaContainer
 from RosettaPy.utils import timing
 
 script_dir = os.path.dirname(os.path.abspath(__file__))

@@ -1,7 +1,6 @@
 import os
 from typing import List, Optional
 from RosettaPy import Rosetta
-from RosettaPy.node import RosettaContainer
 from RosettaPy.rosetta import RosettaCmdTask
 
 

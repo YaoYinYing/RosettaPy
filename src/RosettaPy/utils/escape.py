@@ -1,6 +1,17 @@
 class Colors:
-    """ANSI color codes
-    https://gist.github.com/rene-d/9e584a7dd2935d0f461904b9f2950007
+    """Class for ANSI color codes, used to output colored and formatted text on supported terminals.
+
+    source: https://gist.github.com/rene-d/9e584a7dd2935d0f461904b9f2950007
+
+    This class provides various ANSI escape codes for colors and text formatting, enabling the addition of color or visual changes to text on compatible terminals.
+    It checks `sys.stdout.isatty()` to determine whether to enable these escape codes when not outputting to a terminal.
+    On Windows systems, if running in a terminal is detected, the `SetConsoleMode` function is used to enable VT mode for supporting ANSI escape codes.
+
+    Attributes:
+        BLACK, RED, GREEN, BROWN, BLUE, PURPLE, CYAN, LIGHT_GRAY,
+        DARK_GRAY, LIGHT_RED, LIGHT_GREEN, YELLOW, LIGHT_BLUE,
+        LIGHT_PURPLE, LIGHT_CYAN, LIGHT_WHITE, BOLD, FAINT, ITALIC,
+        UNDERLINE, BLINK, NEGATIVE, CROSSED, RESET
     """
 
     BLACK = "\033[0;30m"
@@ -28,13 +39,13 @@ class Colors:
     CROSSED = "\033[9m"
     RESET = "\033[0m"
 
-    # cancel SGR codes if we don't write to a terminal
+    # Cancel SGR codes if not writing to a terminal
     if not __import__("sys").stdout.isatty():
         for _ in dir():
             if isinstance(_, str) and _[0] != "_":
                 locals()[_] = ""
     else:
-        # set Windows console in VT mode
+        # Set Windows console in VT mode
         if __import__("platform").system() == "Windows":
             kernel32 = __import__("ctypes").windll.kernel32
             kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)

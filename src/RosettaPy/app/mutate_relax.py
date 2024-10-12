@@ -6,7 +6,6 @@ from Bio.Data import IUPACData
 from Bio.SeqIO import parse
 
 from RosettaPy import Rosetta, RosettaScriptsVariableGroup, RosettaEnergyUnitAnalyser
-from RosettaPy.node import RosettaContainer
 from RosettaPy.utils import timing
 
 

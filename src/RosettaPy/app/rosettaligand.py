@@ -5,7 +5,6 @@ import warnings
 from RosettaPy import Rosetta, RosettaScriptsVariableGroup, RosettaEnergyUnitAnalyser
 from RosettaPy.rosetta import IgnoreMissingFileWarning
 from RosettaPy.utils import timing
-from RosettaPy.node import RosettaContainer
 
 
 script_dir = os.path.dirname(os.path.abspath(__file__))

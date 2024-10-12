@@ -4,7 +4,6 @@ import warnings
 
 
 from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser
-from RosettaPy.node import RosettaContainer
 from RosettaPy.utils import timing
 
 

@@ -1,9 +1,8 @@
 import os
 from typing import List, Optional
 from dataclasses import dataclass
-from RosettaPy import Rosetta, RosettaScriptsVariableGroup, RosettaEnergyUnitAnalyser, MPI_node
-from RosettaPy.utils import timing, RosettaCmdTask
-from RosettaPy.node import RosettaContainer
+from RosettaPy import Rosetta, RosettaScriptsVariableGroup, RosettaEnergyUnitAnalyser
+from RosettaPy.utils import timing
 from RosettaPy.app.utils import PDBProcessor
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
