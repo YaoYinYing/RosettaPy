@@ -96,7 +96,7 @@ class RosettaLigand:
             save_all_together=False,
             job_id=f"{self.instance}_{self.job_id}",
             # mpi_node=MPI_node(nproc=os.cpu_count()),
-            run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi"),
+            # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi"),
         )
 
         with timing("RosettaLigand: Docking"):

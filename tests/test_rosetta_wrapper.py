@@ -160,7 +160,7 @@ def test_rosetta_run_local(mock_popen, mock_isfile, mock_which, temp_dir):
     # mock_process.wait.return_value = 0
     mock_popen.return_value = mock_process
 
-    rosetta = Rosetta(bin=rosetta_binary, nproc=2, flags=["flags.txt"], opts=["-in:file:s", "input.pdb"])
+    rosetta = Rosetta(bin=rosetta_binary, nproc=2, flags=["flags.txt"], opts=["-in:file:s", "input.pdb"], verbose=True)
     cmd = rosetta.compose()
 
     assert cmd == [rosetta_binary.full_path, f"@{os.path.abspath('flags.txt')}", "-in:file:s", "input.pdb"]
@@ -193,7 +193,7 @@ def test_rosetta_run_mpi(mock_popen, mock_isfile, mock_which, temp_dir, user, ui
     rosetta_binary = RosettaBinary(temp_dir, "rosetta_scripts", "mpi", "linux", "gcc", "release")
     mpi_node = MPI_node(nproc=4)
     mpi_node.user = uid
-    rosetta = Rosetta(bin=rosetta_binary, run_node=mpi_node)
+    rosetta = Rosetta(bin=rosetta_binary, run_node=mpi_node, verbose=True)
 
     # Mock the process
     mock_process = MagicMock()
@@ -254,7 +254,7 @@ def test_rosetta_compose(mock_isfile, temp_dir):
     os.chmod(str(file_path), 0o755)
     rosetta_binary = RosettaFinder().find_binary("rosetta_scripts")
 
-    rosetta = Rosetta(bin=rosetta_binary, flags=["flags.txt"], opts=["-in:file:s", "input.pdb"])
+    rosetta = Rosetta(bin=rosetta_binary, flags=["flags.txt"], opts=["-in:file:s", "input.pdb"], verbose=True)
 
     expected_cmd = [rosetta_binary.full_path, f"@{os.path.abspath('flags.txt')}", "-in:file:s", "input.pdb"]
     cmd = rosetta.compose()

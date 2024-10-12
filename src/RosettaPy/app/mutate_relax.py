@@ -6,6 +6,7 @@ from Bio.Data import IUPACData
 from Bio.SeqIO import parse
 
 from RosettaPy import Rosetta, RosettaScriptsVariableGroup, RosettaEnergyUnitAnalyser
+from RosettaPy.node import RosettaContainer
 from RosettaPy.utils import timing
 
 
@@ -46,6 +47,7 @@ class ScoreClusters:
             output_dir=score_dir,
             save_all_together=True,
             job_id=f"branch_{branch}",
+            # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:latest"),
         )
 
         branch_tasks = [

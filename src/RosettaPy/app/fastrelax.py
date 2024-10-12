@@ -96,7 +96,7 @@ class FastRelax:
             save_all_together=True,
             output_dir=os.path.join(self.save_dir, self.job_id),
             job_id=f"fastrelax_{self.instance}_{os.path.basename(self.relax_script)}",
-            run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:latest"),
+            # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:latest"),
         )
 
         with timing("FastRelax"):
