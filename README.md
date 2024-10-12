@@ -38,24 +38,30 @@ A Python utility for wrapping Rosetta command line tools.
 
 `RosettaPy` is a Python module designed to locate Rosetta biomolecular modeling suite binaries that follow a specific naming pattern and execute Rosetta in command line. The module includes:
 
+### Building Blocks
+
 - An object-oriented `RosettaFinder` class to search for binaries.
 - A `RosettaBinary` dataclass to represent the binary and its attributes.
+- A `RosettaCmdTask` dataclass to represent a single Rosetta run task.
+- A `RosettaContainer` dataclass to wrap runs into Rosetta Containers.
+- A `MPI_node` dataclass to manage MPI resourses. _Not Seriously Tested_
 - A command-line wrapper dataclass `Rosetta` for handling Rosetta runs.
 - A `RosettaScriptsVariableGroup` dataclass to represent Rosetta scripts variables.
-- A simplified result analyzer `RosettaEnergyUnitAnalyser` to read and interpret Rosetta output score files.
+- A general and simplified result analyzer `RosettaEnergyUnitAnalyser` to read and interpret Rosetta output score files.
 - A series of example applications that follow the design elements and patterns described above.
   - PROSS
   - FastRelax
   - RosettaLigand
   - Supercharge
   - MutateRelax
-  - Cartesian ddG (on the way)
+  - Cartesian ddG (Analyser: `RosettaCartesianddGAnalyser`)
 - Unit tests to ensure reliability and correctness.
 
 ## Features
 
 - **Flexible Binary Search**: Finds Rosetta binaries based on their naming convention.
 - **Platform Support**: Supports Linux and macOS operating systems.
+- **Container Support**: Works with Docker containers running upon the official Rosetta Docker image.
 - **Customizable Search Paths**: Allows specification of custom directories to search.
 - **Structured Binary Representation**: Uses a dataclass to encapsulate binary attributes.
 - **Command-Line Shortcut**: Provides a quick way to find binaries via the command line.
@@ -97,60 +103,12 @@ pip install RosettaPy -U
 
 ## Usage
 
-### Command-Line Shortcut
-
-`RosettaPy` provides a command-line shortcut to quickly locate Rosetta binaries.
-
-#### Using the `whichrosetta` Command
-
-After installing `RosettaPy`, you can use the `whichrosetta` command in your terminal.
-
-```bash
-whichrosetta <binary_name>
-```
-
-**Example:**
-
-To find the `relax` binary:
-
-```bash
-relax_bin=$(whichrosetta relax)
-echo $relax_bin
-```
-
-This command assigns the full path of the `relax` binary to the `relax_bin` variable and prints it.
-
-### Importing the Module
-
-You can also use `RosettaPy` in your Python scripts.
-
-```python
-from RosettaPy import RosettaFinder, RosettaBinary
-```
-
-### Finding a Rosetta Binary in Python
-
-```python
-# Initialize the finder (optional custom search path)
-finder = RosettaFinder(search_path='/custom/path/to/rosetta/bin')
-
-# Find the binary (default is 'rosetta_scripts')
-rosetta_binary = finder.find_binary('rosetta_scripts')
-
-# Access binary attributes
-print(f"Binary Name: {rosetta_binary.binary_name}")
-print(f"Mode: {rosetta_binary.mode}")
-print(f"OS: {rosetta_binary.os}")
-print(f"Compiler: {rosetta_binary.compiler}")
-print(f"Release: {rosetta_binary.release}")
-print(f"Full Path: {rosetta_binary.full_path}")
-```
-
-### Wrapping the Rosetta
+### Building Your Own Rosetta Workflow
 
 ```python
 # Imports
-from RosettaPy import Rosetta, RosettaScriptsVariableGroup, RosettaEnergyUnitAnalyser,
+from RosettaPy import Rosetta, RosettaScriptsVariableGroup, RosettaEnergyUnitAnalyser
+from RosettaPy.node import RosettaContainer
 
 # Create a Rosetta object with the desired parameters
 rosetta = Rosetta(
@@ -163,9 +121,18 @@ rosetta = Rosetta(
     output_dir=...,
     save_all_together=True,
     job_id=...,
+
+    # Some Rosetta Apps (Superchange, Cartesian ddG, etc.) may produce files in the working directory,
+    # and this may not threadsafe if one runs multiple jobs in parallel in the same directory.
+    # In this case, the `isolation` flag can be used to create a temporary directory for each run.
+    # isolation=True,
+
+    # Optionally, if one wishes to use the Rosetta container.
+    # The image name can be found at https://hub.docker.com/r/rosettacommons/rosetta
+    # run_node=RosettaContainer(image="rosettacommons/rosetta:latest")
 )
 
-# Run with the Rosetta tasks
+# Compose your Rosetta tasks matrix
 tasks = [ # Create tasks for each variant
     {
         "rsv": RosettaScriptsVariableGroup.from_dict(
@@ -181,18 +148,19 @@ tasks = [ # Create tasks for each variant
     for variant in variants
 ]
 
-# Run the tasks
+# Run Rosetta against these tasks
 rosetta.run(inputs=tasks)
 
 # Or create a distributed runs with structure labels (-nstruct)
 options=[...] # Passing an optional list of options that will be used to all structure models
-rosetta.run(nstruct=nstruct, inputs=options)
+rosetta.run(nstruct=nstruct, inputs=options) # input options will be passed to all runs equally
 
-# Analyze the results
+# Use Analyzer to check the results
 analyser = RosettaEnergyUnitAnalyser(score_file=rosetta.output_scorefile_dir)
 best_hit = analyser.best_decoy
 pdb_path = os.path.join(rosetta.output_pdb_dir, f'{best_hit["decoy"]}.pdb')
 
+# Ta-da !!!
 print("Analysis of the best decoy:")
 print("-" * 79)
 print(analyser.df.sort_values(by=analyser.score_term))
