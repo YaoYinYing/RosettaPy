@@ -66,15 +66,15 @@ class RosettaScriptsVariableGroup:
 class RosettaCmdTask:
     cmd: List[str]
     task_label: Optional[str] = None
-    base_dir: Optional[str] = "tests/outputs/runtimes/"  # a base directory for run local task
+    base_dir: Optional[str] = None  # a base directory for run local task
 
     @property
     def runtime_dir(self) -> str:  # The directory for storing runtime output
         if not self.task_label:
-            raise ValueError("task_label is required for calling this attribute")
+            return os.getcwd() if not self.base_dir else self.base_dir
 
-        if not self.base_dir:
-            warnings.warn("Fixing base_dir to `runtime`")
-            self.base_dir = os.path.abspath("runtime")
+        if self.base_dir is None:
+            warnings.warn("Fixing base_dir to curdir")
+            self.base_dir = os.getcwd()
 
         return os.path.join(self.base_dir, self.task_label)

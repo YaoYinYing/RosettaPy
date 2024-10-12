@@ -123,6 +123,7 @@ class PROSS:
             output_dir=self.filterscan_dir,
             save_all_together=True,
             job_id=f"{self.instance}.filterscan",
+            # verbose=True,
             # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi", prohibit_mpi=True),
         )
 

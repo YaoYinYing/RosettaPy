@@ -96,23 +96,18 @@ class RosettaContainer:
             # binary name, etc.
             mounted_cmd.append(_cmd)
 
-        if input_task.base_dir is not None:
-            os.makedirs(input_task.base_dir, exist_ok=True)
-            mount, mounted_base_dir = self._create_mount(self.mounted_name(input_task.base_dir), input_task.base_dir)
-            if all(m != mount for m in _mounts):
-                _mounts.append(mount)
-                _mounted_paths.append(mounted_base_dir)
-        else:
-            mounted_base_dir = ""
-
-        curdir = os.getcwd()
-        mount, mounted_curdir = self._create_mount(self.mounted_name(curdir), curdir)
-        print(f"Curdir ({curdir}) is mounted as {mounted_curdir}")
+        os.makedirs(input_task.runtime_dir, exist_ok=True)
+        mount, mounted_runtime_dir = self._create_mount(
+            self.mounted_name(input_task.runtime_dir), input_task.runtime_dir
+        )
         if all(m != mount for m in _mounts):
             _mounts.append(mount)
-            _mounted_paths.append(mounted_curdir)
+            _mounted_paths.append(mounted_runtime_dir)
 
-        mounted_task = RosettaCmdTask(cmd=mounted_cmd, task_label=input_task.task_label, base_dir=mounted_base_dir)
+        mounted_task = RosettaCmdTask(
+            cmd=mounted_cmd,
+            base_dir=mounted_runtime_dir,
+        )
 
         return mounted_task, _mounts
 
@@ -131,6 +126,7 @@ class RosettaContainer:
         mounted_task, mounts = self.mount(input_task=task)
         client = docker.from_env()
         print(f"Mounted with Command: {mounted_task.cmd}")
+        print(f"Working directory: {mounted_task.runtime_dir}")
 
         container = client.containers.run(
             image=self.image,
@@ -141,11 +137,7 @@ class RosettaContainer:
             user=self.user,
             stdout=True,
             stderr=True,
-            working_dir=(
-                mounted_task.runtime_dir
-                if mounted_task.base_dir is not None and mounted_task.task_label is not None
-                else None
-            ),
+            working_dir=mounted_task.runtime_dir,
         )
 
         # Add signal handler to ensure CTRL+C also stops the running container.
