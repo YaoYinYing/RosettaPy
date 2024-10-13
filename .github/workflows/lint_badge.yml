@@ -21,10 +21,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Linting
-        uses: YaoYinYing/pylint-github-action@v3.5
+        uses: YaoYinYing/pylint-github-action@6196ac476a3fcb6559d78624bab427556a8b75ea
         with:
           lint-path: src  # lint src package
           python-version: ${{ env.lint-python-version }}  # python version which will lint the package
+          pylint-args:
           badge-text: pylint score
           badge-file-name: pylint_scan
           badge-artifact-name: upload-my-awesome-badge-${{ github.run_id }}

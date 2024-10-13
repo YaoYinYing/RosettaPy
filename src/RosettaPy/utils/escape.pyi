@@ -1,3 +1,6 @@
+# pylint: disable=unused-argument
+# pylint: disable=too-many-public-methods
+
 class Colors:
     BLACK: str
     RED: str

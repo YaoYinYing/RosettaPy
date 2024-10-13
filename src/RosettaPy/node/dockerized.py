@@ -2,6 +2,9 @@
 Container module for run Rosetta via docker.
 """
 
+# pylint: disable=too-many-statements
+
+
 from dataclasses import dataclass
 import os
 import signal

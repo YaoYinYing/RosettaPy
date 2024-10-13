@@ -2,6 +2,8 @@
 Color escape code class
 """
 
+# pylint: disable=too-few-public-methods
+
 
 class Colors:
     """Class for ANSI color codes, used to output colored and formatted text on supported terminals.
@@ -84,5 +86,5 @@ if __name__ == "__main__":
         if i[0:1] != "_" and i != "RESET":
             print(f"{i:>16} {getattr(Colors, i) + i + Colors.RESET}")
 
-    sample_text = """Welcome to The World of Color Escape Code."""
-    print(f"{Colors.BOLD}{Colors.PURPLE}{Colors.NEGATIVE}{sample_text}{Colors.RESET}")
+    SAMPLE_TEXT = """Welcome to The World of Color Escape Code."""
+    print(f"{Colors.BOLD}{Colors.PURPLE}{Colors.NEGATIVE}{SAMPLE_TEXT}{Colors.RESET}")

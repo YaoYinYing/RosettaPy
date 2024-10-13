@@ -2,6 +2,9 @@
 This module provides a class for running Rosetta command-line applications. It supports both local and containerized
 """
 
+# pylint: disable=too-many-statements
+# pylint: disable=too-many-instance-attributes
+
 import os
 import copy
 import subprocess

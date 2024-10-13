@@ -2,6 +2,11 @@
 Utility functions of Small Molecule Comformer Sampling
 """
 
+# pylint: disable=no-member
+# pylint: disable=unused-variable
+# pylint: disable=invalid-name
+
+
 # # Design of small molecule binders
 #
 
@@ -240,8 +245,8 @@ class SmallMoleculeParamsGenerator:
         qu, ta, sim = [], [], []
 
         # Compare all fingerprints pairwise without duplicates
-        for n in range(len(fps) - 1):
-            s = DataStructs.BulkTanimotoSimilarity(fps[n], fps[n + 1 :])
+        for n, fp in enumerate(fps):
+            s = DataStructs.BulkTanimotoSimilarity(fp, fps[n + 1 :])
             print(c_smiles[n], c_smiles[n + 1 :])
             for m in range(len(s)):
                 qu.append(c_smiles[n])
@@ -269,8 +274,8 @@ class SmallMoleculeParamsGenerator:
             rmslist = []
             AllChem.AlignMolConformers(mols[i], RMSlist=rmslist)  # type: ignore
 
-        for key in mols:
-            self.generate_rosetta_input(mol=mols[key], name=key, charge=Chem.GetFormalCharge(mols[key]))  # type: ignore
+        for key, mol in mols.items():
+            self.generate_rosetta_input(mol=mol, name=key, charge=Chem.GetFormalCharge(mol))  # type: ignore
 
     def generate_rosetta_input(self, mol, name, charge=0):
         """
