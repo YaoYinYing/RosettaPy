@@ -1,61 +1,124 @@
 import os
 import pytest
-from ..conftest import no_rosetta
-
-
-@pytest.mark.integration
-@pytest.mark.skipif(no_rosetta(), reason="No Rosetta Installed.")
-@pytest.mark.parametrize("num_mut", [1, 2])
-def test_app_mutate_relax(num_mut):
-    from RosettaPy.app.mutate_relax import main
-
-    main(num_mut)
+from ..conftest import no_rosetta, is_github_actions
 
 
 @pytest.mark.integration
 @pytest.mark.skipif(no_rosetta(), reason="No Rosetta Installed.")
 @pytest.mark.parametrize(
-    "start_from",
+    "num_mut, use_docker",
     [
-        None,
-        (
-            -13.218,
-            6.939,
-            6.592,
+        pytest.param(
+            1,
+            True,
+            marks=pytest.mark.skipif(is_github_actions, reason="Skipping docker tests in GitHub Actions"),
         ),
+        (1, False),
+        pytest.param(
+            2,
+            True,
+            marks=pytest.mark.skipif(is_github_actions, reason="Skipping docker tests in GitHub Actions"),
+        ),
+        (2, False),
     ],
 )
-def test_app_rosettaligand(start_from):
-    from RosettaPy.app.rosettaligand import main
+def test_app_mutate_relax(num_mut, use_docker):
+    from RosettaPy.app.mutate_relax import main
 
-    main(start_from)
+    main(num_mut, use_docker)
 
 
 @pytest.mark.integration
 @pytest.mark.skipif(no_rosetta(), reason="No Rosetta Installed.")
-def test_app_supercharge():
+@pytest.mark.parametrize(
+    "start_from, use_docker",
+    [
+        pytest.param(
+            None,
+            True,
+            marks=pytest.mark.skipif(is_github_actions, reason="Skipping docker tests in GitHub Actions"),
+        ),
+        (None, False),
+        pytest.param(
+            (-13.218, 6.939, 6.592),
+            True,
+            marks=pytest.mark.skipif(is_github_actions, reason="Skipping docker tests in GitHub Actions"),
+        ),
+        ((-13.218, 6.939, 6.592), False),
+    ],
+)
+def test_app_rosettaligand(start_from, use_docker):
+    from RosettaPy.app.rosettaligand import main
+
+    main(start_from, use_docker)
+
+
+@pytest.mark.integration
+@pytest.mark.skipif(no_rosetta(), reason="No Rosetta Installed.")
+@pytest.mark.parametrize(
+    "use_docker",
+    [
+        pytest.param(
+            True,
+            marks=pytest.mark.skipif(is_github_actions, reason="Skipping docker tests in GitHub Actions"),
+        ),
+        False,
+    ],
+)
+def test_app_supercharge(use_docker):
     """
     Test the supercharge function with real parameters from Rosetta.
     """
-    from RosettaPy.app import supercharge
+    from RosettaPy.app.supercharge import main
 
-    pdb = "tests/data/3fap_hf3_A.pdb"
-    supercharge(pdb, nproc=os.cpu_count())
+    main(use_docker)
 
 
 @pytest.mark.integration
 @pytest.mark.skipif(no_rosetta(), reason="No Rosetta Installed.")
-@pytest.mark.parametrize("dualspace", [True, False])
-def test_app_fastrelax(dualspace):
+@pytest.mark.parametrize(
+    "dualspace, use_docker",
+    [
+        pytest.param(
+            True,
+            True,
+            marks=pytest.mark.skipif(is_github_actions, reason="Skipping docker tests in GitHub Actions"),
+        ),
+        (True, False),
+        pytest.param(
+            False,
+            True,
+            marks=pytest.mark.skipif(is_github_actions, reason="Skipping docker tests in GitHub Actions"),
+        ),
+        (False, False),
+    ],
+)
+def test_app_fastrelax(dualspace, use_docker):
     from RosettaPy.app.fastrelax import main
 
-    main(dualspace)
+    main(dualspace, use_docker)
 
 
 @pytest.mark.integration
 @pytest.mark.skipif(no_rosetta(), reason="No Rosetta Installed.")
-@pytest.mark.parametrize("legacy", [True, False])
-def test_app_cart_ddg(legacy):
+@pytest.mark.parametrize(
+    "legacy, use_docker",
+    [
+        pytest.param(
+            True,
+            True,
+            marks=pytest.mark.skipif(is_github_actions, reason="Skipping docker tests in GitHub Actions"),
+        ),
+        (True, False),
+        pytest.param(
+            False,
+            True,
+            marks=pytest.mark.skipif(is_github_actions, reason="Skipping docker tests in GitHub Actions"),
+        ),
+        (False, False),
+    ],
+)
+def test_app_cart_ddg(legacy, use_docker):
     from RosettaPy.app.cart_ddg import main
 
-    main(legacy)
+    main(legacy, use_docker)

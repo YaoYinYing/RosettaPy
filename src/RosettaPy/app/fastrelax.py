@@ -4,10 +4,12 @@ Example Application of FastRelax.
 
 import os
 from dataclasses import dataclass
+from typing import Optional
 import warnings
 
 
 from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser
+from RosettaPy.node.dockerized import RosettaContainer
 from RosettaPy.utils import timing
 
 
@@ -38,6 +40,7 @@ class FastRelax:
     relax_script: str = "MonomerRelax2019"
     default_repeats: int = 15
     dualspace: bool = False
+    node: Optional[RosettaContainer] = None
 
     @staticmethod
     def get_relax_scripts_from_db(script_name: str) -> str:
@@ -145,7 +148,7 @@ class FastRelax:
             save_all_together=True,
             output_dir=os.path.join(self.save_dir, self.job_id),
             job_id=f"fastrelax_{self.instance}_{os.path.basename(self.relax_script)}",
-            # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:latest"),
+            run_node=self.node,
         )
 
         with timing("FastRelax"):
@@ -154,16 +157,26 @@ class FastRelax:
         return RosettaEnergyUnitAnalyser(rosetta.output_scorefile_dir)
 
 
-def main(dualspace: bool = False):
+def main(dualspace: bool = False, use_docker=False):
     """
     Test
     """
+    docker_label = "_docker" if use_docker else ""
     if dualspace:
         scorer = FastRelax(
-            pdb="tests/data/3fap_hf3_A.pdb", dualspace=True, job_id="fastrelax_dualspace", default_repeats=3
+            pdb="tests/data/3fap_hf3_A.pdb",
+            dualspace=True,
+            job_id="fastrelax_dualspace"+docker_label,
+            default_repeats=3,
+            node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi") if use_docker else None,
         )
     else:
-        scorer = FastRelax(pdb="tests/data/3fap_hf3_A.pdb", default_repeats=3)
+        scorer = FastRelax(
+            pdb="tests/data/3fap_hf3_A.pdb",
+            default_repeats=3,
+            node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi") if use_docker else None,
+            job_id='fast_relax'+ docker_label
+        )
 
     analyser = scorer.run(4)
     best_hit = analyser.best_decoy

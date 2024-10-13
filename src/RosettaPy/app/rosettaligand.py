@@ -9,6 +9,7 @@ from typing import List, Optional, Tuple
 from dataclasses import dataclass, field
 import warnings
 from RosettaPy import Rosetta, RosettaScriptsVariableGroup, RosettaEnergyUnitAnalyser
+from RosettaPy.node.dockerized import RosettaContainer
 from RosettaPy.rosetta import IgnoreMissingFileWarning
 from RosettaPy.utils import timing
 
@@ -46,6 +47,8 @@ class RosettaLigand:
     gridwidth: int = 45
     chain_id_for_dock = "B"
     start_from_xyz: Optional[Tuple[float, float, float]] = None
+
+    node: Optional[RosettaContainer] = None
 
     @property
     def has_startfrom(self) -> bool:
@@ -177,8 +180,7 @@ class RosettaLigand:
             output_dir=docking_dir,
             save_all_together=False,
             job_id=f"{self.instance}_{self.job_id}",
-            # run_node=MPI_node(nproc=os.cpu_count()),
-            # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi"),
+            run_node=self.node,
         )
 
         with timing("RosettaLigand: Docking"):
@@ -199,16 +201,18 @@ class RosettaLigand:
         return pdb_path
 
 
-def main(startfrom=None):
+def main(startfrom=None, use_docker=False):
     """
     Test
     """
+    docker_label = "_docker" if use_docker else ""
     runner = RosettaLigand(
         pdb="tests/data/6zcy_lig.pdb",
         ligands=["tests/data/lig/lig.fa.params"],
         nstruct=4,
         start_from_xyz=startfrom,
-        job_id="rosettaligand" if startfrom is None else "rosettaligand_startfrom",
+        job_id="rosettaligand" + docker_label if startfrom is None else "rosettaligand_startfrom" + docker_label,
+        node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi") if use_docker else None,
     )
 
     runner.dock()

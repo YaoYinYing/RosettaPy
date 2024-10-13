@@ -3,12 +3,13 @@ Example Application of Cartesian ddG
 """
 
 import os
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 from dataclasses import dataclass
 
 import pandas as pd
 from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser, RosettaCartesianddGAnalyser
 from RosettaPy.common.mutation import Mutant, mutants2mutfile
+from RosettaPy.node.dockerized import RosettaContainer
 from RosettaPy.utils import timing
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -40,6 +41,7 @@ class CartesianDDG:
     ddg_iteration: int = 3
 
     mutant_pdb_dir = "tests/data/designed/pross/"
+    node: Optional[RosettaContainer] = None
 
     def __post_init__(self):
         """
@@ -79,7 +81,7 @@ class CartesianDDG:
             save_all_together=True,
             output_dir=os.path.join(self.save_dir, f"{self.job_id}_relax"),
             job_id=f"cart_ddg_relax_{self.instance}",
-            # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi"),
+            run_node=self.node,
         )
 
         with timing("Cartesian ddG: Relax"):
@@ -127,6 +129,7 @@ class CartesianDDG:
             save_all_together=True,
             output_dir=os.path.join(self.save_dir, f"{self.job_id}_cart_ddg"),
             job_id=f"cart_ddg_run_{self.instance}",
+            run_node=self.node,
             # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi", prohibit_mpi=True),
         )
 
@@ -165,15 +168,21 @@ class CartesianDDG:
         return mutfiles, list(mutants_dict.values())
 
 
-def main(legacy: bool = False):
+def main(legacy: bool = False, use_docker=False):
     """
     Test
     """
+    docker_label='_docker' if use_docker else ''
     cart_ddg = CartesianDDG(
         pdb="tests/data/3fap_hf3_A_short.pdb",
         nstruct_relax=4,
         use_legacy=legacy,
-        job_id="cart_ddg" if not legacy else "cart_ddg_legacy",
+        job_id="cart_ddg" + docker_label if not legacy else "cart_ddg_legacy" + docker_label,
+        node=(
+            RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi", prohibit_mpi=True)
+            if use_docker
+            else None
+        ),
     )
 
     pdb_path = cart_ddg.relax()

@@ -46,3 +46,7 @@ def no_rosetta():
 
 def github_rosetta_test():
     return os.environ.get("GITHUB_ROSETTA_TEST", "NO") == "YES"
+
+
+# Determine if running in GitHub Actions
+is_github_actions = os.environ.get("GITHUB_ACTIONS") == "true"

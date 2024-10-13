@@ -3,13 +3,14 @@ Example Application of Mutate and Relax Protocol against Clustered Sequences.
 """
 
 import os
-from typing import List
+from typing import List, Optional
 from dataclasses import dataclass
 
 from Bio.Data import IUPACData
 from Bio.SeqIO import parse
 
 from RosettaPy import Rosetta, RosettaScriptsVariableGroup, RosettaEnergyUnitAnalyser
+from RosettaPy.node.dockerized import RosettaContainer
 from RosettaPy.utils import timing
 
 
@@ -33,6 +34,8 @@ class ScoreClusters:
 
     save_dir: str = "tests/outputs"
     job_id: str = "score_clusters"
+
+    node: Optional[RosettaContainer] = None
 
     def __post_init__(self):
         """
@@ -75,7 +78,7 @@ class ScoreClusters:
             output_dir=score_dir,
             save_all_together=True,
             job_id=f"branch_{branch}",
-            # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:latest"),
+            run_node=self.node,
         )
 
         branch_tasks = [
@@ -205,11 +208,21 @@ class ScoreClusters:
         return mut_protocol
 
 
-def main(num_mut: int = 1):
+def main(num_mut: int = 1, use_docker=False):
     """
     Test
     """
-    scorer = ScoreClusters(pdb="tests/data/1SUO.pdb", chain_id="A")
+    docker_label = "_docker" if use_docker else ""
+    scorer = ScoreClusters(
+        pdb="tests/data/1SUO.pdb",
+        chain_id="A",
+        node=(
+            RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi", prohibit_mpi=True)
+            if use_docker
+            else None
+        ),
+        job_id=f"score_cluster" + docker_label + f"_{str(num_mut)}",
+    )
 
     ret = scorer.run(f"tests/data/cluster/1SUO_A_1SUO.ent.mut_designs_{num_mut}")
 

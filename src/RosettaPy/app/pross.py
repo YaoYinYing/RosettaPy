@@ -3,9 +3,10 @@ Example Application of PROSS Reimplemented with RosettaPy
 """
 
 import os
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 from dataclasses import dataclass
 from RosettaPy import Rosetta, RosettaScriptsVariableGroup, RosettaEnergyUnitAnalyser
+from RosettaPy.node.dockerized import RosettaContainer
 from RosettaPy.utils import timing
 from RosettaPy.app.utils import PDBProcessor
 
@@ -30,6 +31,8 @@ class PROSS:
     c_alpha_constaints: str = ""
     seq_len: int = 0
     instance: str = ""
+
+    node: Optional[RosettaContainer] = None
 
     def __post_init__(self):
         """
@@ -96,7 +99,7 @@ class PROSS:
             output_dir=refinement_dir,
             save_all_together=False,
             job_id="pross_refinement",
-            # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi", prohibit_mpi=True),
+            run_node=self.node,
         )
 
         # Execute the refinement job within a timing context
@@ -180,7 +183,7 @@ class PROSS:
             save_all_together=True,
             job_id=f"{self.instance}.filterscan",
             # verbose=True,
-            # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi", prohibit_mpi=True),
+            run_node=self.node,
         )
 
         # Run filterscan protocol
@@ -292,7 +295,7 @@ class PROSS:
             output_dir=design_dir,
             save_all_together=False,
             job_id=f"{self.instance}_design",
-            # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi", prohibit_mpi=True),
+            run_node=self.node,
         )
 
         with timing("PROSS: Design"):
@@ -322,12 +325,20 @@ class PROSS:
         return pdb_path
 
 
-def main():
+def main(use_docker=False):
     """
     Test
     """
+    docker_label = "_docker" if use_docker else ""
     pross = PROSS(
-        pdb="tests/data/3fap_hf3_A_short.pdb", pssm="tests/data/3fap_hf3_A_ascii_mtx_file_short", job_id="pross_reduce"
+        pdb="tests/data/3fap_hf3_A_short.pdb",
+        pssm="tests/data/3fap_hf3_A_ascii_mtx_file_short",
+        job_id="pross_reduce"+docker_label,
+        node=(
+            RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi", prohibit_mpi=True)
+            if use_docker
+            else None
+        ),
     )
     best_refined = pross.refine(4)
 
