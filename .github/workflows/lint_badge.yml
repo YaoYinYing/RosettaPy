@@ -33,26 +33,13 @@ jobs:
             pip install '.[test]'
 
       - name: Linting
-        uses: YaoYinYing/pylint-github-action@b2d380e8ed4c41d56b38ce857f9be22c475d8122
+        uses: YaoYinYing/pylint-github-action@3975648a269de4f22403ff78ec53736dba2206c2
         with:
           lint-path: src  # lint src package
           python-version: ${{ env.lint-python-version }}  # python version which will lint the package
           badge-text: pylint score
           badge-file-name: pylint_scan
           badge-artifact-name: upload-my-awesome-badge-${{ github.run_id }}
-
-      - name: PyLint Badge Fetching
-        id: pylint-badge-fetch
-        uses: actions/download-artifact@v4
-        with:
-          name: upload-my-awesome-badge-${{ github.run_id }}
-          path: badge_dir_with_uniq_name
-
-      - name: Display structure of downloaded files
-        run: ls -R badge_dir_with_uniq_name
-
-      - name: Upload to R2
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          command: r2 object put  ${{ secrets.R2_BUCKET }}/badge_dir_with_uniq_name/RosettaPy/pylint/pylint_scan.svg --file badge_dir_with_uniq_name/pylint_scan.svg --content-type image/svg+xml
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_badge_path: badge_dir_with_uniq_name/RosettaPy/pylint
