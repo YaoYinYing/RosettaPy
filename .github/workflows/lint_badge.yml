@@ -1,16 +1,13 @@
 name: Pylint
 
 on:
-  workflow_dispatch:
-
   push:
-    paths:
-      - '.github/workflows/lint_badge.yml' # monitor the main workflow script.
-      - 'tests/*.py' # monitor the unit tests
-      - 'src/*' # monitor the REvoDesign project source code
-      - '!CHANGELOG.md'
-    branches:
-        - main
+    branches: [main]
+  pull_request:
+    branches: [main]
+  release:
+    types: [created]
+  workflow_dispatch:
 
 env:
   lint-python-version: '3.11'
@@ -23,17 +20,8 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-            python-version: ${{ env.lint-python-version }}
-
-      - name: Install Packages
-        run:
-            pip install '.[test]'
-
       - name: Linting
-        uses: YaoYinYing/pylint-github-action@3975648a269de4f22403ff78ec53736dba2206c2
+        uses: YaoYinYing/pylint-github-action@v3.5
         with:
           lint-path: src  # lint src package
           python-version: ${{ env.lint-python-version }}  # python version which will lint the package
