@@ -72,7 +72,7 @@ class RosettaLigand:
             mover = f'<StartFrom name="startfrom" chain="{self.chain_id_for_dock}">'
             f'<Coordinates x="{self.start_from_xyz[0]}" y="{self.start_from_xyz[1]}" z="{self.start_from_xyz[2]}"/>'
             "</StartFrom>"
-            return mover
+            return f"'{mover}'"
         return ""
 
     @property
@@ -83,8 +83,9 @@ class RosettaLigand:
         Returns:
             str: XML for the StartFrom protocol or an empty string.
         """
+        protocol = '<Add mover_name="startfrom"/>'
         if self.has_startfrom:
-            return '<Add mover_name="startfrom"/>'
+            return f"'{protocol}'"
         return ""
 
     @property
@@ -96,7 +97,8 @@ class RosettaLigand:
             str: XML for the CST mover or an empty string.
         """
         if self.cst and os.path.isfile(self.cst):
-            return f'<AddOrRemoveMatchCsts name="cstadd" cstfile="{self.cst}" cst_instruction="add_new"/>'
+            mover = f'<AddOrRemoveMatchCsts name="cstadd" cstfile="{self.cst}" cst_instruction="add_new"/>'
+            return f"'{mover}'"
         return ""
 
     @property
@@ -108,7 +110,8 @@ class RosettaLigand:
             str: XML for the CST protocol or an empty string.
         """
         if self.cst and os.path.isfile(self.cst):
-            return '<Add mover_name="cstadd"/>'
+            protocol = '<Add mover_name="cstadd"/>'
+            return f"'{protocol}'"
         return ""
 
     def __post_init__(self):
