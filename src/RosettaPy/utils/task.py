@@ -46,7 +46,7 @@ class RosettaScriptsVariable:
         """
         return [
             "-parser:script_vars",
-            f"{self.k}={self.v}",
+            f"{self.k}='{self.v}'",
         ]
 
 
