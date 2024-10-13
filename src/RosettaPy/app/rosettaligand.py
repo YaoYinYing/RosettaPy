@@ -67,7 +67,10 @@ class RosettaLigand:
         """
         if self.has_startfrom:
             assert isinstance(self.start_from_xyz, tuple), "Start from xyz requires a tuple of 3 floats"
-            return f'<StartFrom name="startfrom" chain="{self.chain_id_for_dock}"><Coordinates x="{self.start_from_xyz[0]}" y="{self.start_from_xyz[1]}" z="{self.start_from_xyz[2]}"/></StartFrom>'
+            mover = f'<StartFrom name="startfrom" chain="{self.chain_id_for_dock}">'
+            f'<Coordinates x="{self.start_from_xyz[0]}" y="{self.start_from_xyz[1]}" z="{self.start_from_xyz[2]}"/>'
+            "</StartFrom>"
+            return mover
         return ""
 
     @property

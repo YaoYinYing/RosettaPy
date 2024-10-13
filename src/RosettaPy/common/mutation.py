@@ -2,14 +2,13 @@
 Module for processing protein chain, sequence, mutant and mutation.
 """
 
-from dataclasses import dataclass, field
 import os
+from dataclasses import dataclass, field
 from typing import Dict, List, Union, ValuesView
 import warnings
 
-
+import Bio
 from Bio.PDB.PDBExceptions import PDBConstructionWarning
-
 from Bio.PDB import PDBParser, PPBuilder  # type: ignore
 
 warnings.filterwarnings("ignore", category=PDBConstructionWarning)
@@ -76,7 +75,6 @@ def parse_pdb_sequences(pdb_filename: str) -> Union[List[Chain], None]:
         structure = parser.get_structure(os.path.basename(pdb_filename)[:-4], pdb_filename)
     except AttributeError:
         warnings.warn(UserWarning("Failed to parse PDB file. A deprecated version of Biopython is installed"))
-        import Bio
 
         raise AttributeError(f"Biopython version ({Bio.__version__}) not supported.")
 

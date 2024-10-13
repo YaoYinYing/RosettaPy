@@ -51,7 +51,9 @@ class RosettaCartesianddGAnalyser:
         """
         Plot ddG summary charts.
 
-        This method visualizes the distribution of ddG (delta delta G) values and saves the plots to a specified directory.
+        This method visualizes the distribution of ddG (delta delta G) values and saves the plots to a
+        specified directory.
+
         It performs the following actions:
         1. Ensures the save directory exists, creating it if necessary.
         2. Plots the histogram of ddG values and saves the chart.
@@ -93,7 +95,8 @@ class RosettaCartesianddGAnalyser:
         """
         Collects files based on whether the search is recursive.
 
-        This method collects files from the runtime directory either recursively or non-recursively based on the `recursive` attribute.
+        This method collects files from the runtime directory either recursively or non-recursively based
+        on the `recursive` attribute.
         - If `recursive` is True, it walks through the directory tree and collects all JSON or DDG files.
         - If `recursive` is False, it only looks at the top-level directory for JSON or DDG files.
 
@@ -251,24 +254,29 @@ class RosettaCartesianddGAnalyser:
         Convert a list of mutation information to a specific mutation ID string.
 
         Parameters:
-        mutations: A list of dictionaries containing mutation details, including the mutated amino acid, position, and wild-type amino acid.
+        mutations: A list of dictionaries containing mutation details, including the mutated amino acid, position,
+        and wild-type amino acid.
 
         Returns:
         A string representing the generated mutation ID in a specific format.
 
         Summary:
-        This function converts a set of mutation information into a standardized string ID, facilitating subsequent identification and processing. For each mutation, it concatenates the position and the mutated amino acid (converted using IUPACData.protein_letters_1to3) and separates all mutations with underscores. The final string is prefixed with "MUT_" to form the complete mutation ID.
+        This function converts a set of mutation information into a standardized string ID, facilitating subsequent
+        identification and processing. For each mutation, it concatenates the position and the mutated amino acid
+        (converted using IUPACData.protein_letters_1to3) and separates all mutations with underscores. The final
+        string is prefixed with "MUT_" to form the complete mutation ID.
         """
         return "MUT_" + "_".join(f'{m["pos"]}{IUPACData.protein_letters_1to3[m["mut"]].upper()}' for m in mutations)
 
     def parse_ddg_files(self) -> pd.DataFrame:
         """
-        Parses DDG files. This method first determines whether to read JSON or DDG files based on the `prefer_json` attribute,
-        then filters out empty dataframes, converts the remaining data to DDG format and merges them. Finally, it marks which
-        mutations are accepted based on the `ddG_cart` value and the `cutoff` threshold, and returns only the summary data
-        of baseline mutations that start with "MUT_".
+        Parses DDG files. This method first determines whether to read JSON or DDG files based on the `prefer_json`
+        attribute, then filters out empty dataframes, converts the remaining data to DDG format and merges them.
+        Finally, it marks which mutations are accepted based on the `ddG_cart` value and the `cutoff` threshold,
+        and returns only the summary data of baseline mutations that start with "MUT_".
 
-        :return: A pandas DataFrame containing the summary information of mutations, including which ones were accepted.
+        :return: A pandas DataFrame containing the summary information of mutations, including which ones were
+        accepted.
         """
         # Depending on the prefer_json attribute, choose between using read_json or read_ddg method
         if self.prefer_json:

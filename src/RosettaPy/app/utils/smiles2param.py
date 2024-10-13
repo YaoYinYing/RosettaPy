@@ -14,13 +14,14 @@ Utility functions of Small Molecule Comformer Sampling
 #
 
 
-from dataclasses import dataclass
 import os
 import sys
+import subprocess
+from dataclasses import dataclass
 from typing import Dict, Optional
+
 import pandas as pd
 
-import subprocess
 from rdkit import Chem
 from rdkit import DataStructs
 from rdkit.Chem import AllChem
@@ -33,7 +34,8 @@ def deprotonate_acids(smiles):
     """
     Deprotonate carboxylic acids function.
 
-    This function uses a SMARTS reaction to deprotonate the carboxylic acid group in a given molecule, effectively converting it into its corresponding carboxylate ion.
+    This function uses a SMARTS reaction to deprotonate the carboxylic acid group in a given molecule,
+    effectively converting it into its corresponding carboxylate ion.
 
     Parameters:
     - smiles: A string representing the SMILES format of the molecule.
@@ -169,7 +171,8 @@ class SmallMoleculeParamsGenerator:
     """
     A class for generating small molecule parameters.
 
-    This class is responsible for converting ligands into a format usable by Rosetta, including preprocessing ligands and generating molecular parameters.
+    This class is responsible for converting ligands into a format usable by Rosetta, including preprocessing
+    ligands and generating molecular parameters.
 
     Attributes:
         rosetta_bin (Optional[RosettaBinary]): The path to the Rosetta binary.

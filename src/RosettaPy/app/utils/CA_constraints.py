@@ -4,6 +4,10 @@ Utility functions of PDB processing
 
 
 class PDBProcessor:
+    """
+    A PDBProcessor
+    """
+
     @staticmethod
     def get_calpha_constraint_line(line: str) -> str:
         """

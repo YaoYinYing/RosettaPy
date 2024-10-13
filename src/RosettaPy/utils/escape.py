@@ -47,6 +47,22 @@ class Colors:
     CROSSED = "\033[9m"
     RESET = "\033[0m"
 
+    @classmethod
+    def _create_class_methods(cls):
+        """Dynamically create class methods for each color and formatting option."""
+        for attr_name in dir(cls):
+            # Only process attributes that are color codes (uppercase, no underscore)
+            if attr_name.isupper() and not attr_name.startswith("_"):
+                # Get the color code
+                color_code = getattr(cls, attr_name)
+
+                # Define a class method that wraps text with the color code
+                def color_method(cls, text, color_code=color_code):
+                    return f"{color_code}{text}{cls.RESET}"
+
+                # Attach the method to the class with a lowercase name
+                setattr(cls, attr_name.lower(), classmethod(color_method))
+
     # Cancel SGR codes if not writing to a terminal
     if not __import__("sys").stdout.isatty():
         for _ in dir():
@@ -59,6 +75,9 @@ class Colors:
             kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
             del kernel32
 
+
+# Dynamically create the class methods when the class is defined
+Colors._create_class_methods()
 
 if __name__ == "__main__":
     for i in dir(Colors):

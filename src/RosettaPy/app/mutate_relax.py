@@ -105,7 +105,8 @@ class ScoreClusters:
         cluster_dir (str): Directory containing clusters to be scored.
 
         Returns:
-        List[RosettaEnergyUnitAnalyser]: A list of objects containing the analysis of the scoring results for each cluster.
+        List[RosettaEnergyUnitAnalyser]: A list of objects containing the analysis of the scoring
+        results for each cluster.
         """
         cluster_fastas = [c for c in os.listdir(cluster_dir) if c.startswith("c.") and c.endswith(".fasta")]
 
@@ -169,11 +170,12 @@ class ScoreClusters:
         mut_mover = ""
 
         mut_array = mut_info.split("_")
-        for mut_id, mut in enumerate(mut_array):
+        for i, mut in enumerate(mut_array):
             resid = int(mut[1:-1])
             res_mut = mut[-1]
+            new_res = IUPACData.protein_letters_1to3[res_mut].upper()
 
-            new_mut_mover = f'<MutateResidue name="mr{mut_id}" target="{resid}{chain_id}" new_res="{IUPACData.protein_letters_1to3[res_mut].upper()}" />'
+            new_mut_mover = f'<MutateResidue name="mr{i}" target="{resid}{chain_id}" new_res="{new_res}" />'
 
             if mut_mover == "":
                 mut_mover = new_mut_mover

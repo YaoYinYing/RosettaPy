@@ -3,7 +3,7 @@ Example Application of PROSS Reimplemented with RosettaPy
 """
 
 import os
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 from dataclasses import dataclass
 from RosettaPy import Rosetta, RosettaScriptsVariableGroup, RosettaEnergyUnitAnalyser
 from RosettaPy.utils import timing
@@ -104,13 +104,11 @@ class PROSS:
             rosetta.run(inputs=[{"-in:file:s": self.pdb}], nstruct=nstruct)
 
         # Analyze the refinement results to identify the best decoy (refined structure)
-        best_refined_decoy = RosettaEnergyUnitAnalyser(rosetta.output_scorefile_dir).best_decoy
-        best_refined_pdb = os.path.join(rosetta.output_pdb_dir, f'{best_refined_decoy["decoy"]}.pdb')
+        best_decoy = RosettaEnergyUnitAnalyser(rosetta.output_scorefile_dir).best_decoy
+        best_refined_pdb = os.path.join(rosetta.output_pdb_dir, f'{best_decoy["decoy"]}.pdb')
 
         # Output information about the best refined decoy
-        print(
-            f'Best Decoy on refinement: {best_refined_decoy["decoy"]} - {best_refined_decoy["score"]}: {best_refined_pdb}'
-        )
+        print(f'Best Decoy on refinement: {best_decoy["decoy"]} - {best_decoy["score"]}: {best_refined_pdb}')
 
         # Ensure the best refined PDB file exists
         assert os.path.isfile(best_refined_pdb)
@@ -126,7 +124,8 @@ class PROSS:
             refined_pdb (str): The path of the refined PDB file.
 
         Returns:
-            Tuple[List[str], str]: A tuple containing a list of merged filter files and the directory path of the filterscan results.
+            Tuple[List[str], str]: A tuple containing a list of merged filter files and the directory path
+            of the filterscan results.
         """
 
         # Define the threshold for each filter
@@ -255,6 +254,20 @@ class PROSS:
         return resfiles
 
     def design(self, filters: List[str], refined_pdb: str, filterscan_dir):
+        """
+        Performs protein design process.
+
+        This function uses the Rosetta software package to perform protein design, including design scans
+        with different filter conditions and analysis of the design results to find the optimal decoy.
+
+        Parameters:
+        - filters (List[str]): A list of filter names used for design scans.
+        - refined_pdb (str): The path to the refined PDB file.
+        - filterscan_dir (str): The directory containing filter scan files.
+
+        Returns:
+        - pdb_path (str): The path to the PDB file of the best decoy.
+        """
         design_dir = os.path.join(self.save_dir, self.job_id, "design")
 
         rosetta = Rosetta(
@@ -286,11 +299,11 @@ class PROSS:
             rosetta.run(
                 inputs=[
                     {
-                        "-parser:script_vars": f"in_resfile={filterscan_dir}/resfiles/{resfile}",
-                        "-out:suffix": f'_{resfile.replace("designable_aa_resfile.", "")}',
-                        "-out:file:scorefile": f'{self.instance}_pross_design_{resfile.replace("designable_aa_resfile.", "")}.sc',
+                        "-parser:script_vars": f"in_resfile={filterscan_dir}/resfiles/{rf}",
+                        "-out:suffix": f'_{rf.replace("designable_aa_resfile.", "")}',
+                        "-out:file:scorefile": f'{self.instance}_pross_design_{rf.replace("designable_aa_resfile.", "")}.sc',
                     }
-                    for resfile in filters
+                    for rf in filters
                 ]
             )
 
@@ -314,7 +327,7 @@ def main():
     Test
     """
     pross = PROSS(
-        pdb="tests/data/3fap_hf3_A_short.pdb", pssm="tests/data/3fap_hf3_A_ascii_mtx_file_short", job_id="pross_reduced"
+        pdb="tests/data/3fap_hf3_A_short.pdb", pssm="tests/data/3fap_hf3_A_ascii_mtx_file_short", job_id="pross_reduce"
     )
     best_refined = pross.refine(4)
 

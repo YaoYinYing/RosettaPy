@@ -1,3 +1,7 @@
+"""
+Example Application Collection with RosettaPy
+"""
+
 from dataclasses import dataclass
 import os
 

@@ -74,7 +74,8 @@ class RosettaEnergyUnitAnalyser:
         - k (str, optional): Column name to use as the score. Defaults to "total_score".
 
         Returns:
-        - Tuple[Dict[Literal["score", "decoy"], Union[str, float]]]: Tuple of dictionaries containing scores and decoys.
+        - Tuple[Dict[Literal["score", "decoy"], Union[str, float]]]: Tuple of dictionaries containing scores
+        and decoys.
         """
         t = tuple(
             {
@@ -92,7 +93,8 @@ class RosettaEnergyUnitAnalyser:
         Returns the best decoy based on the score term.
 
         Returns:
-        - Dict[Literal["score", "decoy"], Union[str, float]]: Dictionary containing the score and decoy of the best entry.
+        - Dict[Literal["score", "decoy"], Union[str, float]]: Dictionary containing the score and decoy of
+        the best entry.
         """
         if self.df.empty:
             return {}
@@ -106,10 +108,12 @@ class RosettaEnergyUnitAnalyser:
 
         Parameters:
         - rank (int, optional): The number of top entries to return. Defaults to 1.
-        - score_term (Optional[str], optional): The column name to use as the score. Defaults to the class attribute `score_term`.
+        - score_term (Optional[str], optional): The column name to use as the score. Defaults to the class
+        attribute `score_term`.
 
         Returns:
-        - Tuple[Dict[Literal["score", "decoy"], Union[str, float]]]: Tuple of dictionaries containing scores and decoys of the top entries.
+        - Tuple[Dict[Literal["score", "decoy"], Union[str, float]]]: Tuple of dictionaries containing scores and
+        decoys of the top entries.
         """
         if rank <= 0:
             raise ValueError("Rank must be greater than 0")

@@ -50,9 +50,14 @@ class RosettaContainer:
         """
         Returns a formatted name suitable for mounting based on the given path.
 
-        This method first validates the provided path to ensure it exists in the file system, raising an exception if it does not.
-        It then obtains the absolute path and determines whether to use the parent directory or the path itself based on whether the path is a file or a directory.
-        Finally, it formats the path by replacing slashes (/) with hyphens (-) to create a safe name suitable for mounting.
+        This method first validates the provided path to ensure it exists in the file system,
+        raising an exception if it does not.
+
+        It then obtains the absolute path and determines whether to use the parent directory or
+        the path itself based on whether the path is a file or a directory.
+
+        Finally, it formats the path by replacing slashes (/) with hyphens (-) to create
+        a safe name suitable for mounting.
 
         :param path: str The input file or directory path.
         :return: str A formatted name suitable for mounting.
@@ -75,7 +80,8 @@ class RosettaContainer:
             input_task (RosettaCmdTask): The task object containing the command and runtime directory information.
 
         Returns:
-            Tuple[RosettaCmdTask, List[types.Mount]]: A tuple containing the updated task object with mounted paths and a list of mounts.
+            Tuple[RosettaCmdTask, List[types.Mount]]: A tuple containing the updated task object
+            with mounted paths and a list of mounts.
         """
 
         _mounts = []
@@ -126,8 +132,8 @@ class RosettaContainer:
             if not joined_vf.endswith("'"):
                 joined_vf += "'"
 
-            print(f"{C.BLUE}{C.NEGATIVE}{C.BOLD}Original:{C.RESET} {C.BLUE}{C.NEGATIVE}{script_vars_v}{C.RESET}")
-            print(f"{C.PURPLE}{C.NEGATIVE}{C.BOLD}Rewrited:{C.RESET} {C.PURPLE}{C.NEGATIVE}{joined_vf}{C.RESET}\n")
+            print(f"{C.blue(C.negative(C.bold('Original:')))} {C.blue(C.negative(script_vars_v))}")
+            print(f"{C.purple(C.negative(C.bold('Rewrited:')))} {C.purple(C.negative(joined_vf))}\n")
             return joined_vf
 
         for i, _cmd in enumerate(input_task.cmd):
@@ -156,7 +162,9 @@ class RosettaContainer:
                     script_vars_v = "=".join(script_vars[1:])
 
                     print(
-                        f"{C.PURPLE}{C.NEGATIVE}{C.BOLD}Parsing:{C.RESET} {C.BLUE}{C.NEGATIVE}{script_vars[0]}{C.RESET}={C.RED}{C.NEGATIVE}{script_vars_v}{C.RESET}"
+                        f"{C.purple(C.negative(C.bold('Parsing:')))} "
+                        f"{C.blue(C.negative(script_vars[0]))}="
+                        f"{C.red(C.negative(script_vars_v))}"
                     )
                     # normal file input
                     if os.path.isfile(script_vars_v) or os.path.isdir(script_vars_v):
@@ -240,12 +248,8 @@ class RosettaContainer:
         mounted_task, mounts = self.mount(input_task=task)
         client = docker.from_env()
 
-        print(
-            f"{C.GREEN}{C.BOLD}{C.NEGATIVE}Mounted with Command: {C.RESET} {C.BOLD}{C.GREEN}{mounted_task.cmd}{C.RESET}"
-        )
-        print(
-            f"{C.YELLOW}{C.BOLD}{C.NEGATIVE}Working directory ->{C.RESET} {C.BOLD}{C.YELLOW}{mounted_task.runtime_dir}{C.RESET}"
-        )
+        print(f"{C.green(C.bold(C.negative('Mounted with Command: ')))} {C.bold(C.green(str(mounted_task.cmd)))}")
+        print(f"{C.yellow(C.bold(C.negative('Working directory ->')))} {C.bold(C.yellow(mounted_task.runtime_dir))}")
 
         container = client.containers.run(
             image=self.image,
@@ -297,7 +301,9 @@ class RosettaContainer:
 
         # Print mount information
         print(
-            f"{C.YELLOW}{C.BOLD}Mount:{C.RESET} \n{C.RED}{C.BOLD}- {source_path}{C.RESET} {C.BOLD}{C.PURPLE}{C.NEGATIVE}->{C.RESET} \n{C.GREEN}{C.BOLD}+ {target_path}{C.RESET}\n"
+            f"{C.yellow(C.bold('Mount:'))} \n"
+            + f"{C.red(C.bold(f'- {source_path}'))} {C.bold(C.purple(C.negative('->')))} \n"
+            + f"{C.green(C.bold(f'+ {target_path}'))}\n"
         )
 
         # Create and return the mount object and mounted path

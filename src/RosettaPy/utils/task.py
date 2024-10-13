@@ -133,6 +133,10 @@ class RosettaScriptsVariableGroup:
 
 @dataclass
 class RosettaCmdTask:
+    """
+    RosettaCmdTask represents a command-line task for running Rosetta commands.
+    """
+
     cmd: List[str]  # The command list for the task
     task_label: Optional[str] = None  # The label of the task, optional
     base_dir: Optional[str] = None  # a base directory for run local task
@@ -143,8 +147,8 @@ class RosettaCmdTask:
         Determine the runtime directory for the task.
 
         If the task_label is not provided, it returns the current working directory or the base directory as specified.
-        If the task_label is provided, it joins the base directory (or the current working directory if base_dir is not set)
-        with the task_label to form the runtime directory.
+        If the task_label is provided, it joins the base directory (or the current working directory
+        if base_dir is not set) with the task_label to form the runtime directory.
 
         Returns:
             str: The runtime directory path.
