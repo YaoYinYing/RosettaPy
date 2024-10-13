@@ -153,7 +153,7 @@ class ScoreClusters:
                 mut_task = new_mut_task
             else:
                 mut_task += "," + new_mut_task
-        return f"'{mut_task}'"
+        return mut_task
 
     @staticmethod
     def mutmover(mut_info: str, chain_id: str) -> str:
@@ -182,7 +182,7 @@ class ScoreClusters:
             else:
                 mut_mover += new_mut_mover
 
-        return f"'{mut_mover}'"
+        return mut_mover
 
     @staticmethod
     def mutprotocol(mut_info: str):
@@ -202,7 +202,7 @@ class ScoreClusters:
             new_mut_protocol = f'<Add mover_name="mr{i}"/>'
             mut_protocol += new_mut_protocol
 
-        return f"'{mut_protocol}'"
+        return mut_protocol
 
 
 def main(num_mut: int = 1):

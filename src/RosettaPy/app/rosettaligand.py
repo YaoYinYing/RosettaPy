@@ -69,10 +69,7 @@ class RosettaLigand:
         """
         if self.has_startfrom:
             assert isinstance(self.start_from_xyz, tuple), "Start from xyz requires a tuple of 3 floats"
-            mover = f'<StartFrom name="startfrom" chain="{self.chain_id_for_dock}">'
-            f'<Coordinates x="{self.start_from_xyz[0]}" y="{self.start_from_xyz[1]}" z="{self.start_from_xyz[2]}"/>'
-            "</StartFrom>"
-            return f"'{mover}'"
+            return f'<StartFrom name="startfrom" chain="{self.chain_id_for_dock}"><Coordinates x="{self.start_from_xyz[0]}" y="{self.start_from_xyz[1]}" z="{self.start_from_xyz[2]}"/></StartFrom>'
         return ""
 
     @property
@@ -83,9 +80,8 @@ class RosettaLigand:
         Returns:
             str: XML for the StartFrom protocol or an empty string.
         """
-        protocol = '<Add mover_name="startfrom"/>'
         if self.has_startfrom:
-            return f"'{protocol}'"
+            return '<Add mover_name="startfrom"/>'
         return ""
 
     @property
@@ -97,8 +93,7 @@ class RosettaLigand:
             str: XML for the CST mover or an empty string.
         """
         if self.cst and os.path.isfile(self.cst):
-            mover = f'<AddOrRemoveMatchCsts name="cstadd" cstfile="{self.cst}" cst_instruction="add_new"/>'
-            return f"'{mover}'"
+            return f'<AddOrRemoveMatchCsts name="cstadd" cstfile="{self.cst}" cst_instruction="add_new"/>'
         return ""
 
     @property
@@ -110,8 +105,7 @@ class RosettaLigand:
             str: XML for the CST protocol or an empty string.
         """
         if self.cst and os.path.isfile(self.cst):
-            protocol = '<Add mover_name="cstadd"/>'
-            return f"'{protocol}'"
+            return '<Add mover_name="cstadd"/>'
         return ""
 
     def __post_init__(self):

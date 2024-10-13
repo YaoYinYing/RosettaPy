@@ -1,17 +1,13 @@
 name: Test with Rosetta
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
   release:
     types: [created]
-  push:
-    paths:
-      - ".github/workflows/RosettaCI.yml" # monitor the main workflow script.
-      - "src/RosettaPy/*"
-      - "tests/*"
-
-    branches:
-      - main
+  workflow_dispatch:
 
 env:
   conda_env: PROSS
