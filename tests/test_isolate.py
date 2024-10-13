@@ -1,8 +1,6 @@
 import pytest
 import os
-import tempfile
-import shutil
-from contextlib import contextmanager
+
 
 from RosettaPy.utils import isolate
 

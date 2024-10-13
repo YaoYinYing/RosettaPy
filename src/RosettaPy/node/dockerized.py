@@ -94,7 +94,7 @@ class RosettaContainer:
             - str: The normalized mount path.
             """
             normalized_path = os.path.normpath(path_to_mount)
-            mount, mounted = self._create_mount(self.mounted_name(normalized_path), normalized_path)
+            mount, mounted = self._create_mount(RosettaContainer.mounted_name(normalized_path), normalized_path)
             if not any(m == mount for m in _mounts):
                 _mounts.append(mount)
                 _mounted_paths.append(mounted)
@@ -171,8 +171,16 @@ class RosettaContainer:
             except Exception as e:
                 print(f"Error processing command '{_cmd}': {e}")
                 mounted_cmd.append(_cmd)
+        try:
+            os.makedirs(input_task.runtime_dir, exist_ok=True)
+        except FileExistsError as e:
+            warnings.warn(
+                RuntimeWarning(
+                    f"{input_task.runtime_dir} already exists. This might be a leftover from a previous run. "
+                    "If you are sure that this is not the case, please delete the directory and try again."
+                )
+            )
 
-        os.makedirs(input_task.runtime_dir, exist_ok=True)
         mounted_runtime_dir = unique_mount(input_task.runtime_dir)
 
         mounted_task = RosettaCmdTask(
@@ -277,8 +285,7 @@ class RosettaContainer:
             mounted_path = os.path.join(target_path, os.path.basename(path))
 
         # Ensure the source path exists
-        if not os.path.exists(source_path):
-            os.makedirs(source_path)
+        os.makedirs(source_path, exist_ok=True)
 
         # Print mount information
         print(
