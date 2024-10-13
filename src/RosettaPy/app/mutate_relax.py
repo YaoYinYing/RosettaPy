@@ -1,3 +1,7 @@
+"""
+Example Application of Mutate and Relax Protocol against Clustered Sequences.
+"""
+
 import os
 from typing import List
 from dataclasses import dataclass
@@ -14,6 +18,16 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 
 @dataclass
 class ScoreClusters:
+    """
+    A class used to score clusters of protein structures.
+
+    Attributes:
+    pdb (str): Path to the protein structure file (PDB format).
+    chain_id (str): Identifier of the protein chain.
+    save_dir (str): Directory to save the scoring results, default is "tests/outputs".
+    job_id (str): Identifier for the job, default is "score_clusters".
+    """
+
     pdb: str
     chain_id: str
 
@@ -21,16 +35,31 @@ class ScoreClusters:
     job_id: str = "score_clusters"
 
     def __post_init__(self):
+        """
+        Performs checks and setups after object initialization.
+        """
+        # Check if the PDB file exists
         if not os.path.isfile(self.pdb):
             raise FileNotFoundError(f"PDB is given yet not found - {self.pdb}")
+        # Set instance name and absolute path of the PDB file
         self.instance = os.path.basename(self.pdb)[:-4]
         self.pdb = os.path.abspath(self.pdb)
 
+        # Create directory to save results
         os.makedirs(os.path.join(self.save_dir, self.job_id), exist_ok=True)
         self.save_dir = os.path.abspath(self.save_dir)
 
     def score(self, branch: str, variants: List[str]) -> RosettaEnergyUnitAnalyser:
+        """
+        Scores the provided variants within a specific branch.
 
+        Parameters:
+        branch (str): Identifier of the branch.
+        variants (List[str]): List of variants to be scored.
+
+        Returns:
+        RosettaEnergyUnitAnalyser: An object containing the analysis of the scoring results.
+        """
         score_dir = os.path.join(self.save_dir, self.job_id, f"branch_{branch}")
         os.makedirs(score_dir, exist_ok=True)
 
@@ -69,6 +98,15 @@ class ScoreClusters:
         return RosettaEnergyUnitAnalyser(rosetta.output_scorefile_dir)
 
     def run(self, cluster_dir: str):
+        """
+        Runs the scoring process on clusters within the specified directory.
+
+        Parameters:
+        cluster_dir (str): Directory containing clusters to be scored.
+
+        Returns:
+        List[RosettaEnergyUnitAnalyser]: A list of objects containing the analysis of the scoring results for each cluster.
+        """
         cluster_fastas = [c for c in os.listdir(cluster_dir) if c.startswith("c.") and c.endswith(".fasta")]
 
         clusters = {c.replace(".fasta", ""): self.fasta2mutlabels(os.path.join(cluster_dir, c)) for c in cluster_fastas}
@@ -82,10 +120,29 @@ class ScoreClusters:
 
     @staticmethod
     def fasta2mutlabels(f: str) -> List[str]:
+        """
+        Converts a FASTA file into a list of mutation labels.
+
+        Parameters:
+        f (str): Path to the FASTA file.
+
+        Returns:
+        List[str]: List of mutation labels.
+        """
         return [record.id.lstrip(">") for record in parse(f, "fasta")]
 
     @staticmethod
     def muttask(mut_info: str, chain_id: str):
+        """
+        Generates a mutation task string from mutation information.
+
+        Parameters:
+        mut_info (str): Mutation information.
+        chain_id (str): Identifier of the protein chain.
+
+        Returns:
+        str: Mutation task string.
+        """
         mut_array = mut_info.split("_")
         mut_task = ""
         for mut_id in mut_array:
@@ -99,20 +156,25 @@ class ScoreClusters:
 
     @staticmethod
     def mutmover(mut_info: str, chain_id: str) -> str:
+        """
+        Generates an XML-formatted mutation instruction string.
 
-        # Initialize the mutation instruction string
+        Parameters:
+        mut_info (str): Mutation information.
+        chain_id (str): Identifier of the protein chain.
+
+        Returns:
+        str: XML-formatted mutation instruction string.
+        """
         mut_mover = ""
 
-        # Parse the mutation information
         mut_array = mut_info.split("_")
         for mut_id, mut in enumerate(mut_array):
-            resid = int(mut[1:-1])  # Extract the residue position
-            res_mut = mut[-1]  # Extract the new amino acid type
+            resid = int(mut[1:-1])
+            res_mut = mut[-1]
 
-            # Generate the XML-formatted mutation instruction string
             new_mut_mover = f'<MutateResidue name="mr{mut_id}" target="{resid}{chain_id}" new_res="{IUPACData.protein_letters_1to3[res_mut].upper()}" />'
 
-            # Concatenate the instructions
             if mut_mover == "":
                 mut_mover = new_mut_mover
             else:
@@ -122,10 +184,19 @@ class ScoreClusters:
 
     @staticmethod
     def mutprotocol(mut_info: str):
+        """
+        Generates a protocol string for mutations.
+
+        Parameters:
+        mut_info (str): Mutation information.
+
+        Returns:
+        str: Protocol string for mutations.
+        """
         mut_array = mut_info.split("_")
         mut_protocol = ""
 
-        for i, mut_id in enumerate(mut_array):
+        for i, _ in enumerate(mut_array):
             new_mut_protocol = f'<Add mover_name="mr{i}"/>'
             mut_protocol += new_mut_protocol
 
@@ -133,6 +204,9 @@ class ScoreClusters:
 
 
 def main(num_mut: int = 1):
+    """
+    Test
+    """
     scorer = ScoreClusters(pdb="tests/data/1SUO.pdb", chain_id="A")
 
     ret = scorer.run(f"tests/data/cluster/1SUO_A_1SUO.ent.mut_designs_{num_mut}")

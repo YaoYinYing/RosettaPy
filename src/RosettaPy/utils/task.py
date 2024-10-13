@@ -1,3 +1,7 @@
+"""
+Task module for Rosetta
+"""
+
 import copy
 from dataclasses import dataclass
 import os
@@ -5,22 +9,41 @@ from typing import Dict, List, Optional
 import warnings
 
 
-class RosettaScriptVariableWarning(RuntimeWarning): ...
+class RosettaScriptVariableWarning(RuntimeWarning):
+    """
+    Warning for RosettaScriptsVariable.
+    """
 
 
-class RosettaScriptVariableNotExistWarning(RosettaScriptVariableWarning): ...
+class RosettaScriptVariableNotExistWarning(RosettaScriptVariableWarning):
+    """
+    Warning for RosettaScriptsVariable when the variable does not exist in Rosetta Script content.
+    """
 
 
-class IgnoreMissingFileWarning(UserWarning): ...
+class IgnoreMissingFileWarning(UserWarning):
+    """
+    Warning for IgnoreMissingFile.
+    """
 
 
 @dataclass(frozen=True)
 class RosettaScriptsVariable:
+    """
+    Represents a single RosettaScripts variable, consisting of a key and a value.
+    """
+
     k: str
     v: str
 
     @property
     def aslist(self) -> List[str]:
+        """
+        Converts the configuration into a list format suitable for command-line arguments.
+
+        Returns:
+            List[str]: A list containing the configuration in command-line argument format.
+        """
         return [
             "-parser:script_vars",
             f"{self.k}={self.v}",
@@ -29,22 +52,56 @@ class RosettaScriptsVariable:
 
 @dataclass(frozen=True)
 class RosettaScriptsVariableGroup:
+    """
+    Represents a group of RosettaScripts variables, providing functionalities to manage these variables collectively.
+    """
+
     variables: List[RosettaScriptsVariable]
 
     @property
     def empty(self):
+        """
+        Checks if the list of variables in the group is empty.
+
+        Returns:
+            bool: True if the list of variables is empty; otherwise, False.
+        """
         return len(self.variables) == 0
 
     @property
     def aslonglist(self) -> List[str]:
+        """
+        Flattens the list of variables into a single list of strings.
+
+        Returns:
+            List[str]: A flattened list containing all elements from the variables.
+        """
         return [i for v in self.variables for i in v.aslist]
 
     @property
     def asdict(self) -> Dict[str, str]:
+        """
+        Converts the list of variables into a dictionary.
+
+        Returns:
+            Dict[str, str]: A dictionary with variable keys and their corresponding values.
+        """
         return {rsv.k: rsv.v for rsv in self.variables}
 
     @classmethod
     def from_dict(cls, var_pair: Dict[str, str]) -> "RosettaScriptsVariableGroup":
+        """
+        Creates an instance of RosettaScriptsVariableGroup from a dictionary of variable pairs.
+
+        Args:
+            var_pair (Dict[str, str]): A dictionary representing variable pairs.
+
+        Returns:
+            RosettaScriptsVariableGroup: An instance of RosettaScriptsVariableGroup.
+
+        Raises:
+            ValueError: If the created instance has no variables.
+        """
         variables = [RosettaScriptsVariable(k=k, v=str(v)) for k, v in var_pair.items()]
         instance = cls(variables)
         if instance.empty:
@@ -52,6 +109,18 @@ class RosettaScriptsVariableGroup:
         return instance
 
     def apply_to_xml_content(self, xml_content: str):
+        """
+        Replaces placeholders in the XML content with actual variable values.
+
+        Args:
+            xml_content (str): The original XML content with placeholders.
+
+        Returns:
+            str: The XML content with placeholders replaced by variable values.
+
+        Raises:
+            RosettaScriptVariableNotExistWarning: If a placeholder for a variable does not exist in the XML content.
+        """
         xml_content_copy = copy.deepcopy(xml_content)
         for k, v in self.asdict.items():
             if f"%%{k}%%" not in xml_content_copy:

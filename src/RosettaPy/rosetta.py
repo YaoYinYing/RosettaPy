@@ -1,3 +1,7 @@
+"""
+This module provides a class for running Rosetta command-line applications. It supports both local and containerized
+"""
+
 import os
 import copy
 import subprocess
@@ -121,9 +125,8 @@ class Rosetta:
             self.use_mpi = True
             return
 
-        else:
-            warnings.warn(UserWarning("Using MPI binary as static build."))
-            self.use_mpi = False
+        warnings.warn(UserWarning("Using MPI binary as static build."))
+        self.use_mpi = False
 
     @staticmethod
     def _isolated_execute(task: RosettaCmdTask, func: Callable[[RosettaCmdTask], RosettaCmdTask]) -> RosettaCmdTask:
@@ -292,7 +295,7 @@ class Rosetta:
 
         _base_cmd = copy.copy(base_cmd)
         if inputs:
-            for i, _i in enumerate(inputs):
+            for _, _i in enumerate(inputs):
                 _base_cmd.extend(self.expand_input_dict(_i))
 
         if nstruct:
@@ -316,7 +319,9 @@ class Rosetta:
         """
         Execute tasks using MPI.
 
-        This method is designed to execute a given list of tasks using MPI (Message Passing Interface), which is a programming model for distributed memory systems that allows developers to write highly scalable parallel applications.
+        This method is designed to execute a given list of tasks using MPI (Message Passing Interface),
+        which is a programming model for distributed memory systems that allows developers to write
+        highly scalable parallel applications.
 
         Parameters:
         - self: Instance reference, allowing access to other methods and attributes of the class.
@@ -395,7 +400,7 @@ class Rosetta:
         :param nstruct: Number of structures to generate.
         :return: List of RosettaCmdTask.
         """
-        cmd = self.compose(opts=self.opts)
+        cmd = self.compose()
         if self.use_mpi and isinstance(self.run_node, MPI_node):
             if inputs is not None:
                 warnings.warn(
@@ -413,14 +418,14 @@ class Rosetta:
                 tasks = self.setup_tasks_mpi(base_cmd=recomposed_cmd, inputs=inputs, nstruct=nstruct, dockerized=True)
                 assert len(tasks) == 1, "Only one task should be returned from setup_tasks_mpi"
                 return [self.run_node.run_single_task(task=tasks[0])]
-            else:
-                tasks = self.setup_tasks_local(base_cmd=recomposed_cmd, inputs=inputs, nstruct=nstruct)
-                return self.run_local_docker(tasks)
+
+            tasks = self.setup_tasks_local(base_cmd=recomposed_cmd, inputs=inputs, nstruct=nstruct)
+            return self.run_local_docker(tasks)
 
         tasks = self.setup_tasks_local(cmd, inputs, nstruct)
         return self.run_local(tasks)
 
-    def compose(self, **kwargs) -> List[str]:
+    def compose(self) -> List[str]:
         """
         Composes the full command based on the provided options.
 

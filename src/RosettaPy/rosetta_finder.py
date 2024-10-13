@@ -1,3 +1,7 @@
+"""
+Finder module for Rosetta binary
+"""
+
 import os
 import sys
 import re

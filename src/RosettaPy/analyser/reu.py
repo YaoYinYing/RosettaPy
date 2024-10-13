@@ -1,3 +1,7 @@
+"""
+Analysis tool of Rosetta Energy Unit
+"""
+
 from dataclasses import dataclass
 import os
 from typing import Dict, Literal, Optional, Tuple, Union

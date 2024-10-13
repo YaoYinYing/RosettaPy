@@ -1,3 +1,7 @@
+"""
+Tools of running tasks
+"""
+
 import contextlib
 import shutil
 import tempfile
@@ -6,6 +10,7 @@ import os
 from typing import Optional
 
 
+# from AlphaFold
 @contextlib.contextmanager
 def timing(msg: str):
     """
@@ -30,24 +35,30 @@ def timing(msg: str):
     print(f"Finished {msg} in {toc - tic:.3f} seconds")
 
 
+# from AlphaFold
 @contextlib.contextmanager
 def tmpdir_manager(base_dir: Optional[str] = None):
     """
     Context manager that deletes a temporary directory on exit.
 
-    This function is used to create a temporary directory when needed, and automatically delete it when the task is completed,
-    to ensure clean up and avoid pollution to the file system. It uses the `contextlib.contextmanager` decorator to define a context manager.
+    This function is used to create a temporary directory when needed,
+    and automatically delete it when the task is completed,
+    to ensure clean up and avoid pollution to the file system.
+    It uses the `contextlib.contextmanager` decorator to define a context manager.
 
     Parameters:
-    - base_dir: Optional[str], the base directory where the temporary directory is created. If not provided, the system's default temporary directory will be used.
+    - base_dir: Optional[str], the base directory where the temporary directory is created.
+                If not provided, the system's default temporary directory will be used.
 
     Returns:
-    - Yields the path of the created temporary directory. When the task using this directory is completed, the directory and all its contents will be deleted.
+    - Yields the path of the created temporary directory. When the task using this directory is completed,
+        the directory and all its contents will be deleted.
     """
     # Create a temporary directory
     tmpdir = tempfile.mkdtemp(dir=base_dir)
     try:
-        # If the code in the try block raises an exception, the finally block will still be executed, ensuring the temporary directory is deleted
+        # If the code in the try block raises an exception, the finally block will still be executed,
+        # ensuring the temporary directory is deleted
         yield tmpdir
     finally:
         # Delete the temporary directory, ignore errors if the directory does not exist
@@ -68,11 +79,13 @@ def isolate(save_to: str = "./save"):
     - save_to: str, default is "./save". Specifies the directory where files are saved during the context.
 
     Returns:
-    This function is a context manager that does not directly return a value but yields control using the `yield` statement.
+    This function is a context manager that does not directly return a value but yields control
+    using the `yield` statement.
     """
     # Convert the save path to an absolute path for accurate subsequent operations
     save_to = os.path.abspath(save_to)
-    # Ensure the save directory exists; if it does not, create it. exist_ok=True means no error is raised if the directory already exists
+    # Ensure the save directory exists; if it does not, create it. exist_ok=True means no error is
+    # raised if the directory already exists
     os.makedirs(save_to, exist_ok=True)
 
     # Save the current directory path to restore it later

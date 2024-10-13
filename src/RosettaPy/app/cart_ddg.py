@@ -1,3 +1,7 @@
+"""
+Example Application of Cartesian ddG
+"""
+
 import os
 from typing import List, Tuple
 from dataclasses import dataclass
@@ -12,6 +16,21 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 
 @dataclass
 class CartesianDDG:
+    """
+    A class for performing Cartesian ddG (delta delta G) calculations on protein structures.
+
+    Attributes:
+        pdb (str): The path to the input PDB file.
+        save_dir (str, optional): The directory to save the output results. Defaults to "tests/outputs".
+        job_id (str, optional): The job identifier. Defaults to "cart_ddg".
+
+        nstruct_relax (int, optional): The number of relaxed structures to generate. Defaults to 30.
+        use_legacy (bool, optional): Whether to use the legacy method for ddG calculation. Defaults to False.
+        ddg_iteration (int, optional): The number of iterations for the ddG calculation. Defaults to 3.
+
+        mutant_pdb_dir (str): The directory containing the mutant PDB files.
+    """
+
     pdb: str
     save_dir: str = "tests/outputs"
     job_id: str = "cart_ddg"
@@ -23,6 +42,12 @@ class CartesianDDG:
     mutant_pdb_dir = "tests/data/designed/pross/"
 
     def __post_init__(self):
+        """
+        Post-initialization method to perform checks and set up the working directory.
+
+        Raises:
+            FileNotFoundError: If the specified PDB file does not exist.
+        """
         if not os.path.isfile(self.pdb):
             raise FileNotFoundError(f"PDB is given yet not found - {self.pdb}")
         self.instance = os.path.basename(self.pdb)[:-4]
@@ -32,6 +57,12 @@ class CartesianDDG:
         self.save_dir = os.path.abspath(self.save_dir)
 
     def relax(self):
+        """
+        Method to perform structure relaxation using Rosetta.
+
+        Returns:
+            str: The path to the best relaxed PDB file.
+        """
         rosetta = Rosetta(
             bin="relax",
             flags=[f"{script_dir}/deps/cart_ddg/flags/ddG_relax.flag"],
@@ -64,6 +95,15 @@ class CartesianDDG:
         return pdb_path
 
     def cartesian_ddg(self, input_pdb):
+        """
+        Method to perform Cartesian ddG calculation using Rosetta.
+
+        Args:
+            input_pdb (str): The path to the input PDB file for ddG calculation.
+
+        Returns:
+            pd.DataFrame: A dataframe containing the ddG calculation results for each mutant.
+        """
         rosetta = Rosetta(
             bin="cartesian_ddg",
             flags=[f"{script_dir}/deps/cart_ddg/flags/ddG.options"],
@@ -104,6 +144,12 @@ class CartesianDDG:
         )
 
     def mut2mutfile(self) -> Tuple[List[str], List[Mutant]]:
+        """
+        Method to generate mutation files for Cartesian ddG calculation based on the specified mutant PDB files.
+
+        Returns:
+            Tuple[List[str], List[Mutant]]: A tuple containing a list of mutation files and a list of Mutant objects.
+        """
         pdbs = [os.path.join(self.mutant_pdb_dir, f) for f in os.listdir(self.mutant_pdb_dir)]
         mutants = Mutant.from_pdb(self.pdb, pdbs)
 
@@ -111,7 +157,7 @@ class CartesianDDG:
 
         mutfiles = []
 
-        for i, m in enumerate(mutants_dict.values()):
+        for _, m in enumerate(mutants_dict.values()):
             m_id = m.raw_mutant_id
             mutfile = os.path.join(self.save_dir, self.job_id, "mutfiles", f"{m_id}.mutfile")
             mutants2mutfile([m], mutfile)
@@ -120,6 +166,9 @@ class CartesianDDG:
 
 
 def main(legacy: bool = False):
+    """
+    Test
+    """
     cart_ddg = CartesianDDG(
         pdb="tests/data/3fap_hf3_A_short.pdb",
         nstruct_relax=4,

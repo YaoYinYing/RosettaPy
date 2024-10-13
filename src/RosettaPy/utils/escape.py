@@ -1,11 +1,19 @@
+"""
+Color escape code class
+"""
+
+
 class Colors:
     """Class for ANSI color codes, used to output colored and formatted text on supported terminals.
 
     source: https://gist.github.com/rene-d/9e584a7dd2935d0f461904b9f2950007
 
-    This class provides various ANSI escape codes for colors and text formatting, enabling the addition of color or visual changes to text on compatible terminals.
-    It checks `sys.stdout.isatty()` to determine whether to enable these escape codes when not outputting to a terminal.
-    On Windows systems, if running in a terminal is detected, the `SetConsoleMode` function is used to enable VT mode for supporting ANSI escape codes.
+    This class provides various ANSI escape codes for colors and text formatting,
+    enabling the addition of color or visual changes to text on compatible terminals.
+    It checks `sys.stdout.isatty()` to determine whether to enable these escape codes
+    when not outputting to a terminal.
+    On Windows systems, if running in a terminal is detected, the `SetConsoleMode`
+    function is used to enable VT mode for supporting ANSI escape codes.
 
     Attributes:
         BLACK, RED, GREEN, BROWN, BLUE, PURPLE, CYAN, LIGHT_GRAY,
@@ -55,7 +63,7 @@ class Colors:
 if __name__ == "__main__":
     for i in dir(Colors):
         if i[0:1] != "_" and i != "RESET":
-            print("{:>16} {}".format(i, getattr(Colors, i) + i + Colors.RESET))
+            print(f"{i:>16} {getattr(Colors, i) + i + Colors.RESET}")
 
-    text = """Welcome to The World of Color Escape Code."""
-    print(f"{Colors.BOLD}{Colors.PURPLE}{Colors.NEGATIVE}{text}{Colors.RESET}")
+    sample_text = """Welcome to The World of Color Escape Code."""
+    print(f"{Colors.BOLD}{Colors.PURPLE}{Colors.NEGATIVE}{sample_text}{Colors.RESET}")

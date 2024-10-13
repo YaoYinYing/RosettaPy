@@ -2,6 +2,7 @@
 
 A Python utility for wrapping Rosetta command line tools.
 
+## License
 ![GitHub License](https://img.shields.io/github/license/YaoYinYing/RosettaPy)
 
 ## CI Status
@@ -9,6 +10,7 @@ A Python utility for wrapping Rosetta command line tools.
 [![Python CI](https://github.com/YaoYinYing/RosettaPy/actions/workflows/CI.yml/badge.svg)](https://github.com/YaoYinYing/RosettaPy/actions/workflows/CI.yml)
 [![Test with Rosetta](https://github.com/YaoYinYing/RosettaPy/actions/workflows/RosettaCI.yml/badge.svg)](https://github.com/YaoYinYing/RosettaPy/actions/workflows/RosettaCI.yml)
 [![Dependabot Updates](https://github.com/YaoYinYing/RosettaPy/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/YaoYinYing/RosettaPy/actions/workflows/dependabot/dependabot-updates)
+[![Pylint](https://github.com/YaoYinYing/RosettaPy/actions/workflows/lint_badge.yml/badge.svg)](https://github.com/YaoYinYing/RosettaPy/actions/workflows/lint_badge.yml)
 
 ## Quality
 
@@ -16,23 +18,23 @@ A Python utility for wrapping Rosetta command line tools.
 [![CodeFactor](https://www.codefactor.io/repository/github/yaoyinying/rosettapy/badge)](https://www.codefactor.io/repository/github/yaoyinying/rosettapy)
 [![Maintainability](https://api.codeclimate.com/v1/badges/56830e8844e9ef6075c2/maintainability)](https://codeclimate.com/github/YaoYinYing/RosettaPy/maintainability)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/4d6b6f78e59b4c38a0362d2d83fc9815)](https://app.codacy.com/gh/YaoYinYing/RosettaPy/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
-![Pylint](https://github-image-cache.yaoyy.moe/badge_dir_with_uniq_name/RosettaPy/pylint/pylint_scan.svg)
-![GitHub repo size](https://img.shields.io/github/repo-size/YaoYinYing/RosettaPy)
+[![Pylint](https://github-image-cache.yaoyy.moe/badge_dir_with_uniq_name/RosettaPy/pylint/pylint_scan.svg)](https://github.com/YaoYinYing/pylint-github-action)
+[![GitHub repo size](https://img.shields.io/github/repo-size/YaoYinYing/RosettaPy)](https://github.com/YaoYinYing/RosettaPy)
 
 ## Release
 
-![GitHub Release](https://img.shields.io/github/v/release/YaoYinYing/RosettaPy)
-![GitHub Release Date](https://img.shields.io/github/release-date/YaoYinYing/RosettaPy)
+[![GitHub Release](https://img.shields.io/github/v/release/YaoYinYing/RosettaPy)](https://github.com/YaoYinYing/RosettaPy/releases)
+[![GitHub Release Date](https://img.shields.io/github/release-date/YaoYinYing/RosettaPy)](https://github.com/YaoYinYing/RosettaPy/releases)
 
-![PyPI - Format](https://img.shields.io/pypi/format/RosettaPy)
-![PyPI - Version](https://img.shields.io/pypi/v/RosettaPy)
-![PyPI - Status](https://img.shields.io/pypi/status/RosettaPy)
-![PyPI - Wheel](https://img.shields.io/pypi/wheel/RosettaPy)
+[![PyPI - Format](https://img.shields.io/pypi/format/RosettaPy)](https://pypi.org/project/RosettaPy/)
+[![PyPI - Version](https://img.shields.io/pypi/v/RosettaPy)](https://pypi.org/project/RosettaPy/#history)
+[![PyPI - Status](https://img.shields.io/pypi/status/RosettaPy)](https://pypi.org/project/RosettaPy/)
+[![PyPI - Wheel](https://img.shields.io/pypi/wheel/RosettaPy)](https://pypi.org/project/RosettaPy/)
 
 ## Python version supported
 
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/RosettaPy)
-![PyPI - Implementation](https://img.shields.io/pypi/implementation/RosettaPy)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/RosettaPy)](https://pypi.org/project/RosettaPy/)
+[![PyPI - Implementation](https://img.shields.io/pypi/implementation/RosettaPy)](https://pypi.org/project/RosettaPy/)
 
 ## Overview
 

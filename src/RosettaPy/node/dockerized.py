@@ -1,12 +1,18 @@
+"""
+Container module for run Rosetta via docker.
+"""
+
 from dataclasses import dataclass
 import os
 import signal
 import warnings
-from docker import types
 from typing import List, Tuple
-import docker
 
-from ..utils import RosettaCmdTask
+import docker
+from docker import types
+
+# internal imports
+from ..utils.task import RosettaCmdTask
 from ..utils.escape import Colors as C
 
 
@@ -55,9 +61,9 @@ class RosettaContainer:
         if not os.path.exists(path):
             raise FileNotFoundError(f"{path} does not exist.")
         path = os.path.abspath(path)
-        dir = os.path.dirname(path) if os.path.isfile(path) else path
+        dirname = os.path.dirname(path) if os.path.isfile(path) else path
 
-        return dir.replace("/", "-").strip("-")
+        return dirname.replace("/", "-").strip("-")
 
     def mount(self, input_task: RosettaCmdTask) -> Tuple[RosettaCmdTask, List[types.Mount]]:
         """
@@ -101,6 +107,29 @@ class RosettaContainer:
 
             return mounted
 
+        def process_xml_fragment(script_vars_v: str) -> str:
+
+            vf_list = []
+
+            vf_split = script_vars_v.split('"')
+            for _, vf in enumerate(vf_split):
+                if os.path.isfile(vf) or os.path.isdir(vf):
+                    mounted = unique_mount(vf)
+                    vf_list.append(mounted)
+                    continue
+                vf_list.append(vf)
+
+            joined_vf = '"'.join(vf_list)
+            if not joined_vf.startswith("'"):
+                joined_vf = "'" + joined_vf
+
+            if not joined_vf.endswith("'"):
+                joined_vf += "'"
+
+            print(f"{C.BLUE}{C.NEGATIVE}{C.BOLD}Original:{C.RESET} {C.BLUE}{C.NEGATIVE}{script_vars_v}{C.RESET}")
+            print(f"{C.PURPLE}{C.NEGATIVE}{C.BOLD}Rewrited:{C.RESET} {C.PURPLE}{C.NEGATIVE}{joined_vf}{C.RESET}\n")
+            return joined_vf
+
         for i, _cmd in enumerate(input_task.cmd):
             try:
                 # Handle general options
@@ -133,34 +162,13 @@ class RosettaContainer:
                     if os.path.isfile(script_vars_v) or os.path.isdir(script_vars_v):
                         mounted = unique_mount(script_vars_v)
                         mounted_cmd.append(f"{script_vars[0]}={mounted}")
+                        continue
 
                     # xml file block with file input
                     # eg.
                     # '<AddOrRemoveMatchCsts name="cstadd" cstfile="/my/example.cst" cst_instruction="add_new"/>'
-                    elif " " in script_vars_v and ("<" in script_vars_v):  # xml fragment
-                        vf_list = []
-
-                        vf_split = script_vars_v.split('"')
-                        for i, vf in enumerate(vf_split):
-                            if os.path.isfile(vf) or os.path.isdir(vf):
-                                mounted = unique_mount(vf)
-                                vf_list.append(mounted)
-                                continue
-                            vf_list.append(vf)
-
-                        joined_vf = '"'.join(vf_list)
-                        if not joined_vf.startswith("'"):
-                            joined_vf = "'" + joined_vf
-
-                        if not joined_vf.endswith("'"):
-                            joined_vf += "'"
-
-                        print(
-                            f"{C.BLUE}{C.NEGATIVE}{C.BOLD}Original:{C.RESET} {C.BLUE}{C.NEGATIVE}{script_vars_v}{C.RESET}"
-                        )
-                        print(
-                            f"{C.PURPLE}{C.NEGATIVE}{C.BOLD}Rewrited:{C.RESET} {C.PURPLE}{C.NEGATIVE}{joined_vf}{C.RESET}\n"
-                        )
+                    if " " in script_vars_v and ("<" in script_vars_v):  # xml fragment
+                        joined_vf = process_xml_fragment(script_vars_v)
                         mounted_cmd.append(f"{script_vars[0]}={joined_vf}")
                     else:
                         mounted_cmd.append(_cmd)
@@ -173,7 +181,7 @@ class RosettaContainer:
                 mounted_cmd.append(_cmd)
         try:
             os.makedirs(input_task.runtime_dir, exist_ok=True)
-        except FileExistsError as e:
+        except FileExistsError:
             warnings.warn(
                 RuntimeWarning(
                     f"{input_task.runtime_dir} already exists. This might be a leftover from a previous run. "

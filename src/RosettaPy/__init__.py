@@ -1,3 +1,7 @@
+"""
+Welcome to RosettaPy.
+"""
+
 from __future__ import annotations
 from .rosetta_finder import RosettaBinary, RosettaFinder, main
 from .rosetta import Rosetta, RosettaScriptsVariableGroup, MPI_node
@@ -18,4 +22,4 @@ __all__ = [
     "RosettaCartesianddGAnalyser",
 ]
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"

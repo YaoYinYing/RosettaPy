@@ -1,3 +1,7 @@
+"""
+Node classes for Rosetta Runs.
+"""
+
 from .mpi import MPI_node
 from .dockerized import RosettaContainer
 

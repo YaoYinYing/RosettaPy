@@ -1,3 +1,7 @@
+"""
+Utility functions of RosettaPy
+"""
+
 from .tools import timing, tmpdir_manager, isolate
 from .task import (
     RosettaCmdTask,

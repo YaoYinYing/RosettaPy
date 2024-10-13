@@ -1,6 +1,11 @@
+"""
+Utility functions of PDB processing
+"""
+
+
 class PDBProcessor:
     @staticmethod
-    def get_CA_constraint_line(line: str) -> str:
+    def get_calpha_constraint_line(line: str) -> str:
         """
         Static method to process a single line of a PDB file and output a CoordinateConstraint
         for CA atoms only.
@@ -46,7 +51,7 @@ class PDBProcessor:
         with open(pdb_file_path, "r") as pdb_file, open(output_file_path, "w") as output_file:
             c = 0
             for line in pdb_file:
-                constraint = PDBProcessor.get_CA_constraint_line(line)
+                constraint = PDBProcessor.get_calpha_constraint_line(line)
                 if constraint:  # Only write non-empty constraints
                     output_file.write(constraint)
                     c += 1
