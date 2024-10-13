@@ -2,11 +2,13 @@ name: Test with Rosetta
 
 on:
   workflow_dispatch:
+  release:
+    types: [created]
   push:
     paths:
       - ".github/workflows/RosettaCI.yml" # monitor the main workflow script.
-      - "src/RosettaPy/app/*"
-      - "tests/cases/*"
+      - "src/RosettaPy/*"
+      - "tests/*"
 
     branches:
       - main
