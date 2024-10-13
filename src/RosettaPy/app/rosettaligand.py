@@ -2,6 +2,8 @@
 Example Application of RosettaLigand
 """
 
+# pylint: disable=invalid-name
+
 import os
 from typing import List, Optional, Tuple
 from dataclasses import dataclass, field

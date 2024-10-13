@@ -3,6 +3,7 @@ Color escape code class
 """
 
 # pylint: disable=too-few-public-methods
+# pylint: disable=protected-access
 
 
 class Colors:

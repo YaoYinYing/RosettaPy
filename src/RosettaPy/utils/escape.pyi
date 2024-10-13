@@ -1,5 +1,8 @@
 # pylint: disable=unused-argument
 # pylint: disable=too-many-public-methods
+# pylint: disable=missing-function-docstring
+# pylint: disable=missing-module-docstring
+# pylint: disable=missing-class-docstring
 
 class Colors:
     BLACK: str

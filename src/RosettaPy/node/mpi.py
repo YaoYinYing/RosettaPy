@@ -13,7 +13,10 @@ from typing import Dict, List, Optional
 import warnings
 
 
-class MPI_IncompatibleInputWarning(RuntimeWarning): ...
+class MPI_IncompatibleInputWarning(RuntimeWarning):
+    """
+    Incompatible Input matrix against MPI execution.
+    """
 
 
 @dataclass
