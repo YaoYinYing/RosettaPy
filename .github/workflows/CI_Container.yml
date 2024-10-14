@@ -44,11 +44,25 @@ jobs:
         with:
             python-version: 3.11
 
-      - name: Setup RosettaPy on ${{ matrix.os }}
+      - name: Setup Dependency on Ubuntu
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update -y
-          sudo apt-get install build-essential gnupg2 git -y
+          sudo apt-get install -y build-essential gnupg2 git
           sudo bash scripts/upgrade_git.sh
+
+      - name: Setup Dependency on macOS
+        if: ${{ startsWith(matrix.os, 'macos') }}
+        run: |
+          bash ./scripts/upgrade_git_macos.sh
+
+      - name: Setup Dependency on Windows
+        if: ${{ startsWith(matrix.os, 'windows') }}
+        run: |
+          ./scripts/upgrade_git_windows.bat
+
+      - name: Setup RosettaPy on ${{ matrix.os }}
+        run: |
           pip install '.[test]' -U
           docker pull rosettacommons/rosetta:mpi
 
