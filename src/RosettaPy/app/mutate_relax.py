@@ -216,11 +216,7 @@ def main(num_mut: int = 1, use_docker=False):
     scorer = ScoreClusters(
         pdb="tests/data/1SUO.pdb",
         chain_id="A",
-        node=(
-            RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi", prohibit_mpi=True)
-            if use_docker
-            else None
-        ),
+        node=(RosettaContainer(image="rosettacommons/rosetta:mpi", prohibit_mpi=True) if use_docker else None),
         job_id=f"score_cluster" + docker_label + f"_{str(num_mut)}",
     )
 

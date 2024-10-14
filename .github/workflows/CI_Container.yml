@@ -1,4 +1,4 @@
-name: Test in Rosetta Container
+name: Bare Test with Rosetta Container Node
 
 on:
   push:
@@ -10,8 +10,8 @@ on:
   workflow_dispatch:
 
 env:
-  ROSETTA_BIN: /usr/local/bin/
-  GITHUB_ROSETTA_TEST: "YES"
+  GITHUB_CONTAINER_ROSETTA_TEST: "YES" # Github Actions: run python against container node
+  GITHUB_ROSETTA_TEST: "YES" # skip some integration tests
 
 jobs:
   RosettaTests:
@@ -23,11 +23,6 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
-    env:
-      OS: ${{ matrix.os }}
-
-    container:
-      image: rosettacommons/rosetta:mpi
 
     defaults:
       run:
@@ -37,12 +32,18 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+            python-version: 3.11
+
       - name: Setup RosettaPy on ${{ matrix.os }}
         run: |
           apt-get update -y
           apt-get install build-essential gnupg2 git -y
           bash scripts/upgrade_git.sh
           pip install '.[test]' -U
+          docker pull rosettacommons/rosetta:mpi
 
       - name: Run test cases
         run: |

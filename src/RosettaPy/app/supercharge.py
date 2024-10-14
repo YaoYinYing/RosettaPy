@@ -70,11 +70,7 @@ def supercharge(
         ],
         save_all_together=True,  # Save all results together
         isolation=True,  # Run in isolation to prevent contamination of other tasks
-        run_node=(
-            RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi", prohibit_mpi=True)
-            if use_docker
-            else None
-        ),
+        run_node=(RosettaContainer(image="rosettacommons/rosetta:mpi", prohibit_mpi=True) if use_docker else None),
     )
 
     # Generate instance name based on the PDB file name

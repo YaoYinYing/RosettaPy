@@ -166,16 +166,16 @@ def main(dualspace: bool = False, use_docker=False):
         scorer = FastRelax(
             pdb="tests/data/3fap_hf3_A.pdb",
             dualspace=True,
-            job_id="fastrelax_dualspace"+docker_label,
+            job_id="fastrelax_dualspace" + docker_label,
             default_repeats=3,
-            node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi") if use_docker else None,
+            node=RosettaContainer(image="rosettacommons/rosetta:mpi") if use_docker else None,
         )
     else:
         scorer = FastRelax(
             pdb="tests/data/3fap_hf3_A.pdb",
             default_repeats=3,
-            node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi") if use_docker else None,
-            job_id='fast_relax'+ docker_label
+            node=RosettaContainer(image="rosettacommons/rosetta:mpi") if use_docker else None,
+            job_id="fast_relax" + docker_label,
         )
 
     analyser = scorer.run(4)

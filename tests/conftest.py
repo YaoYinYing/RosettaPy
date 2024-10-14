@@ -11,6 +11,7 @@ In VSCode, Code Coverage is recorded in config.xml. Delete this file to reset re
 from __future__ import annotations
 
 import os
+import shutil
 from typing import List
 import warnings
 
@@ -44,9 +45,16 @@ def no_rosetta():
     return not has_rosetta_installed
 
 
+NO_NATIVE_ROSETTA = no_rosetta()
+
+
 def github_rosetta_test():
     return os.environ.get("GITHUB_ROSETTA_TEST", "NO") == "YES"
 
 
 # Determine if running in GitHub Actions
 is_github_actions = os.environ.get("GITHUB_ACTIONS") == "true"
+
+has_docker = shutil.which("docker") != None
+
+GITHUB_CONTAINER_ROSETTA_TEST = os.environ.get("GITHUB_CONTAINER_ROSETTA_TEST", "NO") == "YES"

@@ -333,12 +333,8 @@ def main(use_docker=False):
     pross = PROSS(
         pdb="tests/data/3fap_hf3_A_short.pdb",
         pssm="tests/data/3fap_hf3_A_ascii_mtx_file_short",
-        job_id="pross_reduce"+docker_label,
-        node=(
-            RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi", prohibit_mpi=True)
-            if use_docker
-            else None
-        ),
+        job_id="pross_reduce" + docker_label,
+        node=(RosettaContainer(image="rosettacommons/rosetta:mpi", prohibit_mpi=True) if use_docker else None),
     )
     best_refined = pross.refine(4)
 

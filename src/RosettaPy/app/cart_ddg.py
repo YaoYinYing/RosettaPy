@@ -130,7 +130,7 @@ class CartesianDDG:
             output_dir=os.path.join(self.save_dir, f"{self.job_id}_cart_ddg"),
             job_id=f"cart_ddg_run_{self.instance}",
             run_node=self.node,
-            # run_node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi", prohibit_mpi=True),
+            # run_node=RosettaContainer(image="rosettacommons/rosetta:mpi", prohibit_mpi=True),
         )
 
         mutfiles, mutants = self.mut2mutfile()
@@ -172,17 +172,13 @@ def main(legacy: bool = False, use_docker=False):
     """
     Test
     """
-    docker_label='_docker' if use_docker else ''
+    docker_label = "_docker" if use_docker else ""
     cart_ddg = CartesianDDG(
         pdb="tests/data/3fap_hf3_A_short.pdb",
         nstruct_relax=4,
         use_legacy=legacy,
         job_id="cart_ddg" + docker_label if not legacy else "cart_ddg_legacy" + docker_label,
-        node=(
-            RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi", prohibit_mpi=True)
-            if use_docker
-            else None
-        ),
+        node=(RosettaContainer(image="rosettacommons/rosetta:mpi", prohibit_mpi=True) if use_docker else None),
     )
 
     pdb_path = cart_ddg.relax()

@@ -73,10 +73,10 @@ def parse_pdb_sequences(pdb_filename: str) -> Union[List[Chain], None]:
     parser = PDBParser()
     try:
         structure = parser.get_structure(os.path.basename(pdb_filename)[:-4], pdb_filename)
-    except AttributeError:
+    except AttributeError as e:
         warnings.warn(UserWarning("Failed to parse PDB file. A deprecated version of Biopython is installed"))
 
-        raise AttributeError(f"Biopython version ({Bio.__version__}) not supported.")
+        raise AttributeError(f"Biopython version ({Bio.__version__}) not supported.") from e
 
     ppb = PPBuilder()
 

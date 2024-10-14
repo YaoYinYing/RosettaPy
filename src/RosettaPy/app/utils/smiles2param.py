@@ -24,6 +24,7 @@ import sys
 import subprocess
 from dataclasses import dataclass
 from typing import Dict, Optional
+import warnings
 
 import pandas as pd
 
@@ -32,6 +33,9 @@ from rdkit import DataStructs
 from rdkit.Chem import AllChem
 from rdkit.Chem.Fingerprints import FingerprintMols
 from RosettaPy import RosettaBinary
+from RosettaPy.utils.repository import setup_rosetta_python_scripts
+
+from RosettaPy.utils.escape import Colors as C
 
 
 # Functions
@@ -180,77 +184,93 @@ class SmallMoleculeParamsGenerator:
     ligands and generating molecular parameters.
 
     Attributes:
-        rosetta_bin (Optional[RosettaBinary]): The path to the Rosetta binary.
         num_conformer (int): The number of conformers to generate.
         save_dir (str): The directory where the generated files will be saved.
     """
-
-    rosetta_bin: Optional[RosettaBinary] = None
 
     num_conformer: int = 100
     save_dir: str = "./ligands/"
 
     # Internal use
-    rosetta_python_script_dir: str = ""
+    _rosetta_python_script_dir: str = ""
 
     def __post_init__(self):
         """
         Post-initialization method to set up the save directory and determine the Rosetta Python scripts directory.
         """
         os.makedirs(self.save_dir, exist_ok=True)
-        if isinstance(self.rosetta_bin, RosettaBinary):
-            p = os.path.join(self.rosetta_bin.dirname, "../", "scripts/python/public")
-            if os.path.exists(p):
-                self.rosetta_python_script_dir = p
-                return
 
-        if os.environ.get("ROSETTA_PYTHON_SCRIPTS") is not None:
-            self.rosetta_python_script_dir = os.environ["ROSETTA_PYTHON_SCRIPTS"]
+        if os.environ.get("ROSETTA_PYTHON_SCRIPTS"):
+
+            self._rosetta_python_script_dir = os.environ["ROSETTA_PYTHON_SCRIPTS"]
+            print(f"Find $ROSETTA_PYTHON_SCRIPTS = {self._rosetta_python_script_dir}")
             return
 
-        if os.environ.get("ROSETTA") is not None:
-            self.rosetta_python_script_dir = os.path.join(os.environ["ROSETTA"], "main/source/scripts/python/public/")
+        if os.environ.get("ROSETTA"):
+            self._rosetta_python_script_dir = os.path.join(os.environ["ROSETTA"], "main/source/scripts/python/public/")
+            print(f"Find $ROSETTA_PYTHON_SCRIPTS (ROSETTA) = {self._rosetta_python_script_dir}")
             return
-        if os.environ.get("ROSETTA3") is not None:
-            self.rosetta_python_script_dir = os.path.join(os.environ["ROSETTA3"], "scripts/python/public/")
+        if os.environ.get("ROSETTA3"):
+            self._rosetta_python_script_dir = os.path.join(os.environ["ROSETTA3"], "scripts/python/public/")
+            print(f"Find $ROSETTA_PYTHON_SCRIPTS (ROSETTA3) = {self._rosetta_python_script_dir}")
             return
 
-        raise RuntimeError(
-            "Could not find a proper directory like ROSETTA_PYTHON_SCRIPTS, ROSETTA, or ROSETTA3. Maybe in Dockerized?"
+        warnings.warn(
+            RuntimeWarning(
+                "Could not find or setup a proper directory like ROSETTA_PYTHON_SCRIPTS, ROSETTA, or ROSETTA3. "
+                "Maybe in Dockerized? Try setup from repository..."
+            )
         )
 
-    def convert(self, ligands: Dict[str, str]):
-        """
-        Converts ligands from SMILES strings to molecules and generates similarity metrics.
+        try:
+            self._rosetta_python_script_dir = setup_rosetta_python_scripts()
+            print(f"Setup $ROSETTA_PYTHON_SCRIPTS from Rosetta Repository = {self._rosetta_python_script_dir}")
+            return
+        except RuntimeError as e:
+            raise RuntimeError("Could not find or setup a proper directory for ROSETTA_PYTHON_SCRIPTS.") from e
 
-        Args:
-            ligands (Dict[str, str]): A dictionary mapping names to SMILES strings.
-        """
-        c_smiles = []
+    @staticmethod
+    def smile2canon(name, ds):
+        try:
+            return Chem.CanonSmiles(ds)
+
+        except Exception as e:
+            print(f"Drop Invalid SMILES:{name} {ds}: {e}")
+            return None
+
+    @staticmethod
+    def compare_fingerprints(ligands: Dict[str, str]):
+        c_smiles = {}
         for i, ds in ligands.items():
-            try:
-                cs = Chem.CanonSmiles(ds)
-                c_smiles.append(cs)
-            except Exception:
-                print(f"Invalid SMILES: {i}\n{ds}")
+            c = SmallMoleculeParamsGenerator.smile2canon(i, ds)
+            if c is not None:
+                c_smiles.update({i: c})
+
         print(c_smiles)
 
         # Create a list of molecules
-        ms = [Chem.MolFromSmiles(x) for x in c_smiles]  # type: ignore
+        ms = {i: Chem.MolFromSmiles(v) for i, v in c_smiles.items()}  # type: ignore
 
         # Generate fingerprints for each molecule
-        fps = [FingerprintMols.FingerprintMol(x) for x in ms]
+        fps = {i: FingerprintMols.FingerprintMol(x) for i, x in ms.items()}
 
         # Prepare lists for the DataFrame
         qu, ta, sim = [], [], []
 
         # Compare all fingerprints pairwise without duplicates
-        for n, fp in enumerate(fps):
-            s = DataStructs.BulkTanimotoSimilarity(fp, fps[n + 1 :])
-            print(c_smiles[n], c_smiles[n + 1 :])
+        c_smiles_v = list(c_smiles.values())
+        fpsv = list(fps.values())
+
+        for i, (n, fp) in enumerate(fps.items()):
+            try:
+                s = DataStructs.BulkTanimotoSimilarity(fp, fpsv[i + 1 :])
+            except ValueError as e:
+                print(f"Ignore molecule `{n}` for fingerprints pairwise due to: {e}")
+                continue
+            print(c_smiles[n], c_smiles_v[i + 1 :])
             for m in range(len(s)):
                 qu.append(c_smiles[n])
-                ta.append(c_smiles[n + 1 :][m])
+                ta.append(c_smiles_v[i + 1 :][m])
                 sim.append(s[m])
 
         # Build the DataFrame and sort it
@@ -259,23 +279,40 @@ class SmallMoleculeParamsGenerator:
         df_final = df_final.sort_values("Similarity", ascending=False)
         print(df_final)
 
-        mols = {}
-        updated_ligands = {}
-        for name, ds in ligands.items():
-            updated_ligands[name] = deprotonate_acids(ds)
-            mols[name] = generate_molecule(name, ds)
+    def convert_single(self, ligand_name: str, smiles: str):
+
+        updated_ligands = deprotonate_acids(smiles)
+        mol = generate_molecule(ligand_name, updated_ligands)
+
+        print(C.light_purple(C.bold(C.negative(f"Deprotonated --- {ligand_name}"))))
+        print(f'{C.red(C.bold(C.italic(f"Before: ")))} {C.red(C.bold(C.negative("-")))} {C.red(C.bold(smiles))}')
+        print(
+            f'{C.green(C.bold(C.italic(f"After:  ")))} {C.green(C.bold(C.negative("+")))} {C.green(C.bold(updated_ligands))}'
+        )
 
         # Processing ligands
-        for i in ligands:
-            cids = get_conformers(mols[i], self.num_conformer, 0.1)
-            # Perform a short minimization and compute the RMSD
-            for cid in cids:
-                _ = AllChem.MMFFOptimizeMolecule(mols[i], confId=cid)  # type: ignore
-            rmslist = []
-            AllChem.AlignMolConformers(mols[i], RMSlist=rmslist)  # type: ignore
 
-        for key, mol in mols.items():
-            self.generate_rosetta_input(mol=mol, name=key, charge=Chem.GetFormalCharge(mol))  # type: ignore
+        cids = get_conformers(mol, self.num_conformer, 0.1)
+        # Perform a short minimization and compute the RMSD
+        for cid in cids:
+            _ = AllChem.MMFFOptimizeMolecule(mol, confId=cid)  # type: ignore
+        rmslist = []
+        AllChem.AlignMolConformers(mol, RMSlist=rmslist)  # type: ignore
+
+        self.generate_rosetta_input(mol=mol, name=ligand_name, charge=Chem.GetFormalCharge(mol))  # type: ignore
+
+    def convert(self, ligands: Dict[str, str]):
+        """
+        Converts ligands from SMILES strings to molecules and generates similarity metrics.
+
+        Args:
+            ligands (Dict[str, str]): A dictionary mapping names to SMILES strings.
+        """
+
+        SmallMoleculeParamsGenerator.compare_fingerprints(ligands)
+
+        for i, v in ligands.items():
+            self.convert_single(ligand_name=i, smiles=v)
 
     def generate_rosetta_input(self, mol, name, charge=0):
         """
@@ -296,13 +333,14 @@ class SmallMoleculeParamsGenerator:
 
         exe = [
             sys.executable,
-            os.path.join(self.rosetta_python_script_dir, "molfile_to_params.py"),
+            os.path.join(self._rosetta_python_script_dir, "molfile_to_params.py"),
             f"{name}.sdf",
             "-n",
             name,
             "--conformers-in-one-file",
             f"--recharge={str(charge)}",
             "-c",
+            "--clobber",
         ]
         print(f'Launching script: {" ".join(exe)}')
         subprocess.Popen(exe)
@@ -311,4 +349,24 @@ class SmallMoleculeParamsGenerator:
 
 
 def main():
-    SmallMoleculeParamsGenerator(save_dir="tests/outputs/ligands")
+
+    for k in (
+        "ROSETTA_PYTHON_SCRIPTS",
+        "ROSETTA",
+        "ROSETTA3",
+    ):
+        if k in os.environ:
+            os.environ.pop(k)
+
+    converter = SmallMoleculeParamsGenerator(save_dir="tests/outputs/ligands")
+    converter.convert(
+        {
+            "OPY": "C1=CC(=CC=C1C[C@@H](C(=O)O)N)OP(=O)(O)O",  # O-Phospho-L-tyrosine
+            "ASA": "CC(=O)OC1=CC=CC=C1C(=O)O",  # Aspirin
+            "CAF": "CN1C=NC2=C1C(=O)N(C(=O)N2C)C",  # Caffeine
+        }
+    )
+
+
+if __name__ == "__main__":
+    main()

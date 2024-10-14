@@ -12,6 +12,8 @@ from .task import (
     IgnoreMissingFileWarning,
 )
 
+from .escape import Colors
+
 
 __all__ = [
     "timing",
@@ -23,4 +25,5 @@ __all__ = [
     "RosettaScriptVariableNotExistWarning",
     "RosettaScriptVariableWarning",
     "IgnoreMissingFileWarning",
+    "Colors",
 ]

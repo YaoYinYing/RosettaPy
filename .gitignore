@@ -130,3 +130,4 @@ dmypy.json
 tests/outputs/
 *.pdb
 resfile_output_Rsc
+test_ligand.sdf

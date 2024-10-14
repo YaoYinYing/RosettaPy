@@ -212,7 +212,7 @@ def main(startfrom=None, use_docker=False):
         nstruct=4,
         start_from_xyz=startfrom,
         job_id="rosettaligand" + docker_label if startfrom is None else "rosettaligand_startfrom" + docker_label,
-        node=RosettaContainer(image="dockerhub.yaoyy.moe/rosettacommons/rosetta:mpi") if use_docker else None,
+        node=RosettaContainer(image="rosettacommons/rosetta:mpi") if use_docker else None,
     )
 
     runner.dock()
