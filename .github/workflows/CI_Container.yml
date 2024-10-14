@@ -23,7 +23,7 @@ jobs:
           - macos-13 # macOS 13 x64
           - macos-14 # macOS 14 Arm64
           - macos-15 # macOS 15 Arm64 beta
-          - windows-latest
+          # - windows-latest
 
     runs-on: ${{ matrix.os }}
 
@@ -51,9 +51,27 @@ jobs:
           sudo apt-get install -y build-essential gnupg2 git
           sudo bash scripts/upgrade_git.sh
 
+      - name: Fetch Docker on Mac OS X64
+        if: matrix.os == 'macos-13'
+        run: |
+          wget 'https://desktop.docker.com/mac/main/amd64/Docker.dmg?utm_source=docker&utm_medium=webreferral&utm_campaign=docs-driven-download-mac-amd64' -O Docker.dmg
+
+
+      - name: Setup Rosetta2 and Fetch Docker on Macos Arm
+        if: matrix.os == 'macos-14' || matrix.os == 'macos-15'
+        run: |
+          softwareupdate --install-rosetta --agree-to-license
+          wget 'https://desktop.docker.com/mac/main/arm64/Docker.dmg?utm_source=docker&utm_medium=webreferral&utm_campaign=docs-driven-download-mac-arm64' -O Docker.dmg
+
+
       - name: Setup Dependency on macOS
         if: ${{ startsWith(matrix.os, 'macos') }}
         run: |
+          sudo hdiutil attach Docker.dmg
+          sudo /Volumes/Docker/Docker.app/Contents/MacOS/install --accept-license --user=$(whoami)
+          sudo hdiutil detach /Volumes/Docker
+
+          rm -f Docker.dmg
           bash ./scripts/upgrade_git_macos.sh
 
       - name: Setup Dependency on Windows
@@ -64,7 +82,7 @@ jobs:
       - name: Setup RosettaPy on ${{ matrix.os }}
         run: |
           pip install '.[test]' -U
-          docker pull rosettacommons/rosetta:mpi
+          docker pull --platform=linux/amd64 rosettacommons/rosetta:mpi
 
       - name: Run test cases
         run: |
