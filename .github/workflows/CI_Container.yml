@@ -44,23 +44,6 @@ jobs:
         with:
             python-version: 3.11
 
-      -
-        name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          platforms: linux/amd64
-
-      # Verify Docker daemon is running
-      - name: Verify Docker Version
-        run: |
-          docker --version
-          docker pull --platform=linux/amd64 rosettacommons/rosetta:mpi
-
-      - name: Setup Rosetta2 on Macos Arm
-        if: matrix.os == 'macos-14' || matrix.os == 'macos-15'
-        run: |
-          softwareupdate --install-rosetta --agree-to-license
-
       - name: Setup Dependency on Ubuntu
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -68,15 +51,45 @@ jobs:
           sudo apt-get install -y build-essential gnupg2 git
           sudo bash scripts/upgrade_git.sh
 
+      - name: Fetch Docker on Mac OS X64
+        if: matrix.os == 'macos-13'
+        run: |
+          wget 'https://desktop.docker.com/mac/main/amd64/Docker.dmg?utm_source=docker&utm_medium=webreferral&utm_campaign=docs-driven-download-mac-amd64' -O Docker.dmg
+
+
+      - name: Setup Rosetta2 and Fetch Docker on Macos Arm
+        if: matrix.os == 'macos-14' || matrix.os == 'macos-15'
+        run: |
+          softwareupdate --install-rosetta --agree-to-license
+          wget 'https://desktop.docker.com/mac/main/arm64/Docker.dmg?utm_source=docker&utm_medium=webreferral&utm_campaign=docs-driven-download-mac-arm64' -O Docker.dmg
+
+
       - name: Setup Dependency on macOS
         if: ${{ startsWith(matrix.os, 'macos') }}
         run: |
+          sudo hdiutil attach Docker.dmg
+          sudo /Volumes/Docker/Docker.app/Contents/MacOS/install --accept-license --user=$(whoami)
+          sudo hdiutil detach /Volumes/Docker
+
+          rm -f Docker.dmg
           bash ./scripts/upgrade_git_macos.sh
 
-      - name: Setup Dependency on Windows
-        if: ${{ startsWith(matrix.os, 'windows') }}
+      # Ensure Docker is running on macOS
+      - name: Start Docker on macOS (if needed)
+        if: startsWith(matrix.os, 'macos')
         run: |
-          ./scripts/upgrade_git_windows.bat
+          open -a Docker
+          while ! docker system info > /dev/null 2>&1; do sleep 1; done
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: linux/amd64
+
+      - name: Verify Docker Version and Pull Rosetta Image
+        run: |
+          docker --version
+          docker pull --platform=linux/amd64 rosettacommons/rosetta:mpi
 
       - name: Setup RosettaPy on ${{ matrix.os }}
         run: |
