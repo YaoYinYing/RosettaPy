@@ -265,6 +265,7 @@ class RosettaContainer:
             stdout=True,
             stderr=True,
             working_dir=mounted_task.runtime_dir,
+            platform="linux/amd64",
         )
 
         # Register a signal handler to stop the running container on SIGINT (e.g., Ctrl+C)

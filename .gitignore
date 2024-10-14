@@ -131,3 +131,4 @@ tests/outputs/
 *.pdb
 resfile_output_Rsc
 test_ligand.sdf
+rosetta_subdir_clone/

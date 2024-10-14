@@ -1,6 +1,7 @@
 import os
 import shutil
 import subprocess
+from typing import Dict, Optional
 from git import Repo, exc
 from RosettaPy.utils import timing
 
@@ -111,10 +112,9 @@ class RosettaRepoManager:
     def clone_subdirectory(self):
         """
         Clones only the specified subdirectory from the repository using shallow clone and sparse checkout.
-        If cloning fails or is interrupted, it removes the target directory to clean up the partial clone.
+        Additionally, initializes and updates submodules only if they are located within the specified subdirectory.
 
-        This is done using GitPython's repo.git interface to handle the sparse checkout and
-        perform Git commands such as 'fetch', 'config', and 'sparse-checkout'.
+        If cloning fails or is interrupted, it removes the target directory to clean up the partial clone.
 
         :raises GitCommandError: If there is any issue running the git commands.
         :raises KeyboardInterrupt: If the cloning process is interrupted by the user.
@@ -124,9 +124,8 @@ class RosettaRepoManager:
             return
 
         try:
+            # Ensure the target directory exists
             if not os.path.exists(self.target_dir):
-                print(f"Creating directory: {self.target_dir}")
-                # Ensure the target directory exists
                 os.makedirs(self.target_dir)
 
             # Initialize the repository using GitPython
@@ -152,12 +151,54 @@ class RosettaRepoManager:
             # Pull only the specified subdirectory
             repo.git.pull("origin", "main")
 
+            # Initialize and update submodules located within the subdirectory
+            self._update_submodules_in_subdir(repo)
+
         except (exc.GitCommandError, KeyboardInterrupt) as e:
             # Handle Git errors or interruptions
             print(f"Error during git operation: {e}")
             if os.path.exists(self.target_dir):
                 shutil.rmtree(self.target_dir)
             raise RuntimeError("Cloning failed or interrupted. Cleaned up partial clone.") from e
+
+    def _update_submodules_in_subdir(self, repo):
+        """
+        Initialize and update only the submodules located within the specified subdirectory.
+
+        :param repo: The cloned Git repository.
+        """
+        gitmodules_path = os.path.join(self.target_dir, ".gitmodules")
+
+        if not os.path.exists(gitmodules_path):
+            print("No submodules found.")
+            return
+
+        with open(gitmodules_path, "r") as gitmodules_file:
+            lines = gitmodules_file.readlines()
+
+        submodules_to_update = []
+        current_submodule: Optional[Dict[str, str]] = None
+
+        for line in lines:
+            if line.startswith("[submodule"):
+                current_submodule = {}
+
+            if "path" in line and isinstance(current_submodule, dict):
+                submodule_path = line.split("=", 1)[1].strip()
+                if submodule_path.startswith(self.subdirectory):
+                    current_submodule.update({"path": submodule_path})
+                    submodules_to_update.append(current_submodule)
+
+        if not submodules_to_update:
+            print(f"No submodules found in {self.subdirectory}")
+            return
+
+        # Initialize and update each submodule in the subdirectory
+        for submodule in submodules_to_update:
+            submodule_path = submodule["path"]
+            print(f"Initializing and updating submodule at {submodule_path}")
+            repo.git.submodule("init", submodule_path)
+            repo.git.submodule("update", "--recursive", submodule_path)
 
     def set_env_variable(self, env_var: str) -> str:
         """
@@ -171,7 +212,7 @@ class RosettaRepoManager:
         return full_path
 
 
-def setup_rosetta_python_scripts(target_dir: str = "rosetta_subdir_clone"):
+def setup_rosetta_python_scripts():
     """
     Set up the Rosetta Python scripts by cloning the specific subdirectory
     and setting an environment variable pointing to the cloned path.
@@ -179,8 +220,43 @@ def setup_rosetta_python_scripts(target_dir: str = "rosetta_subdir_clone"):
     This will clone 'source/scripts/python/public' from the Rosetta repository
     and set the 'ROSETTA_PYTHON_SCRIPTS' environment variable to the directory.
     """
-    repo_url = "https://github.com/RosettaCommons/rosetta"
-    subdirectory = "source/scripts/python/public"
+
+    return partial_clone(
+        repo_url="https://github.com/RosettaCommons/rosetta",
+        subdirectory="source/scripts/python/public",
+        target_dir="rosetta_subdir_clone",
+        env_variable="ROSETTA_PYTHON_SCRIPTS",
+    )
+
+
+def setup_rosetta_database():
+    """
+    Set up the Rosetta database by cloning the specific subdirectory
+    and setting an environment variable pointing to the cloned path.
+
+    This will clone 'database' from the Rosetta repository
+    and set the 'ROSETTA3_DB' environment variable to the directory.
+    """
+
+    return partial_clone(
+        repo_url="https://github.com/RosettaCommons/rosetta",
+        subdirectory="database",
+        target_dir="rosetta_db_clone",
+        env_variable="ROSETTA3_DB",
+    )
+
+
+def partial_clone(
+    repo_url: str = "https://github.com/RosettaCommons/rosetta",
+    target_dir: str = "rosetta_db_clone",
+    subdirectory: str = "database",
+    env_variable: str = "ROSETTA3_DB",
+):
+    """
+    Partially cloning the specific subdirectory
+    and setting an environment variable pointing to the cloned path.
+
+    """
 
     manager = RosettaRepoManager(repo_url, subdirectory, target_dir)
 
@@ -188,10 +264,10 @@ def setup_rosetta_python_scripts(target_dir: str = "rosetta_subdir_clone"):
     manager.ensure_git()
 
     # Use the timing context manager to track the cloning process
-    with timing("cloning"):
+    with timing(f"cloning {subdirectory} as {env_variable}"):
         manager.clone_subdirectory()
 
-    return manager.set_env_variable("ROSETTA_PYTHON_SCRIPTS")
+    return manager.set_env_variable(env_variable)
 
 
 def main():
@@ -200,6 +276,7 @@ def main():
     This function can be used as an entry point for testing or execution.
     """
     setup_rosetta_python_scripts()
+    # setup_rosetta_database()
 
 
 if __name__ == "__main__":

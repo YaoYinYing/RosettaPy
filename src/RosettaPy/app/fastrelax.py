@@ -11,6 +11,7 @@ import warnings
 from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser
 from RosettaPy.node.dockerized import RosettaContainer
 from RosettaPy.utils import timing
+from RosettaPy.utils.repository import partial_clone
 
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -72,7 +73,14 @@ class FastRelax:
         # Get the ROSETTA3_DB environment variable
         ROSETTA3_DB = os.environ.get("ROSETTA3_DB")
         if not ROSETTA3_DB:
-            raise RuntimeError("ROSETTA3_DB environment variable is not set")
+            warnings.warn(UserWarning("Fetching ROSETTA3_DB from Rosetta GitHub Repository ..."))
+            ROSETTA3_DB = partial_clone(
+                repo_url="https://github.com/RosettaCommons/rosetta",
+                target_dir="rosetta_db_clone",
+                subdirectory="database",
+                env_variable="ROSETTA3_DB",
+            )
+            # raise RuntimeError("ROSETTA3_DB environment variable is not set")
 
         # List all available relaxation scripts in the database
         all_scripts = [
