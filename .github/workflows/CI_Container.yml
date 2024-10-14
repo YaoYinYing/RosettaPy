@@ -39,9 +39,9 @@ jobs:
 
       - name: Setup RosettaPy on ${{ matrix.os }}
         run: |
-          apt-get update -y
-          apt-get install build-essential gnupg2 git -y
-          bash scripts/upgrade_git.sh
+          sudo apt-get update -y
+          sudo apt-get install build-essential gnupg2 git -y
+          sudo bash scripts/upgrade_git.sh
           pip install '.[test]' -U
           docker pull rosettacommons/rosetta:mpi
 
