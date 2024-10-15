@@ -1,5 +1,19 @@
 version = 1
 
+test_patterns = [
+  "tests/**",
+  "tests/**/**"
+]
+
+exclude_patterns = [
+  "docs/**",
+  ".github/**",
+  ".github/**/**",
+  ".devcontainer/**",
+  "*.md",
+  "scripts/**"
+]
+
 [[analyzers]]
 name = "python"
 
