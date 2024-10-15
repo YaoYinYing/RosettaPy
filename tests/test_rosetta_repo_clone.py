@@ -23,6 +23,40 @@ def repo_manager():
         )
 
 
+@pytest.mark.parametrize(
+    "installed_version,is_valid",
+    [
+        ("2.34.0", False),
+        ("2.34.1", True),
+        ("2.34.2", True),
+        ("2.35.1", True),
+        ("2.24.1", False),
+        ("git version 2.30.1", False),
+        ("git version 2.39.5 (Apple Git-154)", True),
+        ("git version 2.39.5", True),
+        ("git version 2.35.1", True),
+        ("git version 2.47.0", True),
+    ],
+)
+def test_version_compare(installed_version, is_valid, repo_manager):
+    assert repo_manager._compare_versions(installed_version=installed_version, required_version="2.34.1") == is_valid
+
+
+@pytest.mark.parametrize(
+    "installed_version",
+    [
+        ("2.34"),
+        ("git 2.30"),
+        ("git version 2.39"),
+        ("git version 2.1"),
+        ("git version 47.0"),
+    ],
+)
+def test_invalid_version_compare(installed_version, repo_manager):
+    with pytest.raises(ValueError, match=f"Version string '{installed_version}' is not in a valid format."):
+        repo_manager._compare_versions(installed_version=installed_version, required_version="2.34.1")
+
+
 @mock.patch("subprocess.check_output")
 def test_ensure_git_version_ok(mock_check_output, repo_manager):
     """

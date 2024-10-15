@@ -41,6 +41,7 @@ To clone a specific subdirectory and set an environment variable, call the `part
 """
 
 import os
+import re
 import shutil
 import subprocess
 from typing import Dict, Optional
@@ -106,7 +107,7 @@ class RosettaRepoManager:
         """
         try:
             git_version_output = subprocess.check_output(["git", "--version"], stderr=subprocess.STDOUT)
-            git_version = git_version_output.decode("utf-8").strip().split()[-1]
+            git_version = git_version_output.decode("utf-8").strip()
 
             if not self._compare_versions(git_version, required_version):
                 raise RuntimeError(
@@ -126,8 +127,16 @@ class RosettaRepoManager:
         :param required_version: The required version of Git.
         :return: bool: True if the installed version is greater than or equal to the required version, False otherwise.
         """
-        installed_parts = list(map(int, installed_version.split(".")))
-        required_parts = list(map(int, required_version.split(".")))
+        version_regex = r".*(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+).*"
+
+        def extract_version_parts(version):
+            match = re.match(version_regex, version)
+            if match:
+                return (int(match.group("major")), int(match.group("minor")), int(match.group("patch")))
+            raise ValueError(f"Version string '{version}' is not in a valid format.")
+
+        installed_parts = extract_version_parts(installed_version)
+        required_parts = extract_version_parts(required_version)
 
         for installed, required in zip(installed_parts, required_parts):
             if installed == required:

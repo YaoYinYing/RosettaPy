@@ -132,3 +132,5 @@ tests/outputs/
 resfile_output_Rsc
 test_ligand.sdf
 rosetta_subdir_clone/
+rosetta_db_clone/
+rosetta_python_script_dir/
