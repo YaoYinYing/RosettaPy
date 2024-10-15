@@ -12,6 +12,8 @@ A Python utility for wrapping Rosetta command line tools.
 [![Dependabot Updates](https://github.com/YaoYinYing/RosettaPy/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/YaoYinYing/RosettaPy/actions/workflows/dependabot/dependabot-updates)
 [![Pylint](https://github.com/YaoYinYing/RosettaPy/actions/workflows/lint_badge.yml/badge.svg)](https://github.com/YaoYinYing/RosettaPy/actions/workflows/lint_badge.yml)
 [![Bare Test with Rosetta Container Node](https://github.com/YaoYinYing/RosettaPy/actions/workflows/CI_Container.yml/badge.svg)](https://github.com/YaoYinYing/RosettaPy/actions/workflows/CI_Container.yml)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/YaoYinYing/RosettaPy/main.svg)](https://results.pre-commit.ci/latest/github/YaoYinYing/RosettaPy/main)
+
 
 ## Quality
 
@@ -21,6 +23,8 @@ A Python utility for wrapping Rosetta command line tools.
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/4d6b6f78e59b4c38a0362d2d83fc9815)](https://app.codacy.com/gh/YaoYinYing/RosettaPy/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![Pylint](https://github-image-cache.yaoyy.moe/badge_dir_with_uniq_name/RosettaPy/pylint/pylint_scan.svg)](https://github.com/YaoYinYing/pylint-github-action)
 [![GitHub repo size](https://img.shields.io/github/repo-size/YaoYinYing/RosettaPy)](https://github.com/YaoYinYing/RosettaPy)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/pylint-dev/pylint)
 
 ## Release
 
