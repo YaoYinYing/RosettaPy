@@ -31,9 +31,9 @@ import pandas as pd
 from rdkit import Chem
 from rdkit import DataStructs
 from rdkit.Chem import AllChem
-from rdkit.Chem.Fingerprints import FingerprintMols
+from rdkit.Chem.Fingerprints import FingerprintMols  # type: ignore
 from RosettaPy import RosettaBinary
-from RosettaPy.utils.repository import setup_rosetta_python_scripts
+from RosettaPy.utils.repository import partial_clone
 
 from RosettaPy.utils.escape import Colors as C
 
@@ -152,7 +152,7 @@ def get_conformers(mol, nr=500, rmsthreshold=0.1):
     List of new conformation IDs
     """
     # Generate conformers on the CSD-method
-    return AllChem.EmbedMultipleConfs(
+    return AllChem.EmbedMultipleConfs(  # type: ignore
         mol,
         numConfs=nr,
         useBasicKnowledge=True,
@@ -223,7 +223,12 @@ class SmallMoleculeParamsGenerator:
         )
 
         try:
-            self._rosetta_python_script_dir = setup_rosetta_python_scripts()
+            self._rosetta_python_script_dir = partial_clone(
+                target_dir="rosetta_python_script_dir",
+                subdirectory_to_clone="source/scripts/python/public",
+                subdirectory_as_env="source/scripts/python/public",
+                env_variable="ROSETTA_PYTHON_SCRIPTS",
+            )
             print(f"Setup $ROSETTA_PYTHON_SCRIPTS from Rosetta Repository = {self._rosetta_python_script_dir}")
             return
         except RuntimeError as e:
@@ -231,6 +236,20 @@ class SmallMoleculeParamsGenerator:
 
     @staticmethod
     def smile2canon(name, ds):
+        """
+        Converts a SMILES string to its canonical form.
+
+        This method attempts to convert the provided SMILES string (ds) into its Canonical SMILES format.
+        If successful, it returns the canonical SMILES string; otherwise, if the conversion fails (e.g., ds is not a valid SMILES string),
+        it prints an error message and returns None.
+
+        Parameters:
+        name (str): The name of the compound, used for identifying the compound in error messages.
+        ds (str): The SMILES string to be converted to canonical form.
+
+        Returns:
+        str | None: The canonical SMILES string if successful, or None if the conversion fails.
+        """
         try:
             return Chem.CanonSmiles(ds)
 
@@ -240,6 +259,16 @@ class SmallMoleculeParamsGenerator:
 
     @staticmethod
     def compare_fingerprints(ligands: Dict[str, str]):
+        """
+        Compare the similarity of molecular fingerprints of a given set of ligands.
+
+        Parameters:
+        ligands: Dict[str, str] A dictionary containing the ligand identifiers as keys and their corresponding molecular structures (SMILES format) as values.
+
+        Returns:
+        None
+        """
+        # Convert each ligand's SMILES format to its canonical SMILES format
         c_smiles = {}
         for i, ds in ligands.items():
             c = SmallMoleculeParamsGenerator.smile2canon(i, ds)
@@ -280,18 +309,30 @@ class SmallMoleculeParamsGenerator:
         print(df_final)
 
     def convert_single(self, ligand_name: str, smiles: str):
+        """
+        Process a single ligand, including deprotonation, generation of molecular structures, energy minimization, and generation of Rosetta input files.
 
+        Parameters:
+        - ligand_name: str, the name of the ligand.
+        - smiles: str, the SMILES representation of the ligand's structure.
+
+        Returns:
+        None
+        """
+
+        # Deprotonate the ligand based on its SMILES representation and update the ligand structure.
         updated_ligands = deprotonate_acids(smiles)
+        # Generate a molecular structure object for the updated ligand.
         mol = generate_molecule(ligand_name, updated_ligands)
 
+        # Print the deprotonation result and the before and after SMILES representations.
         print(C.light_purple(C.bold(C.negative(f"Deprotonated --- {ligand_name}"))))
         print(f'{C.red(C.bold(C.italic(f"Before: ")))} {C.red(C.bold(C.negative("-")))} {C.red(C.bold(smiles))}')
         print(
             f'{C.green(C.bold(C.italic(f"After:  ")))} {C.green(C.bold(C.negative("+")))} {C.green(C.bold(updated_ligands))}'
         )
 
-        # Processing ligands
-
+        # Generate conformers for the ligand molecule and perform energy minimization.
         cids = get_conformers(mol, self.num_conformer, 0.1)
         # Perform a short minimization and compute the RMSD
         for cid in cids:
@@ -299,6 +340,7 @@ class SmallMoleculeParamsGenerator:
         rmslist = []
         AllChem.AlignMolConformers(mol, RMSlist=rmslist)  # type: ignore
 
+        # Generate the Rosetta input file for the processed ligand.
         self.generate_rosetta_input(mol=mol, name=ligand_name, charge=Chem.GetFormalCharge(mol))  # type: ignore
 
     def convert(self, ligands: Dict[str, str]):
@@ -349,7 +391,15 @@ class SmallMoleculeParamsGenerator:
 
 
 def main():
+    """
+    Main function to remove specific keys from the environment variables and convert small molecule parameters.
 
+    This function first removes three keys related to Rosetta from the environment variables to prevent potential configuration conflicts.
+    It then uses an instance of SmallMoleculeParamsGenerator to generate and save parameter files for small molecules.
+    These parameter files are typically used in molecular modeling and simulations.
+    """
+
+    # Remove Rosetta-related keys from the environment variables to avoid potential configuration conflicts
     for k in (
         "ROSETTA_PYTHON_SCRIPTS",
         "ROSETTA",
@@ -358,6 +408,7 @@ def main():
         if k in os.environ:
             os.environ.pop(k)
 
+    # Initialize the SmallMoleculeParamsGenerator and convert the specified molecules
     converter = SmallMoleculeParamsGenerator(save_dir="tests/outputs/ligands")
     converter.convert(
         {

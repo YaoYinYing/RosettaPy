@@ -73,13 +73,15 @@ class FastRelax:
         # Get the ROSETTA3_DB environment variable
         ROSETTA3_DB = os.environ.get("ROSETTA3_DB")
         if not ROSETTA3_DB:
-            warnings.warn(UserWarning("Fetching ROSETTA3_DB from Rosetta GitHub Repository ..."))
+
             ROSETTA3_DB = partial_clone(
                 repo_url="https://github.com/RosettaCommons/rosetta",
                 target_dir="rosetta_db_clone",
-                subdirectory="database",
+                subdirectory_as_env="database",
+                subdirectory_to_clone="database/sampling/relax_scripts",
                 env_variable="ROSETTA3_DB",
             )
+            print(f'ROSETTA3_DB={os.environ.get("ROSETTA3_DB")}')
             # raise RuntimeError("ROSETTA3_DB environment variable is not set")
 
         # List all available relaxation scripts in the database

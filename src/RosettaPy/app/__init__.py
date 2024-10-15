@@ -2,11 +2,6 @@
 Example Application Collection with RosettaPy
 """
 
-from dataclasses import dataclass
-import os
-
-import warnings
-
 from RosettaPy.rosetta import IgnoreMissingFileWarning
 
 

@@ -1,7 +1,50 @@
+"""
+RosettaRepoManager Module
+
+This module provides functionality for managing the cloning of specific subdirectories from large GitHub repositories
+using shallow clone, partial clone, and sparse checkout techniques. It ensures that only the necessary portions of a
+repository are cloned to minimize disk usage, and optionally allows skipping submodule updates to further reduce the
+cloned size. Additionally, it supports setting environment variables to point to the cloned directories.
+
+Key Classes:
+-------------
+- RosettaRepoManager:
+    Manages the process of cloning specific subdirectories and setting up environment variables to point to the
+    cloned paths. Includes methods to verify Git installation, perform shallow and sparse checkouts, and
+    optionally skip submodule updates.
+
+Key Functions:
+--------------
+- partial_clone:
+    A utility function that creates an instance of RosettaRepoManager, ensures Git is installed, and clones the
+    specified subdirectory from a repository. It also sets the specified environment variable to the cloned path.
+
+Main Features:
+--------------
+- Ensures minimal repository size by cloning only necessary subdirectories.
+- Supports shallow cloning with a specified depth to reduce download time and disk usage.
+- Allows skipping submodule initialization and updates for further size and complexity reduction.
+- Sets environment variables to point to the cloned directories for ease of use in subsequent scripts or applications.
+
+Usage Example:
+--------------
+To clone a specific subdirectory and set an environment variable, call the `partial_clone` function:
+
+    partial_clone(
+        repo_url="https://github.com/RosettaCommons/rosetta",
+        subdirectory_to_clone="source/scripts/python/public",
+        subdirectory_as_env="source/scripts/python/public",
+        target_dir="rosetta_subdir_clone",
+        env_variable="ROSETTA_PYTHON_SCRIPTS",
+        skip_submodule=False
+    )
+"""
+
 import os
 import shutil
 import subprocess
 from typing import Dict, Optional
+import warnings
 from git import Repo, exc
 from RosettaPy.utils import timing
 
@@ -14,31 +57,45 @@ class RosettaRepoManager:
 
     Attributes:
         repo_url (str): The URL of the repository to clone from.
-        subdirectory (str): The specific subdirectory to fetch from the repository.
+        subdirectory_to_clone (str): The minimum subdirectory to fetch from the repository.
+        subdirectory_as_env (str): The specific subdirectory to set as an environment variable.
         target_dir (str): The local directory where the subdirectory will be cloned.
         depth (int): The depth of the shallow clone (i.e., the number of recent commits to fetch).
+        skip_submodule (bool): A flag to determine whether to skip submodule updates.
 
     Methods:
         ensure_git(required_version): Ensures Git is installed and meets the required version.
         _compare_versions(installed_version, required_version): Compares two version strings.
         is_cloned(): Checks if the repository has already been cloned into the target directory.
         clone_subdirectory(): Clones the specific subdirectory using Git sparse checkout.
-        set_env_variable(env_var): Sets an environment variable to the subdirectory's path.
+        set_env_variable(env_var, subdirectory_as_env): Sets an environment variable to the subdirectory's path.
     """
 
-    def __init__(self, repo_url: str, subdirectory: str, target_dir: str, depth: int = 1):
+    def __init__(
+        self,
+        repo_url: str,
+        subdirectory_to_clone: str,
+        subdirectory_as_env: str,
+        target_dir: str,
+        depth: int = 1,
+        skip_submodule: bool = False,
+    ):
         """
         Initializes the RosettaRepoManager to manage the cloning of a specific subdirectory from a GitHub repository.
 
         :param repo_url: The URL of the repository to clone from.
-        :param subdirectory: The subdirectory to be checked out (relative to the repository root).
+        :param subdirectory_to_clone: The minimum subdirectory to be checked out (relative to the repository root).
+        :param subdirectory_as_env: The subdirectory to set as an environment variable.
         :param target_dir: The local directory to clone the subdirectory into.
         :param depth: The number of recent commits to clone (shallow clone depth).
+        :param skip_submodule: A flag to skip submodule initialization and updates.
         """
         self.repo_url = repo_url
-        self.subdirectory = subdirectory
+        self.subdirectory_to_clone = subdirectory_to_clone
+        self.subdirectory_as_env = subdirectory_as_env
         self.target_dir = target_dir
         self.depth = depth
+        self.skip_submodule = skip_submodule
 
     def ensure_git(self, required_version: str = "2.34.1"):
         """
@@ -48,42 +105,35 @@ class RosettaRepoManager:
         :raises RuntimeError: If Git is not installed or the version is less than the required version.
         """
         try:
-            # Get the installed git version
             git_version_output = subprocess.check_output(["git", "--version"], stderr=subprocess.STDOUT)
             git_version = git_version_output.decode("utf-8").strip().split()[-1]
 
-            # Compare versions
-            if self._compare_versions(git_version, required_version) < 0:
+            if not self._compare_versions(git_version, required_version):
                 raise RuntimeError(
                     f"Git version {git_version} is less than the required version {required_version}. Please upgrade Git."
                 )
 
             print(f"Git version {git_version} is sufficient.")
-
         except (subprocess.CalledProcessError, FileNotFoundError) as e:
             raise RuntimeError("Git is not installed or could not be found. Please install Git and try again.") from e
 
     @staticmethod
-    def _compare_versions(installed_version: str, required_version: str) -> int:
+    def _compare_versions(installed_version: str, required_version: str) -> bool:
         """
         Compares two version strings.
 
         :param installed_version: The installed version of Git.
         :param required_version: The required version of Git.
-        :return: -1 if installed_version < required_version, 0 if they are equal, 1 if installed_version > required_version.
+        :return: bool: True if the installed version is greater than or equal to the required version, False otherwise.
         """
         installed_parts = list(map(int, installed_version.split(".")))
         required_parts = list(map(int, required_version.split(".")))
 
-        # Compare corresponding version numbers
         for installed, required in zip(installed_parts, required_parts):
-            if installed < required:
-                return -1
-            elif installed > required:
-                return 1
-
-        # If we reach here, they are equal in the compared parts
-        return 0
+            if installed == required:
+                continue
+            return installed > required
+        return True
 
     def is_cloned(self) -> bool:
         """
@@ -96,23 +146,21 @@ class RosettaRepoManager:
         if not os.path.exists(self.target_dir):
             return False
 
-        # Check if the directory is a valid Git repository
         try:
             repo = Repo(self.target_dir)
-            # Verify that the repository has the correct remote URL
             origin = repo.remotes.origin.url
-            if origin == self.repo_url and os.path.isdir(os.path.join(self.target_dir, self.subdirectory)):
+            if origin == self.repo_url and os.path.isdir(os.path.join(self.target_dir, self.subdirectory_to_clone)):
                 return True
-            else:
-                print(f"Remote URL {origin} does not match expected {self.repo_url}.")
-                return False
+
+            print(f"Remote URL {origin} does not match expected {self.repo_url}.")
+            return False
         except (exc.InvalidGitRepositoryError, exc.NoSuchPathError):
             return False
 
     def clone_subdirectory(self):
         """
         Clones only the specified subdirectory from the repository using shallow clone and sparse checkout.
-        Additionally, initializes and updates submodules only if they are located within the specified subdirectory.
+        Optionally skips submodule updates if the `skip_submodule` attribute is set to True.
 
         If cloning fails or is interrupted, it removes the target directory to clean up the partial clone.
 
@@ -124,38 +172,25 @@ class RosettaRepoManager:
             return
 
         try:
-            # Ensure the target directory exists
             if not os.path.exists(self.target_dir):
                 os.makedirs(self.target_dir)
 
-            # Initialize the repository using GitPython
             repo = Repo.init(self.target_dir)
-
-            # Add the remote repository
             repo.git.remote("add", "origin", self.repo_url)
-
-            # Enable partial clone support
             repo.git.config("extensions.partialClone", "true")
-
-            # Perform a shallow fetch with partial clone
-            repo.git.fetch("origin", f"--depth={self.depth}", "--filter=blob:none")  # Shallow + Partial clone
-
-            # Enable sparse checkout
+            repo.git.fetch("origin", f"--depth={self.depth}", "--filter=blob:none")
             repo.git.config("core.sparseCheckout", "true")
 
-            # Write the subdirectory we want to fetch into the sparse-checkout file
             sparse_checkout_file = os.path.join(self.target_dir, ".git", "info", "sparse-checkout")
             with open(sparse_checkout_file, "w") as f:
-                f.write(f"{self.subdirectory}\n")
+                f.write(f"{self.subdirectory_to_clone}\n")
 
-            # Pull only the specified subdirectory
             repo.git.pull("origin", "main")
 
-            # Initialize and update submodules located within the subdirectory
-            self._update_submodules_in_subdir(repo)
+            if not self.skip_submodule:
+                self._update_submodules_in_subdir(repo)
 
         except (exc.GitCommandError, KeyboardInterrupt) as e:
-            # Handle Git errors or interruptions
             print(f"Error during git operation: {e}")
             if os.path.exists(self.target_dir):
                 shutil.rmtree(self.target_dir)
@@ -163,7 +198,7 @@ class RosettaRepoManager:
 
     def _update_submodules_in_subdir(self, repo):
         """
-        Initialize and update only the submodules located within the specified subdirectory.
+        Initialize and update only the submodules located within the specified subdirectory, unless skip_submodule is True.
 
         :param repo: The cloned Git repository.
         """
@@ -185,89 +220,70 @@ class RosettaRepoManager:
 
             if "path" in line and isinstance(current_submodule, dict):
                 submodule_path = line.split("=", 1)[1].strip()
-                if submodule_path.startswith(self.subdirectory):
+                if submodule_path.startswith(self.subdirectory_to_clone):
                     current_submodule.update({"path": submodule_path})
                     submodules_to_update.append(current_submodule)
 
         if not submodules_to_update:
-            print(f"No submodules found in {self.subdirectory}")
+            print(f"No submodules found in {self.subdirectory_to_clone}")
             return
 
-        # Initialize and update each submodule in the subdirectory
         for submodule in submodules_to_update:
             submodule_path = submodule["path"]
             print(f"Initializing and updating submodule at {submodule_path}")
             repo.git.submodule("init", submodule_path)
             repo.git.submodule("update", "--recursive", submodule_path)
 
-    def set_env_variable(self, env_var: str) -> str:
+    def set_env_variable(self, env_var: str, subdirectory_as_env: str) -> str:
         """
         Sets an environment variable to the subdirectory's path.
 
         :param env_var: Name of the environment variable to set.
+        :param subdirectory_as_env: The subdirectory whose path will be set as the environment variable.
         """
-        full_path = os.path.abspath(os.path.join(self.target_dir, self.subdirectory))
+        full_path = os.path.abspath(os.path.join(self.target_dir, subdirectory_as_env))
         os.environ[env_var] = full_path
         print(f"Environment variable {env_var} set to: {full_path}")
         return full_path
 
 
-def setup_rosetta_python_scripts():
-    """
-    Set up the Rosetta Python scripts by cloning the specific subdirectory
-    and setting an environment variable pointing to the cloned path.
-
-    This will clone 'source/scripts/python/public' from the Rosetta repository
-    and set the 'ROSETTA_PYTHON_SCRIPTS' environment variable to the directory.
-    """
-
-    return partial_clone(
-        repo_url="https://github.com/RosettaCommons/rosetta",
-        subdirectory="source/scripts/python/public",
-        target_dir="rosetta_subdir_clone",
-        env_variable="ROSETTA_PYTHON_SCRIPTS",
-    )
-
-
-def setup_rosetta_database():
-    """
-    Set up the Rosetta database by cloning the specific subdirectory
-    and setting an environment variable pointing to the cloned path.
-
-    This will clone 'database' from the Rosetta repository
-    and set the 'ROSETTA3_DB' environment variable to the directory.
-    """
-
-    return partial_clone(
-        repo_url="https://github.com/RosettaCommons/rosetta",
-        subdirectory="database",
-        target_dir="rosetta_db_clone",
-        env_variable="ROSETTA3_DB",
-    )
-
-
 def partial_clone(
     repo_url: str = "https://github.com/RosettaCommons/rosetta",
     target_dir: str = "rosetta_db_clone",
-    subdirectory: str = "database",
+    subdirectory_to_clone: str = "database",
+    subdirectory_as_env: str = "database",
     env_variable: str = "ROSETTA3_DB",
+    skip_submodule: bool = False,
 ):
     """
     Partially cloning the specific subdirectory
     and setting an environment variable pointing to the cloned path.
 
     """
+    warnings.warn(UserWarning(f"Fetching {env_variable}:{subdirectory_as_env} from Rosetta GitHub Repository ..."))
+    manager = RosettaRepoManager(
+        repo_url, subdirectory_to_clone, subdirectory_as_env, target_dir, skip_submodule=skip_submodule
+    )
 
-    manager = RosettaRepoManager(repo_url, subdirectory, target_dir)
-
-    # Ensure Git is installed and the correct version
     manager.ensure_git()
 
-    # Use the timing context manager to track the cloning process
-    with timing(f"cloning {subdirectory} as {env_variable}"):
+    with timing(f"cloning {subdirectory_to_clone} as {env_variable}"):
         manager.clone_subdirectory()
 
-    return manager.set_env_variable(env_variable)
+    warnings.warn(UserWarning(f"Cloned {subdirectory_to_clone} to {target_dir}."))
+
+    return manager.set_env_variable(env_variable, subdirectory_as_env)
+
+
+def clone_db_relax_script():
+    ROSETTA3_DB = partial_clone(
+        repo_url="https://github.com/RosettaCommons/rosetta",
+        target_dir="rosetta_db_clone_relax_script",
+        subdirectory_as_env="database",
+        subdirectory_to_clone="database/sampling/relax_scripts",
+        env_variable="ROSETTA3_DB",
+    )
+    print(f'ROSETTA3_DB={os.environ.get("ROSETTA3_DB")}')
 
 
 def main():
@@ -275,8 +291,16 @@ def main():
     Main function that sets up the Rosetta Python scripts.
     This function can be used as an entry point for testing or execution.
     """
-    setup_rosetta_python_scripts()
-    # setup_rosetta_database()
+    # partial_clone(
+    #     repo_url="https://github.com/RosettaCommons/rosetta",
+    #     subdirectory_to_clone="source/scripts/python/public/generic_potential",
+    #     subdirectory_as_env="source/scripts/python/public",
+    #     target_dir="rosetta_subdir_clone_minimum",
+    #     env_variable="ROSETTA_PYTHON_SCRIPTS",
+    #     skip_submodule=False,
+    # )
+
+    clone_db_relax_script()
 
 
 if __name__ == "__main__":

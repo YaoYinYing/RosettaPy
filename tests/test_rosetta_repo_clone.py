@@ -16,8 +16,10 @@ def repo_manager():
     with tmpdir_manager() as temp_dir:
         yield RosettaRepoManager(
             repo_url="https://github.com/RosettaCommons/rosetta",
-            subdirectory="source/scripts/python/public",
+            subdirectory_to_clone="source/scripts/python/public",
+            subdirectory_as_env="source/scripts/python/public",
             target_dir=os.path.join(temp_dir, "rosetta"),
+            skip_submodule=True,  # Set to True for the purpose of testing skip_submodule functionality
         )
 
 
@@ -56,7 +58,6 @@ def test_is_cloned(mock_repo, mock_path_exists, mock_path_isdir, path_exists, pa
     """
     Test that is_cloned returns True if the repository has already been cloned.
     """
-    # os.makedirs(os.path.abspath(repo_manager.target_dir), exist_ok=True)
     # Mock the target directory existence
     mock_path_exists.return_value = path_exists
     mock_path_isdir.return_value = path_isdir
@@ -95,9 +96,9 @@ def test_clone_subdirectory_already_cloned(mock_repo, mock_makedirs, repo_manage
     mock_repo.init.assert_not_called()
 
 
-def test_clone_subdirectory(repo_manager):
+def test_clone_subdirectory_no_submodule(repo_manager):
     """
-    Test the full flow of clone_subdirectory when the repository is not yet cloned.
+    Test the full flow of clone_subdirectory when the repository is not yet cloned and submodules are skipped.
     """
     # not cloned
     assert repo_manager.is_cloned() == False
@@ -115,7 +116,7 @@ def test_clone_subdirectory(repo_manager):
     assert repo_manager.is_cloned() == True
 
     # dir exists
-    assert os.path.exists(os.path.join(repo_manager.target_dir, repo_manager.subdirectory))
+    assert os.path.exists(os.path.join(repo_manager.target_dir, repo_manager.subdirectory_to_clone))
 
 
 @mock.patch("os.path.abspath")
@@ -128,20 +129,19 @@ def test_set_env_variable(mock_abspath, repo_manager):
     mock_abspath.return_value = "/absolute/path/to/subdir"
 
     # Call the method to set the environment variable
-    repo_manager.set_env_variable("ROSETTA_PYTHON_SCRIPTS")
+    repo_manager.set_env_variable("ROSETTA_PYTHON_SCRIPTS", "source/scripts/python/public")
 
     # Check that the environment variable was set
     assert os.environ["ROSETTA_PYTHON_SCRIPTS"] == "/absolute/path/to/subdir"
 
     # Ensure that os.path.abspath was called with the correct arguments
-    mock_abspath.assert_called_once_with(os.path.join(repo_manager.target_dir, repo_manager.subdirectory))
+    mock_abspath.assert_called_once_with(os.path.join(repo_manager.target_dir, repo_manager.subdirectory_as_env))
 
 
 def test_main_function():
     """
     Test the main function that sets up the Rosetta Python scripts.
     """
-    with mock.patch("RosettaPy.utils.repository.setup_rosetta_python_scripts") as mock_setup:
-
+    with mock.patch("RosettaPy.utils.repository.clone_db_relax_script") as mock_setup:
         main()
         mock_setup.assert_called_once()

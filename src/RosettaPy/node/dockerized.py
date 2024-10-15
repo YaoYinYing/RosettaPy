@@ -118,9 +118,21 @@ class RosettaContainer:
             return mounted
 
         def process_xml_fragment(script_vars_v: str) -> str:
+            """
+            Process XML Fragment Function
+
+            This function processes a given XML script variable string. It checks each part of the string to see if it is a file or directory path. If so, it handles these paths accordingly and constructs a new string that reflects any necessary changes.
+
+            Parameters:
+            - script_vars_v (str): The input XML script variable string to be processed.
+
+            Returns:
+            - str: The processed and potentially modified XML script variable string.
+            """
 
             vf_list = []
 
+            # Split the input string by double quotes and process each segment
             vf_split = script_vars_v.split('"')
             for _, vf in enumerate(vf_split):
                 if os.path.isfile(vf) or os.path.isdir(vf):
@@ -129,16 +141,56 @@ class RosettaContainer:
                     continue
                 vf_list.append(vf)
 
+            # Join the processed segments back together
             joined_vf = '"'.join(vf_list)
+
+            # Ensure the result starts and ends with single quotes
             if not joined_vf.startswith("'"):
                 joined_vf = "'" + joined_vf
 
             if not joined_vf.endswith("'"):
                 joined_vf += "'"
 
+            # Print original and processed strings for logging purposes
             print(f"{C.blue(C.negative(C.bold('Original:')))} {C.blue(C.negative(script_vars_v))}")
             print(f"{C.purple(C.negative(C.bold('Rewrited:')))} {C.purple(C.negative(joined_vf))}\n")
+
             return joined_vf
+
+        def process_xml_variable(_cmd: str) -> str:
+            """
+            Process an XML formatted variable definition string.
+
+            This function takes a command string that defines a variable and processes it based on its content.
+            - If the value is a file or directory path, it remaps the path to a unique mount point.
+            - If the value contains XML fragments along with file paths, it processes these fragments accordingly.
+            - Otherwise, it returns the original command string.
+
+            :param _cmd: A string representing a variable assignment, e.g., 'var=/path/to/file'.
+            :return: A processed string with potential path remapping or the original command.
+            """
+
+            script_vars = _cmd.split("=")
+            script_vars_v = "=".join(script_vars[1:])
+
+            print(
+                f"{C.purple(C.negative(C.bold('Parsing:')))} "
+                f"{C.blue(C.negative(script_vars[0]))}="
+                f"{C.red(C.negative(script_vars_v))}"
+            )
+
+            # Normal file input handling
+            if os.path.isfile(script_vars_v) or os.path.isdir(script_vars_v):
+                mounted = unique_mount(script_vars_v)
+                return f"{script_vars[0]}={mounted}"
+
+            # Handling of XML file blocks with file inputs
+            # Example: '<AddOrRemoveMatchCsts name="cstadd" cstfile="/my/example.cst" cst_instruction="add_new"/>'
+            if " " in script_vars_v and "<" in script_vars_v:  # Indicates an XML fragment
+                joined_vf = process_xml_fragment(script_vars_v)
+                return f"{script_vars[0]}={joined_vf}"
+
+            return _cmd
 
         for i, _cmd in enumerate(input_task.cmd):
             try:
@@ -162,28 +214,7 @@ class RosettaContainer:
 
                 # Handle Rosetta Scripts variables
                 if "=" in _cmd and input_task.cmd[i - 1] == "-parser:script_vars":
-                    script_vars = _cmd.split("=")
-                    script_vars_v = "=".join(script_vars[1:])
-
-                    print(
-                        f"{C.purple(C.negative(C.bold('Parsing:')))} "
-                        f"{C.blue(C.negative(script_vars[0]))}="
-                        f"{C.red(C.negative(script_vars_v))}"
-                    )
-                    # normal file input
-                    if os.path.isfile(script_vars_v) or os.path.isdir(script_vars_v):
-                        mounted = unique_mount(script_vars_v)
-                        mounted_cmd.append(f"{script_vars[0]}={mounted}")
-                        continue
-
-                    # xml file block with file input
-                    # eg.
-                    # '<AddOrRemoveMatchCsts name="cstadd" cstfile="/my/example.cst" cst_instruction="add_new"/>'
-                    if " " in script_vars_v and ("<" in script_vars_v):  # xml fragment
-                        joined_vf = process_xml_fragment(script_vars_v)
-                        mounted_cmd.append(f"{script_vars[0]}={joined_vf}")
-                    else:
-                        mounted_cmd.append(_cmd)
+                    mounted_cmd.append(process_xml_variable(_cmd))
                     continue
 
                 mounted_cmd.append(_cmd)
