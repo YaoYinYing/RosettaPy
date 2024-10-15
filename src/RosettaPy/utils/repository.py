@@ -108,18 +108,21 @@ class RosettaRepoManager:
         :raises RuntimeError: If Git is not installed or the version is less than the required version.
         """
         try:
-            git_version_output = subprocess.check_output(
-                ["git", "--version"], stderr=subprocess.STDOUT)
+            which_git = shutil.which("git")
+            if which_git is None:
+                raise FileNotFoundError("Git is not installed.")
+
+            git_version_output = subprocess.check_output([which_git, "--version"], stderr=subprocess.STDOUT)
             git_version = git_version_output.decode("utf-8").strip()
 
             if not self._compare_versions(git_version, required_version):
-                raise RuntimeError(
-                    f"Git version {git_version} < {required_version}. Please upgrade Git.")
+                raise RuntimeError(f"Git version {git_version} < {required_version}. Please upgrade Git.")
 
             print(f"Git version {git_version} is sufficient.")
         except (subprocess.CalledProcessError, FileNotFoundError) as e:
-            raise RuntimeError(
-                "Git is not installed or could not be found. Please install Git and try again.") from e
+            raise RuntimeError("Git is not installed or could not be found. Please install Git and try again.") from e
+        except RuntimeError as e:
+            raise RuntimeError(f"Git version is not supported. Please upgrade Git to {required_version}.") from e
 
     @staticmethod
     def _compare_versions(installed_version: str, required_version: str) -> bool:
@@ -137,8 +140,7 @@ class RosettaRepoManager:
             match = re.match(version_regex, version)
             if match:
                 return (int(match.group("major")), int(match.group("minor")), int(match.group("patch")))
-            raise ValueError(
-                f"Version string '{version}' is not in a valid format.")
+            raise ValueError(f"Version string '{version}' is not in a valid format.")
 
         installed_parts = extract_version_parts(installed_version)
         required_parts = extract_version_parts(required_version)
@@ -166,8 +168,7 @@ class RosettaRepoManager:
             if origin == self.repo_url and os.path.isdir(os.path.join(self.target_dir, self.subdirectory_to_clone)):
                 return True
 
-            print(
-                f"Remote URL {origin} does not match expected {self.repo_url}.")
+            print(f"Remote URL {origin} does not match expected {self.repo_url}.")
             return False
         except (exc.InvalidGitRepositoryError, exc.NoSuchPathError):
             return False
@@ -193,12 +194,10 @@ class RosettaRepoManager:
             repo = Repo.init(self.target_dir)
             repo.git.remote("add", "origin", self.repo_url)
             repo.git.config("extensions.partialClone", "true")
-            repo.git.fetch(
-                "origin", f"--depth={self.depth}", "--filter=blob:none")
+            repo.git.fetch("origin", f"--depth={self.depth}", "--filter=blob:none")
             repo.git.config("core.sparseCheckout", "true")
 
-            sparse_checkout_file = os.path.join(
-                self.target_dir, ".git", "info", "sparse-checkout")
+            sparse_checkout_file = os.path.join(self.target_dir, ".git", "info", "sparse-checkout")
             with open(sparse_checkout_file, "w") as f:
                 f.write(f"{self.subdirectory_to_clone}\n")
 
@@ -211,8 +210,7 @@ class RosettaRepoManager:
             print(f"Error during git operation: {e}")
             if os.path.exists(self.target_dir):
                 shutil.rmtree(self.target_dir)
-            raise RuntimeError(
-                "Cloning failed or interrupted. Cleaned up partial clone.") from e
+            raise RuntimeError("Cloning failed or interrupted. Cleaned up partial clone.") from e
 
     def _update_submodules_in_subdir(self, repo):
         """
@@ -260,8 +258,7 @@ class RosettaRepoManager:
         :param env_var: Name of the environment variable to set.
         :param subdirectory_as_env: The subdirectory whose path will be set as the environment variable.
         """
-        full_path = os.path.abspath(os.path.join(
-            self.target_dir, subdirectory_as_env))
+        full_path = os.path.abspath(os.path.join(self.target_dir, subdirectory_as_env))
         os.environ[env_var] = full_path
         print(f"Environment variable {env_var} set to: {full_path}")
         return full_path
@@ -280,8 +277,7 @@ def partial_clone(
     and setting an environment variable pointing to the cloned path.
 
     """
-    warnings.warn(UserWarning(
-        f"Fetching {env_variable}:{subdirectory_as_env} from Rosetta GitHub Repository ..."))
+    warnings.warn(UserWarning(f"Fetching {env_variable}:{subdirectory_as_env} from Rosetta GitHub Repository ..."))
     manager = RosettaRepoManager(
         repo_url, subdirectory_to_clone, subdirectory_as_env, target_dir, skip_submodule=skip_submodule
     )
@@ -291,14 +287,13 @@ def partial_clone(
     with timing(f"cloning {subdirectory_to_clone} as {env_variable}"):
         manager.clone_subdirectory()
 
-    warnings.warn(UserWarning(
-        f"Cloned {subdirectory_to_clone} to {target_dir}."))
+    warnings.warn(UserWarning(f"Cloned {subdirectory_to_clone} to {target_dir}."))
 
     return manager.set_env_variable(env_variable, subdirectory_as_env)
 
 
 def clone_db_relax_script():
-    ROSETTA3_DB = partial_clone(
+    partial_clone(
         repo_url="https://github.com/RosettaCommons/rosetta",
         target_dir="rosetta_db_clone_relax_script",
         subdirectory_as_env="database",
@@ -313,14 +308,6 @@ def main():
     Main function that sets up the Rosetta Python scripts.
     This function can be used as an entry point for testing or execution.
     """
-    # partial_clone(
-    #     repo_url="https://github.com/RosettaCommons/rosetta",
-    #     subdirectory_to_clone="source/scripts/python/public/generic_potential",
-    #     subdirectory_as_env="source/scripts/python/public",
-    #     target_dir="rosetta_subdir_clone_minimum",
-    #     env_variable="ROSETTA_PYTHON_SCRIPTS",
-    #     skip_submodule=False,
-    # )
 
     clone_db_relax_script()
 

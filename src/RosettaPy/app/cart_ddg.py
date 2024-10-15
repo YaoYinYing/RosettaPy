@@ -94,8 +94,7 @@ class CartesianDDG:
         top_pdb = analyser.best_decoy
 
         print(f"best_decoy: {top_pdb['decoy']} - {top_pdb['score']}")
-        pdb_path = os.path.join(rosetta.output_pdb_dir,
-                                f"{top_pdb['decoy']}.pdb")
+        pdb_path = os.path.join(rosetta.output_pdb_dir, f"{top_pdb['decoy']}.pdb")
 
         return pdb_path
 
@@ -133,20 +132,17 @@ class CartesianDDG:
             output_dir=os.path.join(self.save_dir, f"{self.job_id}_cart_ddg"),
             job_id=f"cart_ddg_run_{self.instance}",
             run_node=self.node,
-            # run_node=RosettaContainer(image="rosettacommons/rosetta:mpi", prohibit_mpi=True),
         )
 
         mutfiles, mutants = self.mut2mutfile()
-        tasks = [{"-ddg:mut_file": mf, "-ddg:out": f"{m.raw_mutant_id}.out"}
-                 for mf, m in zip(mutfiles, mutants)]
+        tasks = [{"-ddg:mut_file": mf, "-ddg:out": f"{m.raw_mutant_id}.out"} for mf, m in zip(mutfiles, mutants)]
 
         with timing("Cartesian ddG: Evaluation"):
             task_list = rosetta.run(inputs=tasks)  # type: ignore
 
         return pd.concat(
             [
-                RosettaCartesianddGAnalyser(
-                    runtime_dir=task.runtime_dir, recursive=True).parse_ddg_files()
+                RosettaCartesianddGAnalyser(runtime_dir=task.runtime_dir, recursive=True).parse_ddg_files()
                 for task in task_list
             ]
         )
@@ -158,8 +154,7 @@ class CartesianDDG:
         Returns:
             Tuple[List[str], List[Mutant]]: A tuple containing a list of mutation files and a list of Mutant objects.
         """
-        pdbs = [os.path.join(self.mutant_pdb_dir, f)
-                for f in os.listdir(self.mutant_pdb_dir)]
+        pdbs = [os.path.join(self.mutant_pdb_dir, f) for f in os.listdir(self.mutant_pdb_dir)]
         mutants = Mutant.from_pdb(self.pdb, pdbs)
 
         mutants_dict = {m.raw_mutant_id: m for m in mutants}
@@ -168,8 +163,7 @@ class CartesianDDG:
 
         for _, m in enumerate(mutants_dict.values()):
             m_id = m.raw_mutant_id
-            mutfile = os.path.join(
-                self.save_dir, self.job_id, "mutfiles", f"{m_id}.mutfile")
+            mutfile = os.path.join(self.save_dir, self.job_id, "mutfiles", f"{m_id}.mutfile")
             mutants2mutfile([m], mutfile)
             mutfiles.append(mutfile)
         return mutfiles, list(mutants_dict.values())
@@ -185,8 +179,7 @@ def main(legacy: bool = False, use_docker=False):
         nstruct_relax=4,
         use_legacy=legacy,
         job_id="cart_ddg" + docker_label if not legacy else "cart_ddg_legacy" + docker_label,
-        node=(RosettaContainer(image="rosettacommons/rosetta:mpi",
-              prohibit_mpi=True) if use_docker else None),
+        node=(RosettaContainer(image="rosettacommons/rosetta:mpi", prohibit_mpi=True) if use_docker else None),
     )
 
     pdb_path = cart_ddg.relax()

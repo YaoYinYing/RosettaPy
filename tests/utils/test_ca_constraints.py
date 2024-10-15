@@ -1,5 +1,3 @@
-from io import StringIO
-
 import pytest
 
 from RosettaPy.app.utils import PDBProcessor
@@ -50,8 +48,7 @@ def test_convert_pdb_to_constraints(tmpdir, sample_pdb_lines):
         f.writelines(sample_pdb_lines)
 
     # Run the conversion function
-    count = PDBProcessor.convert_pdb_to_constraints(
-        str(pdb_file_path), str(output_file_path))
+    count = PDBProcessor.convert_pdb_to_constraints(str(pdb_file_path), str(output_file_path))
 
     # Check that the correct number of constraints were written (3 valid CA atoms)
     assert count == 3
@@ -84,8 +81,7 @@ def test_no_ca_atoms_in_pdb(tmpdir):
         f.writelines(no_ca_atoms)
 
     # Run the conversion function
-    count = PDBProcessor.convert_pdb_to_constraints(
-        str(pdb_file_path), str(output_file_path))
+    count = PDBProcessor.convert_pdb_to_constraints(str(pdb_file_path), str(output_file_path))
 
     # Check that no constraints were written
     assert count == 0

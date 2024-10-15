@@ -28,8 +28,7 @@ def test_rosetta_binary_from_filename_valid(filename):
     rosetta_binary = RosettaBinary.from_filename(dirname, filename)
     assert rosetta_binary.dirname == dirname
     assert rosetta_binary.binary_name == "rosetta_scripts"
-    assert rosetta_binary.mode in [
-        None, "mpi", "static", "default", "cxx11threadserialization"]
+    assert rosetta_binary.mode in [None, "mpi", "static", "default", "cxx11threadserialization"]
     assert rosetta_binary.os in [None, "linux", "macos"]
     assert rosetta_binary.compiler in [None, "gcc", "clang"]
     assert rosetta_binary.release in [None, "release", "debug"]
@@ -112,9 +111,8 @@ def test_find_binary_not_found(mock_exists, mock_is_dir, mock_iterdir):
 
 # Test RosettaFinder initialization on unsupported OS
 def test_unsupported_os():
-    with patch("sys.platform", "win32"):
-        with pytest.raises(EnvironmentError):
-            RosettaFinder()
+    with patch("sys.platform", "win32"), pytest.raises(EnvironmentError):
+        RosettaFinder()
 
 
 # Integration tests

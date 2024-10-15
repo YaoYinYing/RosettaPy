@@ -1,5 +1,3 @@
-import os
-
 import pytest
 
 from ..conftest import GITHUB_CONTAINER_ROSETTA_TEST, NO_NATIVE_ROSETTA
@@ -19,8 +17,7 @@ from ..conftest import GITHUB_CONTAINER_ROSETTA_TEST, NO_NATIVE_ROSETTA
         pytest.param(
             1,
             False,
-            marks=pytest.mark.skipif(
-                NO_NATIVE_ROSETTA, reason="No Rosetta Installed."),
+            marks=pytest.mark.skipif(NO_NATIVE_ROSETTA, reason="No Rosetta Installed."),
         ),
         pytest.param(
             2,
@@ -29,8 +26,7 @@ from ..conftest import GITHUB_CONTAINER_ROSETTA_TEST, NO_NATIVE_ROSETTA
                 not GITHUB_CONTAINER_ROSETTA_TEST, reason="Skipping docker tests in GitHub Actions"
             ),
         ),
-        pytest.param(2, False, marks=pytest.mark.skipif(
-            NO_NATIVE_ROSETTA, reason="No Rosetta Installed.")),
+        pytest.param(2, False, marks=pytest.mark.skipif(NO_NATIVE_ROSETTA, reason="No Rosetta Installed.")),
     ],
 )
 def test_app_mutate_relax(num_mut, use_docker):
@@ -50,8 +46,7 @@ def test_app_mutate_relax(num_mut, use_docker):
                 not GITHUB_CONTAINER_ROSETTA_TEST, reason="Skipping docker tests in GitHub Actions"
             ),
         ),
-        pytest.param(None, False, marks=pytest.mark.skipif(
-            NO_NATIVE_ROSETTA, reason="No Rosetta Installed.")),
+        pytest.param(None, False, marks=pytest.mark.skipif(NO_NATIVE_ROSETTA, reason="No Rosetta Installed.")),
         pytest.param(
             (-13.218, 6.939, 6.592),
             True,
@@ -80,8 +75,7 @@ def test_app_rosettaligand(start_from, use_docker):
                 not GITHUB_CONTAINER_ROSETTA_TEST, reason="Skipping docker tests in GitHub Actions"
             ),
         ),
-        pytest.param(False, marks=pytest.mark.skipif(
-            NO_NATIVE_ROSETTA, reason="No Rosetta Installed.")),
+        pytest.param(False, marks=pytest.mark.skipif(NO_NATIVE_ROSETTA, reason="No Rosetta Installed.")),
     ],
 )
 def test_app_supercharge(use_docker):
@@ -104,8 +98,7 @@ def test_app_supercharge(use_docker):
                 not GITHUB_CONTAINER_ROSETTA_TEST, reason="Skipping docker tests in GitHub Actions"
             ),
         ),
-        pytest.param(True, False, marks=pytest.mark.skipif(
-            NO_NATIVE_ROSETTA, reason="No Rosetta Installed.")),
+        pytest.param(True, False, marks=pytest.mark.skipif(NO_NATIVE_ROSETTA, reason="No Rosetta Installed.")),
         pytest.param(
             False,
             True,
@@ -113,8 +106,7 @@ def test_app_supercharge(use_docker):
                 not GITHUB_CONTAINER_ROSETTA_TEST, reason="Skipping docker tests in GitHub Actions"
             ),
         ),
-        pytest.param(False, False, marks=pytest.mark.skipif(
-            NO_NATIVE_ROSETTA, reason="No Rosetta Installed.")),
+        pytest.param(False, False, marks=pytest.mark.skipif(NO_NATIVE_ROSETTA, reason="No Rosetta Installed.")),
     ],
 )
 def test_app_fastrelax(dualspace, use_docker):
@@ -134,8 +126,7 @@ def test_app_fastrelax(dualspace, use_docker):
                 not GITHUB_CONTAINER_ROSETTA_TEST, reason="Skipping docker tests in GitHub Actions"
             ),
         ),
-        pytest.param(True, False, marks=pytest.mark.skipif(
-            NO_NATIVE_ROSETTA, reason="No Rosetta Installed.")),
+        pytest.param(True, False, marks=pytest.mark.skipif(NO_NATIVE_ROSETTA, reason="No Rosetta Installed.")),
         pytest.param(
             False,
             True,
@@ -143,8 +134,7 @@ def test_app_fastrelax(dualspace, use_docker):
                 not GITHUB_CONTAINER_ROSETTA_TEST, reason="Skipping docker tests in GitHub Actions"
             ),
         ),
-        pytest.param(False, False, marks=pytest.mark.skipif(
-            NO_NATIVE_ROSETTA, reason="No Rosetta Installed.")),
+        pytest.param(False, False, marks=pytest.mark.skipif(NO_NATIVE_ROSETTA, reason="No Rosetta Installed.")),
     ],
 )
 def test_app_cart_ddg(legacy, use_docker):

@@ -1,7 +1,3 @@
-import json
-import os
-from unittest.mock import mock_open, patch
-
 import pandas as pd
 import pytest
 
@@ -52,8 +48,7 @@ def sample_ddg_df(sample_ddg_ddg_dir):
 
 
 def test_gather_files_recursive(mocker):
-    mocker.patch("os.walk", return_value=[
-                 ("some/dir", [], ["file1.json", "file2.json"])])
+    mocker.patch("os.walk", return_value=[("some/dir", [], ["file1.json", "file2.json"])])
     analyser = RosettaCartesianddGAnalyser("some", recursive=True)
     files = analyser.gather_files()
     assert len(files) == 2

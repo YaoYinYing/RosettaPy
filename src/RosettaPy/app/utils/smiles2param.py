@@ -31,7 +31,6 @@ from rdkit import Chem, DataStructs
 from rdkit.Chem import AllChem
 from rdkit.Chem.Fingerprints import FingerprintMols  # type: ignore
 
-from RosettaPy import RosettaBinary
 from RosettaPy.utils.escape import Colors as C
 from RosettaPy.utils.repository import partial_clone
 
@@ -51,8 +50,7 @@ def deprotonate_acids(smiles):
     - A string representing the SMILES format of the deprotonated molecule.
     """
     # Define the reaction to deprotonate carboxylic acids
-    deprotonate_cooh = AllChem.ReactionFromSmarts(
-        "[C:1](=[O:2])-[OH1:3]>>[C:1](=[O:2])-[O-H0:3]")  # type: ignore
+    deprotonate_cooh = AllChem.ReactionFromSmarts("[C:1](=[O:2])-[OH1:3]>>[C:1](=[O:2])-[O-H0:3]")  # type: ignore
     # Convert SMILES to Mol object
     mol = Chem.MolFromSmiles(smiles)  # type: ignore
     # Execute the deprotonation reaction
@@ -98,8 +96,7 @@ def protonate_tertiary_amine(mol):
         # Iterate over the identified tertiary amine sites to modify the molecule
         for n in ntert:
             # Convert the molecule to a canonical SMILES string representation
-            molStrings = Chem.MolToSmiles(
-                mol, isomericSmiles=True)  # type: ignore
+            molStrings = Chem.MolToSmiles(mol, isomericSmiles=True)  # type: ignore
             # Get the symbol and formal charge of the nitrogen atom
             atomSymbol9 = mol.GetAtomWithIdx(n[0]).GetSymbol()
             formalCharge9 = mol.GetAtomWithIdx(n[0]).GetFormalCharge()
@@ -129,9 +126,9 @@ def generate_molecule(name, smiles):
     """
     LIGAND_NAME = name
     m = Chem.MolFromSmiles(smiles)  # type: ignore
-    # print(m)
+
     # m = protonate_tertiary_amine(m)
-    # print(m)
+
     m_h = Chem.AddHs(m)  # type: ignore
     # Embeed the geometry
     AllChem.EmbedMolecule(m_h, AllChem.ETKDG())  # type: ignore
@@ -159,20 +156,6 @@ def get_conformers(mol, nr=500, rmsthreshold=0.1):
         pruneRmsThresh=rmsthreshold,  # type: ignore
         useExpTorsionAnglePrefs=True,
     )
-
-
-#
-# def select_molecule(molecule):
-# 	new_i = widgets.interactive(print_city, country=countryW, city=geoWs[country['new']])
-# 	i.children = new_i.children
-#
-#
-# def on_change(change):
-# 	from IPython.display import clear_output
-# 	clear_output()
-# 	molconf_widget.value = 'Number of conformers: ' + str(mols[change['new']].GetNumConformers())
-# 	display(container)
-# 	interact(drawit, m=fixed(mols[change['new']]), p=fixed(p), confId=(0, mols[change['new']].GetNumConformers() - 1));
 
 
 @dataclass
@@ -203,21 +186,16 @@ class SmallMoleculeParamsGenerator:
         if os.environ.get("ROSETTA_PYTHON_SCRIPTS"):
 
             self._rosetta_python_script_dir = os.environ["ROSETTA_PYTHON_SCRIPTS"]
-            print(
-                f"Find $ROSETTA_PYTHON_SCRIPTS = {self._rosetta_python_script_dir}")
+            print(f"Find $ROSETTA_PYTHON_SCRIPTS = {self._rosetta_python_script_dir}")
             return
 
         if os.environ.get("ROSETTA"):
-            self._rosetta_python_script_dir = os.path.join(
-                os.environ["ROSETTA"], "main/source/scripts/python/public/")
-            print(
-                f"Find $ROSETTA_PYTHON_SCRIPTS (ROSETTA) = {self._rosetta_python_script_dir}")
+            self._rosetta_python_script_dir = os.path.join(os.environ["ROSETTA"], "main/source/scripts/python/public/")
+            print(f"Find $ROSETTA_PYTHON_SCRIPTS (ROSETTA) = {self._rosetta_python_script_dir}")
             return
         if os.environ.get("ROSETTA3"):
-            self._rosetta_python_script_dir = os.path.join(
-                os.environ["ROSETTA3"], "scripts/python/public/")
-            print(
-                f"Find $ROSETTA_PYTHON_SCRIPTS (ROSETTA3) = {self._rosetta_python_script_dir}")
+            self._rosetta_python_script_dir = os.path.join(os.environ["ROSETTA3"], "scripts/python/public/")
+            print(f"Find $ROSETTA_PYTHON_SCRIPTS (ROSETTA3) = {self._rosetta_python_script_dir}")
             return
 
         warnings.warn(
@@ -234,12 +212,10 @@ class SmallMoleculeParamsGenerator:
                 subdirectory_as_env="source/scripts/python/public",
                 env_variable="ROSETTA_PYTHON_SCRIPTS",
             )
-            print(
-                f"Setup $ROSETTA_PYTHON_SCRIPTS from Rosetta Repository = {self._rosetta_python_script_dir}")
+            print(f"Setup $ROSETTA_PYTHON_SCRIPTS from Rosetta Repository = {self._rosetta_python_script_dir}")
             return
         except RuntimeError as e:
-            raise RuntimeError(
-                "Could not find or setup a proper directory for ROSETTA_PYTHON_SCRIPTS.") from e
+            raise RuntimeError("Could not find or setup a proper directory for ROSETTA_PYTHON_SCRIPTS.") from e
 
     @staticmethod
     def smile2canon(name, ds):
@@ -287,8 +263,7 @@ class SmallMoleculeParamsGenerator:
         print(c_smiles)
 
         # Create a list of molecules
-        ms = {i: Chem.MolFromSmiles(v)
-              for i, v in c_smiles.items()}  # type: ignore
+        ms = {i: Chem.MolFromSmiles(v) for i, v in c_smiles.items()}  # type: ignore
 
         # Generate fingerprints for each molecule
         fps = {i: FingerprintMols.FingerprintMol(x) for i, x in ms.items()}
@@ -304,14 +279,13 @@ class SmallMoleculeParamsGenerator:
             try:
                 s = DataStructs.BulkTanimotoSimilarity(fp, fpsv[i + 1:])
             except ValueError as e:
-                print(
-                    f"Ignore molecule `{n}` for fingerprints pairwise due to: {e}")
+                print(f"Ignore molecule `{n}` for fingerprints pairwise due to: {e}")
                 continue
             print(c_smiles[n], c_smiles_v[i + 1:])
-            for m in range(len(s)):
+            for j, _ in enumerate(s):
                 qu.append(c_smiles[n])
-                ta.append(c_smiles_v[i + 1:][m])
-                sim.append(s[m])
+                ta.append(c_smiles_v[i + 1:][j])
+                sim.append(s[j])
 
         # Build the DataFrame and sort it
         d = {"query": qu, "target": ta, "Similarity": sim}
@@ -338,10 +312,9 @@ class SmallMoleculeParamsGenerator:
         mol = generate_molecule(ligand_name, updated)
 
         # Print the deprotonation result and the before and after SMILES representations.
-        print(C.light_purple(
-            C.bold(C.negative(f"Deprotonated --- {ligand_name}"))))
-        print(f'{C.red(C.bold(C.italic(f"Before: ")))} {C.red(C.bold(C.negative("-")))} {C.red(C.bold(smiles))}')
-        print(f'{C.green(C.bold(C.italic(f"After:  ")))} {C.green(C.bold(C.negative("+")))} {C.green(C.bold(updated))}')
+        print(C.light_purple(C.bold(C.negative(f"Deprotonated --- {ligand_name}"))))
+        print(f'{C.red(C.bold(C.italic("Before: ")))} {C.red(C.bold(C.negative("-")))} {C.red(C.bold(smiles))}')
+        print(f'{C.green(C.bold(C.italic("After:  ")))} {C.green(C.bold(C.negative("+")))} {C.green(C.bold(updated))}')
 
         # Generate conformers for the ligand molecule and perform energy minimization.
         cids = get_conformers(mol, self.num_conformer, 0.1)
@@ -352,8 +325,7 @@ class SmallMoleculeParamsGenerator:
         AllChem.AlignMolConformers(mol, RMSlist=rmslist)  # type: ignore
 
         # Generate the Rosetta input file for the processed ligand.
-        self.generate_rosetta_input(
-            mol=mol, name=ligand_name, charge=Chem.GetFormalCharge(mol))  # type: ignore
+        self.generate_rosetta_input(mol=mol, name=ligand_name, charge=Chem.GetFormalCharge(mol))  # type: ignore
 
     def convert(self, ligands: Dict[str, str]):
         """
@@ -387,8 +359,7 @@ class SmallMoleculeParamsGenerator:
 
         exe = [
             sys.executable,
-            os.path.join(self._rosetta_python_script_dir,
-                         "molfile_to_params.py"),
+            os.path.join(self._rosetta_python_script_dir, "molfile_to_params.py"),
             f"{name}.sdf",
             "-n",
             name,

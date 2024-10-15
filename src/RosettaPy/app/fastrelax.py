@@ -80,7 +80,6 @@ class FastRelax:
                 env_variable="ROSETTA3_DB",
             )
             print(f'ROSETTA3_DB={os.environ.get("ROSETTA3_DB")}')
-            # raise RuntimeError("ROSETTA3_DB environment variable is not set")
 
         # List all available relaxation scripts in the database
         all_scripts = [
@@ -120,8 +119,7 @@ class FastRelax:
         self.save_dir = os.path.abspath(self.save_dir)
 
         if self.relax_script.endswith(".txt"):
-            warnings.warn(RelaxScriptInputWarning(
-                "Relaxscript argument should not have extensions."))
+            warnings.warn(RelaxScriptInputWarning("Relaxscript argument should not have extensions."))
 
         self.relax_script = self.get_relax_scripts_from_db(self.relax_script)
 
@@ -177,15 +175,13 @@ def main(dualspace: bool = False, use_docker=False):
             dualspace=True,
             job_id="fastrelax_dualspace" + docker_label,
             default_repeats=3,
-            node=RosettaContainer(
-                image="rosettacommons/rosetta:mpi") if use_docker else None,
+            node=RosettaContainer(image="rosettacommons/rosetta:mpi") if use_docker else None,
         )
     else:
         scorer = FastRelax(
             pdb="tests/data/3fap_hf3_A.pdb",
             default_repeats=3,
-            node=RosettaContainer(
-                image="rosettacommons/rosetta:mpi") if use_docker else None,
+            node=RosettaContainer(image="rosettacommons/rosetta:mpi") if use_docker else None,
             job_id="fast_relax" + docker_label,
         )
 
@@ -198,8 +194,7 @@ def main(dualspace: bool = False, use_docker=False):
 
     print("-" * 79)
 
-    print(
-        f'Best Hit on this FastRelax run: {best_hit["decoy"]} - {best_hit["score"]}')
+    print(f'Best Hit on this FastRelax run: {best_hit["decoy"]} - {best_hit["score"]}')
 
 
 if __name__ == "__main__":

@@ -31,7 +31,7 @@ class MPI_node:
 
     nproc: int = 0
     node_matrix: Optional[Dict[str, int]] = None  # Node ID: nproc
-    node_file = f"nodefile_{random.randint(1,9_999_999_999)}.txt"
+    node_file = f"nodefile_{random.randint(1, 9_999_999_999)}.txt"
 
     user = os.getuid()
 
@@ -105,8 +105,7 @@ class MPI_node:
         """
         try:
             nodes = (
-                subprocess.check_output(
-                    ["scontrol", "show", "hostnames", os.environ["SLURM_JOB_NODELIST"]])
+                subprocess.check_output(["scontrol", "show", "hostnames", os.environ["SLURM_JOB_NODELIST"]])
                 .decode()
                 .strip()
                 .split("\n")
@@ -114,24 +113,20 @@ class MPI_node:
         except KeyError as e:
             raise RuntimeError(f"Environment variable {e} not set") from None
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(
-                f"Failed to get node list: {e.output}") from None
+            raise RuntimeError(f"Failed to get node list: {e.output}") from None
 
         slurm_cpus_per_task = os.environ.get("SLURM_CPUS_PER_TASK", "1")
         slurm_ntasks_per_node = os.environ.get("SLURM_NTASKS_PER_NODE", "1")
 
         if int(slurm_cpus_per_task) < 1:
-            print(
-                f"Fixing $SLURM_CPUS_PER_TASK from {slurm_cpus_per_task} to 1.")
+            print(f"Fixing $SLURM_CPUS_PER_TASK from {slurm_cpus_per_task} to 1.")
             slurm_cpus_per_task = "1"
 
         if int(slurm_ntasks_per_node) < 1:
-            print(
-                f"Fixing $SLURM_NTASKS_PER_NODE from {slurm_ntasks_per_node} to 1.")
+            print(f"Fixing $SLURM_NTASKS_PER_NODE from {slurm_ntasks_per_node} to 1.")
             slurm_ntasks_per_node = "1"
 
-        node_dict = {i: int(slurm_ntasks_per_node) *
-                     int(slurm_cpus_per_task) for i in nodes}
+        node_dict = {i: int(slurm_ntasks_per_node) * int(slurm_cpus_per_task) for i in nodes}
 
         total_nproc = sum(node_dict.values())
         return cls(total_nproc, node_dict)

@@ -24,15 +24,15 @@ A Python utility for wrapping Rosetta command line tools.
 [![Pylint](https://github-image-cache.yaoyy.moe/badge_dir_with_uniq_name/RosettaPy/pylint/pylint_scan.svg)](https://github.com/YaoYinYing/pylint-github-action)
 [![GitHub repo size](https://img.shields.io/github/repo-size/YaoYinYing/RosettaPy)](https://github.com/YaoYinYing/RosettaPy)
 
+[![DeepSource](https://app.deepsource.com/gh/YaoYinYing/RosettaPy.svg/?label=active+issues&show_trend=true&token=1lA-hDEsz7RiQl-oBFsiLziT)](https://app.deepsource.com/gh/YaoYinYing/RosettaPy/)
+[![DeepSource](https://app.deepsource.com/gh/YaoYinYing/RosettaPy.svg/?label=resolved+issues&show_trend=true&token=1lA-hDEsz7RiQl-oBFsiLziT)](https://app.deepsource.com/gh/YaoYinYing/RosettaPy/)
+
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/pylint-dev/pylint)
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
 [![Syntax Upgrade: pyupgrade](https://img.shields.io/badge/pyupgrade-white?style=plastic&logo=python&logoColor=ebedf0&label=Syntax&labelColor=da394b&color=white&link=https%3A%2F%2Fgithub.com%2Fasottile%2Fpyupgrade)](https://github.com/asottile/pyupgrade)
 [![Pycln](https://img.shields.io/badge/pycln-white?style=plastic&logo=python&logoColor=35475c&label=Imports%20Clean&labelColor=c4fcfd&color=c6fdbc&link=https%3A%2F%2Fgithub.com%2Fhadialqattan%2Fpycln)](https://github.com/hadialqattan/pycln)
 [![Flake8](https://img.shields.io/badge/Flake8-white?style=plastic&logo=python&logoColor=silver&label=Style&link=https%3A%2F%2Fgithub.com%2FPyCQA%2Fflake8)](https://github.com/PyCQA/flake8)
-
-
-
 
 ## Release
 

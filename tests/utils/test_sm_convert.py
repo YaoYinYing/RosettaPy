@@ -29,8 +29,7 @@ def test_protonate_tertiary_amine():
         0
     ]  # type: ignore
     # type: ignore # Check nitrogen atom charge
-    charge = result_mol.GetAtomWithIdx(
-        nitrogen_idx).GetFormalCharge()  # type: ignore
+    charge = result_mol.GetAtomWithIdx(nitrogen_idx).GetFormalCharge()  # type: ignore
     assert charge == 1, f"Expected charge of 1, but got {charge}"
 
 
@@ -40,10 +39,8 @@ def test_generate_molecule():
     smiles = "CCO"  # Ethanol
     mol = generate_molecule(name, smiles)
     expected_num_atoms = 9  # 3 atoms (C, C, O) + 6 H atoms
-    assert mol.GetNumAtoms(
-    ) == expected_num_atoms, f"Expected {expected_num_atoms} atoms, but got {mol.GetNumAtoms()}"
-    assert mol.GetProp(
-        "_Name") == name, f"Expected name {name}, but got {mol.GetProp('_Name')}"
+    assert mol.GetNumAtoms() == expected_num_atoms, f"Expected {expected_num_atoms} atoms, but got {mol.GetNumAtoms()}"
+    assert mol.GetProp("_Name") == name, f"Expected name {name}, but got {mol.GetProp('_Name')}"
 
 
 # Test case for get_conformers
@@ -53,8 +50,7 @@ def test_get_conformers():
     num_conformers = 5
     # Lower the threshold to avoid pruning
     conf_ids = get_conformers(mol, nr=num_conformers, rmsthreshold=0.001)
-    assert len(
-        conf_ids) == num_conformers, f"Expected {num_conformers} conformers, but got {len(conf_ids)}"
+    assert len(conf_ids) == num_conformers, f"Expected {num_conformers} conformers, but got {len(conf_ids)}"
 
 
 @pytest.fixture
@@ -75,8 +71,7 @@ def generator():
         ("", "", "", "rosetta_python_script_dir/source/scripts/python/public"),
         ("/mock/rosetta_scripts", "", "", "/mock/rosetta_scripts"),
         ("", "/mock/rosetta/", "", "/mock/rosetta/main/source/scripts/python/public/"),
-        ("", "", "/mock/rosetta/main/source",
-         "/mock/rosetta/main/source/scripts/python/public/"),
+        ("", "", "/mock/rosetta/main/source", "/mock/rosetta/main/source/scripts/python/public/"),
     ],
 )
 def test_post_init(ROSETTA_PYTHON_SCRIPTS, ROSETTA, ROSETTA3, PYTHON_SCRIPTS_PATH):
@@ -85,32 +80,27 @@ def test_post_init(ROSETTA_PYTHON_SCRIPTS, ROSETTA, ROSETTA3, PYTHON_SCRIPTS_PAT
     os.environ["ROSETTA"] = ROSETTA
     os.environ["ROSETTA3"] = ROSETTA3
 
-    generator = SmallMoleculeParamsGenerator(
-        num_conformer=50, save_dir="./test_ligands/")
-    assert os.path.abspath(
-        generator._rosetta_python_script_dir) == os.path.abspath(PYTHON_SCRIPTS_PATH)
+    generator = SmallMoleculeParamsGenerator(num_conformer=50, save_dir="./test_ligands/")
+    assert os.path.abspath(generator._rosetta_python_script_dir) == os.path.abspath(PYTHON_SCRIPTS_PATH)
 
 
 # Test smile2canon method
 def test_smile2canon_valid():
     smile = "C1=CC=CC=C1"  # Benzene
-    canonical_smile = SmallMoleculeParamsGenerator.smile2canon(
-        "benzene", smile)
+    canonical_smile = SmallMoleculeParamsGenerator.smile2canon("benzene", smile)
     assert canonical_smile == "c1ccccc1"
 
 
 def test_smile2canon_invalid():
     invalid_smile = "InvalidSMILES"
     with patch("builtins.print") as mock_print:
-        canonical_smile = SmallMoleculeParamsGenerator.smile2canon(
-            "invalid", invalid_smile)
+        canonical_smile = SmallMoleculeParamsGenerator.smile2canon("invalid", invalid_smile)
         assert canonical_smile is None
 
 
 # Test compare_fingerprints method
 def test_compare_fingerprints():
-    ligands = {"LI1": "C1=CC=CC=C1",
-               "LI2": "C1=CC(=CC=C1)O"}  # Benzene  # Phenol
+    ligands = {"LI1": "C1=CC=CC=C1", "LI2": "C1=CC(=CC=C1)O"}  # Benzene  # Phenol
 
     with patch("pandas.DataFrame") as mock_df:
         SmallMoleculeParamsGenerator.compare_fingerprints(ligands)
@@ -130,11 +120,9 @@ def test_generate_rosetta_input(mock_popen, mock_writer, mock_chdir, mock_makedi
 
     generator.generate_rosetta_input(mol_mock, "test_ligand", charge=0)
 
-    mock_makedirs.assert_called_once_with(
-        "./test_ligands//test_ligand", exist_ok=True)
+    mock_makedirs.assert_called_once_with("./test_ligands//test_ligand", exist_ok=True)
     mock_chdir.assert_any_call("./test_ligands//test_ligand")
-    mock_writer.assert_called_once_with(
-        mol_mock, confId=mol_mock.GetConformers()[0].GetId())
+    mock_writer.assert_called_once_with(mol_mock, confId=mol_mock.GetConformers()[0].GetId())
     mock_popen.assert_called_once_with(
         [
             sys.executable,
@@ -154,8 +142,7 @@ def test_generate_rosetta_input(mock_popen, mock_writer, mock_chdir, mock_makedi
 @patch("RosettaPy.app.utils.smiles2param.SmallMoleculeParamsGenerator.compare_fingerprints")
 @patch.object(SmallMoleculeParamsGenerator, "convert_single")
 def test_convert(mock_convert_single, mock_compare_fingerprints, generator):
-    ligands = {"LIG1": "C1=CC=CC=C1",
-               "LIG2": "C1=CC(=CC=C1)O"}  # Benzene  # Phenol
+    ligands = {"LIG1": "C1=CC=CC=C1", "LIG2": "C1=CC(=CC=C1)O"}  # Benzene  # Phenol
 
     generator.convert(ligands)
 

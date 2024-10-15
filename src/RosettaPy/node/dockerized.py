@@ -8,6 +8,7 @@ Container module for run Rosetta via docker.
 
 import os
 import signal
+import tempfile
 import warnings
 from dataclasses import dataclass
 from typing import List, Tuple
@@ -108,8 +109,7 @@ class RosettaContainer:
             - str: The normalized mount path.
             """
             normalized_path = os.path.normpath(path_to_mount)
-            mount, mounted = self._create_mount(
-                RosettaContainer.mounted_name(normalized_path), normalized_path)
+            mount, mounted = self._create_mount(RosettaContainer.mounted_name(normalized_path), normalized_path)
             if not any(m == mount for m in _mounts):
                 _mounts.append(mount)
                 _mounted_paths.append(mounted)
@@ -153,10 +153,8 @@ class RosettaContainer:
                 joined_vf += "'"
 
             # Print original and processed strings for logging purposes
-            print(
-                f"{C.blue(C.negative(C.bold('Original:')))} {C.blue(C.negative(script_vars_v))}")
-            print(
-                f"{C.purple(C.negative(C.bold('Rewrited:')))} {C.purple(C.negative(joined_vf))}\n")
+            print(f"{C.blue(C.negative(C.bold('Original:')))} {C.blue(C.negative(script_vars_v))}")
+            print(f"{C.purple(C.negative(C.bold('Rewrited:')))} {C.purple(C.negative(joined_vf))}\n")
 
             return joined_vf
 
@@ -259,8 +257,7 @@ class RosettaContainer:
         """
         # Check if MPI is available, if not, issue a warning and return the original command
         if not self.mpi_available:
-            warnings.warn(RuntimeWarning(
-                "This container has static build of Rosetta. Nothing has to be recomposed."))
+            warnings.warn(RuntimeWarning("This container has static build of Rosetta. Nothing has to be recomposed."))
             return cmd
 
         # Recompose and return the new command list including MPI parameters
@@ -304,8 +301,7 @@ class RosettaContainer:
         )
 
         # Register a signal handler to stop the running container on SIGINT (e.g., Ctrl+C)
-        signal.signal(signal.SIGINT, lambda unused_sig,
-                      unused_frame: container.kill())
+        signal.signal(signal.SIGINT, lambda unused_sig, unused_frame: container.kill())
 
         for line in container.logs(stream=True):
             print(line.strip().decode("utf-8"))
