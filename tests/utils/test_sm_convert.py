@@ -66,7 +66,7 @@ def generator():
 @pytest.mark.parametrize(
     "ROSETTA_PYTHON_SCRIPTS,ROSETTA,ROSETTA3,PYTHON_SCRIPTS_PATH",
     [
-        ("", "", "", "rosetta_subdir_clone/source/scripts/python/public"),
+        ("", "", "", "rosetta_python_script_dir/source/scripts/python/public"),
         ("/mock/rosetta_scripts", "", "", "/mock/rosetta_scripts"),
         ("", "/mock/rosetta/", "", "/mock/rosetta/main/source/scripts/python/public/"),
         ("", "", "/mock/rosetta/main/source", "/mock/rosetta/main/source/scripts/python/public/"),
