@@ -3,10 +3,10 @@ Task module for Rosetta
 """
 
 import copy
-from dataclasses import dataclass
 import os
-from typing import Dict, List, Optional
 import warnings
+from dataclasses import dataclass
+from typing import Dict, List, Optional
 
 
 class RosettaScriptVariableWarning(RuntimeWarning):
@@ -102,7 +102,8 @@ class RosettaScriptsVariableGroup:
         Raises:
             ValueError: If the created instance has no variables.
         """
-        variables = [RosettaScriptsVariable(k=k, v=str(v)) for k, v in var_pair.items()]
+        variables = [RosettaScriptsVariable(
+            k=k, v=str(v)) for k, v in var_pair.items()]
         instance = cls(variables)
         if instance.empty:
             raise ValueError()
@@ -124,7 +125,8 @@ class RosettaScriptsVariableGroup:
         xml_content_copy = copy.deepcopy(xml_content)
         for k, v in self.asdict.items():
             if f"%%{k}%%" not in xml_content_copy:
-                warnings.warn(RosettaScriptVariableNotExistWarning(f"Variable {k} not in Rosetta Script content."))
+                warnings.warn(RosettaScriptVariableNotExistWarning(
+                    f"Variable {k} not in Rosetta Script content."))
                 continue
             xml_content_copy = xml_content_copy.replace(f"%%{k}%%", v)
 

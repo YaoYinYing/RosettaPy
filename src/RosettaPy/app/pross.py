@@ -3,12 +3,14 @@ Example Application of PROSS Reimplemented with RosettaPy
 """
 
 import os
-from typing import List, Optional, Tuple
 from dataclasses import dataclass
-from RosettaPy import Rosetta, RosettaScriptsVariableGroup, RosettaEnergyUnitAnalyser
+from typing import List, Optional, Tuple
+
+from RosettaPy import (Rosetta, RosettaEnergyUnitAnalyser,
+                       RosettaScriptsVariableGroup)
+from RosettaPy.app.utils import PDBProcessor
 from RosettaPy.node.dockerized import RosettaContainer
 from RosettaPy.utils import timing
-from RosettaPy.app.utils import PDBProcessor
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -58,9 +60,11 @@ class PROSS:
         self.save_dir = os.path.abspath(self.save_dir)
 
         # Generate the path for the CA constraints file
-        self.c_alpha_constaints = os.path.join(self.save_dir, self.job_id, f"{self.instance}_bbCA.cst")
+        self.c_alpha_constaints = os.path.join(
+            self.save_dir, self.job_id, f"{self.instance}_bbCA.cst")
         # Convert the PDB file to constraints and determine the sequence length
-        self.seq_len = PDBProcessor.convert_pdb_to_constraints(self.pdb, self.c_alpha_constaints)
+        self.seq_len = PDBProcessor.convert_pdb_to_constraints(
+            self.pdb, self.c_alpha_constaints)
 
     def refine(self, nstruct=1) -> str:
         """
@@ -107,11 +111,14 @@ class PROSS:
             rosetta.run(inputs=[{"-in:file:s": self.pdb}], nstruct=nstruct)
 
         # Analyze the refinement results to identify the best decoy (refined structure)
-        best_decoy = RosettaEnergyUnitAnalyser(rosetta.output_scorefile_dir).best_decoy
-        best_refined_pdb = os.path.join(rosetta.output_pdb_dir, f'{best_decoy["decoy"]}.pdb')
+        best_decoy = RosettaEnergyUnitAnalyser(
+            rosetta.output_scorefile_dir).best_decoy
+        best_refined_pdb = os.path.join(
+            rosetta.output_pdb_dir, f'{best_decoy["decoy"]}.pdb')
 
         # Output information about the best refined decoy
-        print(f'Best Decoy on refinement: {best_decoy["decoy"]} - {best_decoy["score"]}: {best_refined_pdb}')
+        print(
+            f'Best Decoy on refinement: {best_decoy["decoy"]} - {best_decoy["score"]}: {best_refined_pdb}')
 
         # Ensure the best refined PDB file exists
         assert os.path.isfile(best_refined_pdb)
@@ -188,7 +195,8 @@ class PROSS:
 
         # Run filterscan protocol
         with timing("PROSS: Filterscan"):
-            rosetta.run(inputs=[{"-parser:script_vars": f"current_res={i}"} for i in range(1, self.seq_len + 1)])
+            rosetta.run(inputs=[{"-parser:script_vars": f"current_res={i}"}
+                        for i in range(1, self.seq_len + 1)])
 
         # Merge resfiles
         merged_filters = self.merge_resfiles(filterscan_dir, self.seq_len)
@@ -222,14 +230,16 @@ class PROSS:
             first_resfile = True
 
             # Construct the full path for the target resfile
-            target_resfile_path = os.path.join(filterscan_res_dir, "resfiles", resfile_fn)
+            target_resfile_path = os.path.join(
+                filterscan_res_dir, "resfiles", resfile_fn)
 
             # Iterate over each resfile ID from 1 to seq_length
             for res_id in range(1, seq_length + 1):
                 # Construct the filename for the temporary resfile
                 tmp_resfile_fn = f"designable_aa_resfile-{res_id}.{level}"
                 # Construct the full path for the temporary resfile
-                tmp_resfile_path = os.path.join(filterscan_res_dir, "resfiles", "tmp", tmp_resfile_fn)
+                tmp_resfile_path = os.path.join(
+                    filterscan_res_dir, "resfiles", "tmp", tmp_resfile_fn)
 
                 # Check if the temporary resfile exists
                 if not os.path.isfile(tmp_resfile_path):
@@ -238,17 +248,18 @@ class PROSS:
 
                 # If this is the first resfile, initialize the target resfile with the first temporary file's content
                 if first_resfile:
-                    with open(tmp_resfile_path, "r") as tmp_file:
+                    with open(tmp_resfile_path) as tmp_file:
                         content = tmp_file.read()
                     with open(target_resfile_path, "w") as resfile:
                         resfile.write(content)
                     first_resfile = False
                 else:
                     # Otherwise, append relevant lines (those starting with digits) from subsequent temporary files
-                    with open(tmp_resfile_path, "r") as tmp_file:
+                    with open(tmp_resfile_path) as tmp_file:
                         lines = tmp_file.readlines()
                     with open(target_resfile_path, "a") as resfile:
-                        resfile.writelines(line for line in lines if line.strip() and line[0].isdigit())
+                        resfile.writelines(
+                            line for line in lines if line.strip() and line[0].isdigit())
 
             # Add the path of the merged resfile to the list
             resfiles.append(target_resfile_path)
@@ -304,15 +315,17 @@ class PROSS:
                     {
                         "-parser:script_vars": f"in_resfile={filterscan_dir}/resfiles/{rf}",
                         "-out:suffix": f'_{rf.replace("designable_aa_resfile.", "")}',
-                        "-out:file:scorefile": f'{self.instance}_pross_design_{rf.replace("designable_aa_resfile.", "")}.sc',
+                        "-out:file:scorefile": f'{self.instance}_design_{rf.replace("designable_aa_resfile.", "")}.sc',
                     }
                     for rf in filters
                 ]
             )
 
-        analyser = RosettaEnergyUnitAnalyser(score_file=rosetta.output_scorefile_dir)
+        analyser = RosettaEnergyUnitAnalyser(
+            score_file=rosetta.output_scorefile_dir)
         best_hit = analyser.best_decoy
-        pdb_path = os.path.join(rosetta.output_pdb_dir, f'{best_hit["decoy"]}.pdb')
+        pdb_path = os.path.join(rosetta.output_pdb_dir,
+                                f'{best_hit["decoy"]}.pdb')
 
         print("Analysis of the best decoy:")
         print("-" * 79)
@@ -320,7 +333,8 @@ class PROSS:
 
         print("-" * 79)
 
-        print(f'Best Hit on this PROSS run: {best_hit["decoy"]} - {best_hit["score"]}: {pdb_path}')
+        print(
+            f'Best Hit on this PROSS run: {best_hit["decoy"]} - {best_hit["score"]}: {pdb_path}')
 
         return pdb_path
 
@@ -334,12 +348,14 @@ def main(use_docker=False):
         pdb="tests/data/3fap_hf3_A_short.pdb",
         pssm="tests/data/3fap_hf3_A_ascii_mtx_file_short",
         job_id="pross_reduce" + docker_label,
-        node=(RosettaContainer(image="rosettacommons/rosetta:mpi", prohibit_mpi=True) if use_docker else None),
+        node=(RosettaContainer(image="rosettacommons/rosetta:mpi",
+              prohibit_mpi=True) if use_docker else None),
     )
     best_refined = pross.refine(4)
 
     filters, filterscan_dir = pross.filterscan(best_refined)
-    pross.design(filters=filters, refined_pdb=best_refined, filterscan_dir=filterscan_dir)
+    pross.design(filters=filters, refined_pdb=best_refined,
+                 filterscan_dir=filterscan_dir)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,9 @@
-import pytest
 import os
+
+import pytest
 from Bio.PDB import PDBParser, PPBuilder  # type: ignore
-from RosettaPy.common.mutation import parse_pdb_sequences, Chain
+
+from RosettaPy.common.mutation import Chain, parse_pdb_sequences
 
 # Mock PDB file paths
 valid_pdb_path = "tests/data/3fap_hf3_A_short.pdb"
@@ -27,7 +29,8 @@ def test_parse_pdb_sequences_valid(mock_valid_pdb_file):
     assert chains is not None
     assert len(chains) == 1  # Two chains A and B in the sample PDB
     assert chains[0].chain_id == "A"
-    assert chains[0].sequence == "IRGWEEGVAQM"  # Simplified expected sequence for chain A
+    # Simplified expected sequence for chain A
+    assert chains[0].sequence == "IRGWEEGVAQM"
 
 
 def test_parse_pdb_sequences_non_existent_file():
@@ -42,10 +45,12 @@ def test_parse_pdb_sequences_no_polypeptides(mocker, mock_valid_pdb_file):
     """
     Test a valid PDB file with no polypeptides (empty sequences).
     """
-    mock_ppb = mocker.patch("Bio.PDB.PPBuilder.build_peptides", return_value=[])
+    mock_ppb = mocker.patch(
+        "Bio.PDB.PPBuilder.build_peptides", return_value=[])
 
     chains = parse_pdb_sequences(mock_valid_pdb_file)
 
     assert chains is not None
     assert len(chains) == 1
-    assert chains[0].sequence == ""  # No polypeptides, so sequence should be empty
+    # No polypeptides, so sequence should be empty
+    assert chains[0].sequence == ""

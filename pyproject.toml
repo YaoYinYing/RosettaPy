@@ -60,7 +60,8 @@ test = [
     "pytest==8.3.3",
     "pytest-order",
     "pytest-github-actions-annotate-failures",
-    "shellcheck-py==0.10.0.1"
+    "shellcheck-py==0.10.0.1",
+    "pre-commit"
 ]
 
 [project.urls]

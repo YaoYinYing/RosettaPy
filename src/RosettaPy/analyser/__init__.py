@@ -2,7 +2,7 @@
 Analysis Tools for Rosetta Runs.
 """
 
-from .reu import RosettaEnergyUnitAnalyser
 from .ddg import RosettaCartesianddGAnalyser
+from .reu import RosettaEnergyUnitAnalyser
 
 __all__ = ["RosettaEnergyUnitAnalyser", "RosettaCartesianddGAnalyser"]

@@ -12,8 +12,8 @@ from __future__ import annotations
 
 import os
 import shutil
-from typing import List
 import warnings
+from typing import List
 
 import pytest
 from _pytest.nodes import Item
@@ -37,11 +37,11 @@ def no_rosetta():
     import subprocess
 
     result = subprocess.run(
-        ["whichrosetta", "rosetta_scripts"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-    )
+        ["whichrosetta", "rosetta_scripts"], capture_output=True, text=True)
     # Check that the command was successful
     has_rosetta_installed = "rosetta_scripts" in result.stdout
-    warnings.warn(UserWarning(f"Rosetta Installed: {has_rosetta_installed} - {result.stdout}"))
+    warnings.warn(UserWarning(
+        f"Rosetta Installed: {has_rosetta_installed} - {result.stdout}"))
     return not has_rosetta_installed
 
 
@@ -55,6 +55,7 @@ def github_rosetta_test():
 # Determine if running in GitHub Actions
 is_github_actions = os.environ.get("GITHUB_ACTIONS") == "true"
 
-has_docker = shutil.which("docker") != None
+has_docker = shutil.which("docker") is not None
 
-GITHUB_CONTAINER_ROSETTA_TEST = os.environ.get("GITHUB_CONTAINER_ROSETTA_TEST", "NO") == "YES"
+GITHUB_CONTAINER_ROSETTA_TEST = os.environ.get(
+    "GITHUB_CONTAINER_ROSETTA_TEST", "NO") == "YES"

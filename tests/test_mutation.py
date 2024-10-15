@@ -1,10 +1,12 @@
-import os
-from typing import Dict, List
-import warnings
 import copy
-import pytest
-from RosettaPy.common import Mutation, RosettaPyProteinSequence, Chain, Mutant, mutants2mutfile
+import os
+import warnings
+from typing import Dict, List
 
+import pytest
+
+from RosettaPy.common import (Chain, Mutant, Mutation,
+                              RosettaPyProteinSequence, mutants2mutfile)
 
 # Test cases for the Mutation class
 
@@ -32,7 +34,8 @@ def sample_mutation():
 
 @pytest.fixture
 def sample_protein_sequence(sample_wt_sequence):
-    protein_sequence = RosettaPyProteinSequence(chains=[Chain(chain_id="A", sequence=sample_wt_sequence)])
+    protein_sequence = RosettaPyProteinSequence(
+        chains=[Chain(chain_id="A", sequence=sample_wt_sequence)])
     return protein_sequence
 
 
@@ -50,7 +53,8 @@ def sample_mutant(sample_protein_sequence, sample_mutation):
 @pytest.fixture
 def sample_mutants() -> Dict[str, Mutant]:
 
-    pdbs = [os.path.join(sample_mutant_pdb_dir, f) for f in os.listdir(sample_mutant_pdb_dir)]
+    pdbs = [os.path.join(sample_mutant_pdb_dir, f)
+            for f in os.listdir(sample_mutant_pdb_dir)]
     mutants = Mutant.from_pdb(sample_wt_pdb, pdbs)
     return {f: m for f, m in zip(pdbs, mutants)}
 
@@ -75,7 +79,8 @@ def test_protein_sequence_get_chain(sample_protein_sequence, sample_wt_sequence)
     """
     assert len(sample_protein_sequence.chains) == 1
     assert isinstance(sample_protein_sequence.get_sequence_by_chain("A"), str)
-    assert sample_protein_sequence.get_sequence_by_chain("A") == sample_wt_sequence
+    assert sample_protein_sequence.get_sequence_by_chain(
+        "A") == sample_wt_sequence
 
 
 def test_protein_sequence_add_chain():
@@ -125,7 +130,8 @@ def test_protein_sequence_get_sequence_by_chain(sample_protein_sequence, sample_
     """
     Test retrieving a sequence from a RosettaPyProteinSequence by chain ID.
     """
-    assert sample_protein_sequence.get_sequence_by_chain("A") == sample_wt_sequence
+    assert sample_protein_sequence.get_sequence_by_chain(
+        "A") == sample_wt_sequence
 
 
 def test_protein_sequence_get_sequence_by_chain_invalid(sample_protein_sequence):
@@ -142,7 +148,8 @@ def test_mutant_creation(sample_mutant, sample_wt_sequence):
     """
     assert len(sample_mutant.mutations) == 1
     assert sample_mutant.raw_mutant_id == "Q10V"
-    assert sample_mutant.wt_protein_sequence.get_sequence_by_chain("A") == sample_wt_sequence
+    assert sample_mutant.wt_protein_sequence.get_sequence_by_chain(
+        "A") == sample_wt_sequence
 
 
 def test_mutant_as_mutfile(sample_mutant):
@@ -159,13 +166,13 @@ def test_mutant_from_pdb():
     Test creating Mutant objects from PDB files using mock data.
     """
 
-
     mutants = Mutant.from_pdb(sample_wt_pdb, sample_mutant_pdbs)
 
     # Verify that two mutant instances were created
     assert len(mutants) == 2
     for mutant in mutants:
-        assert len(mutant.mutations) >= 1  # Ensure at least one mutation is present
+        # Ensure at least one mutation is present
+        assert len(mutant.mutations) >= 1
 
 
 def test_protein_sequence_construct_sources_pdb(sample_protein_sequence, sample_protein_sequence_pdb):

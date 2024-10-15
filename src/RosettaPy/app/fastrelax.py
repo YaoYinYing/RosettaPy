@@ -3,16 +3,14 @@ Example Application of FastRelax.
 """
 
 import os
+import warnings
 from dataclasses import dataclass
 from typing import Optional
-import warnings
-
 
 from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser
 from RosettaPy.node.dockerized import RosettaContainer
 from RosettaPy.utils import timing
 from RosettaPy.utils.repository import partial_clone
-
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -122,7 +120,8 @@ class FastRelax:
         self.save_dir = os.path.abspath(self.save_dir)
 
         if self.relax_script.endswith(".txt"):
-            warnings.warn(RelaxScriptInputWarning("Relaxscript argument should not have extensions."))
+            warnings.warn(RelaxScriptInputWarning(
+                "Relaxscript argument should not have extensions."))
 
         self.relax_script = self.get_relax_scripts_from_db(self.relax_script)
 
@@ -178,13 +177,15 @@ def main(dualspace: bool = False, use_docker=False):
             dualspace=True,
             job_id="fastrelax_dualspace" + docker_label,
             default_repeats=3,
-            node=RosettaContainer(image="rosettacommons/rosetta:mpi") if use_docker else None,
+            node=RosettaContainer(
+                image="rosettacommons/rosetta:mpi") if use_docker else None,
         )
     else:
         scorer = FastRelax(
             pdb="tests/data/3fap_hf3_A.pdb",
             default_repeats=3,
-            node=RosettaContainer(image="rosettacommons/rosetta:mpi") if use_docker else None,
+            node=RosettaContainer(
+                image="rosettacommons/rosetta:mpi") if use_docker else None,
             job_id="fast_relax" + docker_label,
         )
 
@@ -197,7 +198,8 @@ def main(dualspace: bool = False, use_docker=False):
 
     print("-" * 79)
 
-    print(f'Best Hit on this FastRelax run: {best_hit["decoy"]} - {best_hit["score"]}')
+    print(
+        f'Best Hit on this FastRelax run: {best_hit["decoy"]} - {best_hit["score"]}')
 
 
 if __name__ == "__main__":

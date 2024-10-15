@@ -4,13 +4,13 @@ MPI module for run Rosetta (extra=mpi) on local machine.
 
 import contextlib
 import copy
-from dataclasses import dataclass
 import os
 import random
 import shutil
 import subprocess
-from typing import Dict, List, Optional
 import warnings
+from dataclasses import dataclass
+from typing import Dict, List, Optional
 
 
 class MPI_IncompatibleInputWarning(RuntimeWarning):
@@ -50,7 +50,8 @@ class MPI_node:
         with open(self.node_file, "w") as f:
             for node, nproc in self.node_matrix.items():
                 f.write(f"{node} slots={nproc}\n")
-        self.nproc = sum(self.node_matrix.values())  # fix nproc to real node matrix
+        # fix nproc to real node matrix
+        self.nproc = sum(self.node_matrix.values())
 
     @property
     def local(self) -> List[str]:
@@ -104,7 +105,8 @@ class MPI_node:
         """
         try:
             nodes = (
-                subprocess.check_output(["scontrol", "show", "hostnames", os.environ["SLURM_JOB_NODELIST"]])
+                subprocess.check_output(
+                    ["scontrol", "show", "hostnames", os.environ["SLURM_JOB_NODELIST"]])
                 .decode()
                 .strip()
                 .split("\n")
@@ -112,20 +114,24 @@ class MPI_node:
         except KeyError as e:
             raise RuntimeError(f"Environment variable {e} not set") from None
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"Failed to get node list: {e.output}") from None
+            raise RuntimeError(
+                f"Failed to get node list: {e.output}") from None
 
         slurm_cpus_per_task = os.environ.get("SLURM_CPUS_PER_TASK", "1")
         slurm_ntasks_per_node = os.environ.get("SLURM_NTASKS_PER_NODE", "1")
 
         if int(slurm_cpus_per_task) < 1:
-            print(f"Fixing $SLURM_CPUS_PER_TASK from {slurm_cpus_per_task} to 1.")
+            print(
+                f"Fixing $SLURM_CPUS_PER_TASK from {slurm_cpus_per_task} to 1.")
             slurm_cpus_per_task = "1"
 
         if int(slurm_ntasks_per_node) < 1:
-            print(f"Fixing $SLURM_NTASKS_PER_NODE from {slurm_ntasks_per_node} to 1.")
+            print(
+                f"Fixing $SLURM_NTASKS_PER_NODE from {slurm_ntasks_per_node} to 1.")
             slurm_ntasks_per_node = "1"
 
-        node_dict = {i: int(slurm_ntasks_per_node) * int(slurm_cpus_per_task) for i in nodes}
+        node_dict = {i: int(slurm_ntasks_per_node) *
+                     int(slurm_cpus_per_task) for i in nodes}
 
         total_nproc = sum(node_dict.values())
         return cls(total_nproc, node_dict)

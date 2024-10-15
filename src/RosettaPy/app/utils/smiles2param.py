@@ -20,22 +20,20 @@ Utility functions of Small Molecule Comformer Sampling
 
 
 import os
-import sys
 import subprocess
+import sys
+import warnings
 from dataclasses import dataclass
 from typing import Dict, Optional
-import warnings
 
 import pandas as pd
-
-from rdkit import Chem
-from rdkit import DataStructs
+from rdkit import Chem, DataStructs
 from rdkit.Chem import AllChem
 from rdkit.Chem.Fingerprints import FingerprintMols  # type: ignore
-from RosettaPy import RosettaBinary
-from RosettaPy.utils.repository import partial_clone
 
+from RosettaPy import RosettaBinary
 from RosettaPy.utils.escape import Colors as C
+from RosettaPy.utils.repository import partial_clone
 
 
 # Functions
@@ -53,7 +51,8 @@ def deprotonate_acids(smiles):
     - A string representing the SMILES format of the deprotonated molecule.
     """
     # Define the reaction to deprotonate carboxylic acids
-    deprotonate_cooh = AllChem.ReactionFromSmarts("[C:1](=[O:2])-[OH1:3]>>[C:1](=[O:2])-[O-H0:3]")  # type: ignore
+    deprotonate_cooh = AllChem.ReactionFromSmarts(
+        "[C:1](=[O:2])-[OH1:3]>>[C:1](=[O:2])-[O-H0:3]")  # type: ignore
     # Convert SMILES to Mol object
     mol = Chem.MolFromSmiles(smiles)  # type: ignore
     # Execute the deprotonation reaction
@@ -99,7 +98,8 @@ def protonate_tertiary_amine(mol):
         # Iterate over the identified tertiary amine sites to modify the molecule
         for n in ntert:
             # Convert the molecule to a canonical SMILES string representation
-            molStrings = Chem.MolToSmiles(mol, isomericSmiles=True)  # type: ignore
+            molStrings = Chem.MolToSmiles(
+                mol, isomericSmiles=True)  # type: ignore
             # Get the symbol and formal charge of the nitrogen atom
             atomSymbol9 = mol.GetAtomWithIdx(n[0]).GetSymbol()
             formalCharge9 = mol.GetAtomWithIdx(n[0]).GetFormalCharge()
@@ -203,16 +203,21 @@ class SmallMoleculeParamsGenerator:
         if os.environ.get("ROSETTA_PYTHON_SCRIPTS"):
 
             self._rosetta_python_script_dir = os.environ["ROSETTA_PYTHON_SCRIPTS"]
-            print(f"Find $ROSETTA_PYTHON_SCRIPTS = {self._rosetta_python_script_dir}")
+            print(
+                f"Find $ROSETTA_PYTHON_SCRIPTS = {self._rosetta_python_script_dir}")
             return
 
         if os.environ.get("ROSETTA"):
-            self._rosetta_python_script_dir = os.path.join(os.environ["ROSETTA"], "main/source/scripts/python/public/")
-            print(f"Find $ROSETTA_PYTHON_SCRIPTS (ROSETTA) = {self._rosetta_python_script_dir}")
+            self._rosetta_python_script_dir = os.path.join(
+                os.environ["ROSETTA"], "main/source/scripts/python/public/")
+            print(
+                f"Find $ROSETTA_PYTHON_SCRIPTS (ROSETTA) = {self._rosetta_python_script_dir}")
             return
         if os.environ.get("ROSETTA3"):
-            self._rosetta_python_script_dir = os.path.join(os.environ["ROSETTA3"], "scripts/python/public/")
-            print(f"Find $ROSETTA_PYTHON_SCRIPTS (ROSETTA3) = {self._rosetta_python_script_dir}")
+            self._rosetta_python_script_dir = os.path.join(
+                os.environ["ROSETTA3"], "scripts/python/public/")
+            print(
+                f"Find $ROSETTA_PYTHON_SCRIPTS (ROSETTA3) = {self._rosetta_python_script_dir}")
             return
 
         warnings.warn(
@@ -229,10 +234,12 @@ class SmallMoleculeParamsGenerator:
                 subdirectory_as_env="source/scripts/python/public",
                 env_variable="ROSETTA_PYTHON_SCRIPTS",
             )
-            print(f"Setup $ROSETTA_PYTHON_SCRIPTS from Rosetta Repository = {self._rosetta_python_script_dir}")
+            print(
+                f"Setup $ROSETTA_PYTHON_SCRIPTS from Rosetta Repository = {self._rosetta_python_script_dir}")
             return
         except RuntimeError as e:
-            raise RuntimeError("Could not find or setup a proper directory for ROSETTA_PYTHON_SCRIPTS.") from e
+            raise RuntimeError(
+                "Could not find or setup a proper directory for ROSETTA_PYTHON_SCRIPTS.") from e
 
     @staticmethod
     def smile2canon(name, ds):
@@ -240,7 +247,8 @@ class SmallMoleculeParamsGenerator:
         Converts a SMILES string to its canonical form.
 
         This method attempts to convert the provided SMILES string (ds) into its Canonical SMILES format.
-        If successful, it returns the canonical SMILES string; otherwise, if the conversion fails (e.g., ds is not a valid SMILES string),
+        If successful, it returns the canonical SMILES string; otherwise, if the conversion fails
+        (e.g., ds is not a valid SMILES string),
         it prints an error message and returns None.
 
         Parameters:
@@ -263,7 +271,8 @@ class SmallMoleculeParamsGenerator:
         Compare the similarity of molecular fingerprints of a given set of ligands.
 
         Parameters:
-        ligands: Dict[str, str] A dictionary containing the ligand identifiers as keys and their corresponding molecular structures (SMILES format) as values.
+        ligands: Dict[str, str] A dictionary containing the ligand identifiers as keys and their
+        corresponding molecular structures (SMILES format) as values.
 
         Returns:
         None
@@ -278,7 +287,8 @@ class SmallMoleculeParamsGenerator:
         print(c_smiles)
 
         # Create a list of molecules
-        ms = {i: Chem.MolFromSmiles(v) for i, v in c_smiles.items()}  # type: ignore
+        ms = {i: Chem.MolFromSmiles(v)
+              for i, v in c_smiles.items()}  # type: ignore
 
         # Generate fingerprints for each molecule
         fps = {i: FingerprintMols.FingerprintMol(x) for i, x in ms.items()}
@@ -292,14 +302,15 @@ class SmallMoleculeParamsGenerator:
 
         for i, (n, fp) in enumerate(fps.items()):
             try:
-                s = DataStructs.BulkTanimotoSimilarity(fp, fpsv[i + 1 :])
+                s = DataStructs.BulkTanimotoSimilarity(fp, fpsv[i + 1:])
             except ValueError as e:
-                print(f"Ignore molecule `{n}` for fingerprints pairwise due to: {e}")
+                print(
+                    f"Ignore molecule `{n}` for fingerprints pairwise due to: {e}")
                 continue
-            print(c_smiles[n], c_smiles_v[i + 1 :])
+            print(c_smiles[n], c_smiles_v[i + 1:])
             for m in range(len(s)):
                 qu.append(c_smiles[n])
-                ta.append(c_smiles_v[i + 1 :][m])
+                ta.append(c_smiles_v[i + 1:][m])
                 sim.append(s[m])
 
         # Build the DataFrame and sort it
@@ -310,7 +321,8 @@ class SmallMoleculeParamsGenerator:
 
     def convert_single(self, ligand_name: str, smiles: str):
         """
-        Process a single ligand, including deprotonation, generation of molecular structures, energy minimization, and generation of Rosetta input files.
+        Process a single ligand, including deprotonation, generation of molecular structures, energy
+        minimization, and generation of Rosetta input files.
 
         Parameters:
         - ligand_name: str, the name of the ligand.
@@ -321,16 +333,15 @@ class SmallMoleculeParamsGenerator:
         """
 
         # Deprotonate the ligand based on its SMILES representation and update the ligand structure.
-        updated_ligands = deprotonate_acids(smiles)
+        updated = deprotonate_acids(smiles)
         # Generate a molecular structure object for the updated ligand.
-        mol = generate_molecule(ligand_name, updated_ligands)
+        mol = generate_molecule(ligand_name, updated)
 
         # Print the deprotonation result and the before and after SMILES representations.
-        print(C.light_purple(C.bold(C.negative(f"Deprotonated --- {ligand_name}"))))
+        print(C.light_purple(
+            C.bold(C.negative(f"Deprotonated --- {ligand_name}"))))
         print(f'{C.red(C.bold(C.italic(f"Before: ")))} {C.red(C.bold(C.negative("-")))} {C.red(C.bold(smiles))}')
-        print(
-            f'{C.green(C.bold(C.italic(f"After:  ")))} {C.green(C.bold(C.negative("+")))} {C.green(C.bold(updated_ligands))}'
-        )
+        print(f'{C.green(C.bold(C.italic(f"After:  ")))} {C.green(C.bold(C.negative("+")))} {C.green(C.bold(updated))}')
 
         # Generate conformers for the ligand molecule and perform energy minimization.
         cids = get_conformers(mol, self.num_conformer, 0.1)
@@ -341,7 +352,8 @@ class SmallMoleculeParamsGenerator:
         AllChem.AlignMolConformers(mol, RMSlist=rmslist)  # type: ignore
 
         # Generate the Rosetta input file for the processed ligand.
-        self.generate_rosetta_input(mol=mol, name=ligand_name, charge=Chem.GetFormalCharge(mol))  # type: ignore
+        self.generate_rosetta_input(
+            mol=mol, name=ligand_name, charge=Chem.GetFormalCharge(mol))  # type: ignore
 
     def convert(self, ligands: Dict[str, str]):
         """
@@ -375,7 +387,8 @@ class SmallMoleculeParamsGenerator:
 
         exe = [
             sys.executable,
-            os.path.join(self._rosetta_python_script_dir, "molfile_to_params.py"),
+            os.path.join(self._rosetta_python_script_dir,
+                         "molfile_to_params.py"),
             f"{name}.sdf",
             "-n",
             name,
@@ -394,7 +407,8 @@ def main():
     """
     Main function to remove specific keys from the environment variables and convert small molecule parameters.
 
-    This function first removes three keys related to Rosetta from the environment variables to prevent potential configuration conflicts.
+    This function first removes three keys related to Rosetta from the environment variables to prevent potential
+    configuration conflicts.
     It then uses an instance of SmallMoleculeParamsGenerator to generate and save parameter files for small molecules.
     These parameter files are typically used in molecular modeling and simulations.
     """
@@ -412,7 +426,8 @@ def main():
     converter = SmallMoleculeParamsGenerator(save_dir="tests/outputs/ligands")
     converter.convert(
         {
-            "OPY": "C1=CC(=CC=C1C[C@@H](C(=O)O)N)OP(=O)(O)O",  # O-Phospho-L-tyrosine
+            # O-Phospho-L-tyrosine
+            "OPY": "C1=CC(=CC=C1C[C@@H](C(=O)O)N)OP(=O)(O)O",
             "ASA": "CC(=O)OC1=CC=CC=C1C(=O)O",  # Aspirin
             "CAF": "CN1C=NC2=C1C(=O)N(C(=O)N2C)C",  # Caffeine
         }

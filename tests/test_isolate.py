@@ -1,6 +1,6 @@
-import pytest
 import os
 
+import pytest
 
 from RosettaPy.utils import isolate
 
@@ -26,7 +26,7 @@ def test_isolate_creates_and_moves_files(tmp_path):
     assert os.path.exists(moved_file_path)
 
     # Check the content of the moved file is the same as what was written
-    with open(moved_file_path, "r") as f:
+    with open(moved_file_path) as f:
         content = f.read()
     assert content == "This is a test file"
 

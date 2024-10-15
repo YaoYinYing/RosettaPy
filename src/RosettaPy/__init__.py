@@ -3,11 +3,11 @@ Welcome to RosettaPy.
 """
 
 from __future__ import annotations
-from .rosetta_finder import RosettaBinary, RosettaFinder, main
-from .rosetta import Rosetta, RosettaScriptsVariableGroup, MPI_node
-from .analyser import RosettaEnergyUnitAnalyser, RosettaCartesianddGAnalyser
 
-from .utils import timing, isolate
+from .analyser import RosettaCartesianddGAnalyser, RosettaEnergyUnitAnalyser
+from .rosetta import MPI_node, Rosetta, RosettaScriptsVariableGroup
+from .rosetta_finder import RosettaBinary, RosettaFinder, main
+from .utils import isolate, timing
 
 __all__ = [
     "RosettaFinder",

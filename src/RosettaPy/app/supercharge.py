@@ -4,6 +4,7 @@ Example Application of Rosetta Supercharge
 
 import os
 from typing import List, Optional
+
 from RosettaPy import Rosetta
 from RosettaPy.node.dockerized import RosettaContainer
 from RosettaPy.rosetta import RosettaCmdTask
@@ -18,11 +19,13 @@ def supercharge(
     """
     Applies the Rosetta Supercharge protocol to a given PDB file to perform charge mutation scanning.
 
-    The Supercharge protocol aims to optimize the charge distribution of a protein by altering the charge states of amino acid residues, exploring stability and other properties under different charge conditions.
+    The Supercharge protocol aims to optimize the charge distribution of a protein by altering the charge
+    states of amino acid residues, exploring stability and other properties under different charge conditions.
 
     Parameters:
     - pdb: Path to the PDB file containing the protein structure.
-    - abs_target_charge: Absolute value of the target net charge range (default is 20, meaning it will scan from -20 to 20).
+    - abs_target_charge: Absolute value of the target net charge range (default is 20, meaning it will scan
+    from -20 to 20).
     - nproc: Number of CPU cores for parallel processing (default is 4).
 
     Returns:
@@ -43,7 +46,8 @@ def supercharge(
             "true",
             "-dont_mutate_correct_charge",  # Do not mutate correctly charged residues
             "true",
-            "-dont_mutate_hbonded_sidechains",  # Do not mutate side chains involved in hydrogen bonds
+            # Do not mutate side chains involved in hydrogen bonds
+            "-dont_mutate_hbonded_sidechains",
             "true",
             "-include_asp",  # Include aspartic acid
             "-include_glu",  # Include glutamic acid
@@ -70,7 +74,8 @@ def supercharge(
         ],
         save_all_together=True,  # Save all results together
         isolation=True,  # Run in isolation to prevent contamination of other tasks
-        run_node=(RosettaContainer(image="rosettacommons/rosetta:mpi", prohibit_mpi=True) if use_docker else None),
+        run_node=(RosettaContainer(image="rosettacommons/rosetta:mpi",
+                  prohibit_mpi=True) if use_docker else None),
     )
 
     # Generate instance name based on the PDB file name
@@ -79,7 +84,8 @@ def supercharge(
     # Return the run results of the Rosetta object, each corresponding to a specific charge state
     return rosetta.run(
         inputs=[
-            {"-out:file:scorefile": f"{instance}_charge_{c}.sc", "-target_net_charge": str(c)}
+            {"-out:file:scorefile": f"{instance}_charge_{c}.sc",
+                "-target_net_charge": str(c)}
             for c in range(-abs_target_charge, abs_target_charge, 2)
         ]
     )

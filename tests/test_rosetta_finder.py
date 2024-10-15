@@ -1,12 +1,13 @@
 from __future__ import annotations
+
 import os
 import shutil
 import tempfile
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from RosettaPy import RosettaFinder, RosettaBinary
+from RosettaPy import RosettaBinary, RosettaFinder
 from tests.conftest import github_rosetta_test
 
 
@@ -27,7 +28,8 @@ def test_rosetta_binary_from_filename_valid(filename):
     rosetta_binary = RosettaBinary.from_filename(dirname, filename)
     assert rosetta_binary.dirname == dirname
     assert rosetta_binary.binary_name == "rosetta_scripts"
-    assert rosetta_binary.mode in [None, "mpi", "static", "default", "cxx11threadserialization"]
+    assert rosetta_binary.mode in [
+        None, "mpi", "static", "default", "cxx11threadserialization"]
     assert rosetta_binary.os in [None, "linux", "macos"]
     assert rosetta_binary.compiler in [None, "gcc", "clang"]
     assert rosetta_binary.release in [None, "release", "debug"]

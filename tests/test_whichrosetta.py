@@ -34,8 +34,7 @@ def test_integration_whichrosetta_success(tmp_path, monkeypatch):
         # Invoke the whichrosetta command
         result = subprocess.run(
             ["whichrosetta", "rosetta_scripts"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
             env=os.environ.copy(),  # Use the modified environment
         )
@@ -78,8 +77,7 @@ def test_dockerized_whichrosetta_success(tmp_path, monkeypatch):
         # Invoke the whichrosetta command
         result = subprocess.run(
             ["whichrosetta", "rosetta_scripts"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
             env=os.environ.copy(),
         )
@@ -110,8 +108,7 @@ def test_integration_whichrosetta_not_found(tmp_path, monkeypatch):
         # Invoke the whichrosetta command
         result = subprocess.run(
             ["whichrosetta", "rosetta_scripts"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
             env=os.environ.copy(),
         )

@@ -1,9 +1,11 @@
 import os
-import pytest
-import pandas as pd
-from unittest.mock import patch, MagicMock
-from RosettaPy import RosettaEnergyUnitAnalyser  # Replace with the actual module name
+from unittest.mock import MagicMock, patch
 
+import pandas as pd
+import pytest
+
+from RosettaPy import \
+    RosettaEnergyUnitAnalyser  # Replace with the actual module name
 
 sample_score_file = "tests/data/score.sc"
 best_decoy = {"score": -388.465, "decoy": "3fap_hf3_A_0003"}
@@ -29,24 +31,29 @@ class TestRosettaEnergyUnitAnalyser:
         assert analyser.best_decoy == best_decoy
 
     def test_multiple_score_files(self):
-        analyser = RosettaEnergyUnitAnalyser(score_file=os.path.dirname(sample_score_file))
+        analyser = RosettaEnergyUnitAnalyser(
+            score_file=os.path.dirname(sample_score_file))
         assert analyser.best_decoy == best_decoy_cat
 
     def test_top3_total_score(self):
-        analyser = RosettaEnergyUnitAnalyser(score_file=os.path.dirname(sample_score_file))
+        analyser = RosettaEnergyUnitAnalyser(
+            score_file=os.path.dirname(sample_score_file))
         assert analyser.top(3) == top3_total_score
 
     def test_top3_fa_atr(self):
-        analyser = RosettaEnergyUnitAnalyser(score_file=os.path.dirname(sample_score_file))
+        analyser = RosettaEnergyUnitAnalyser(
+            score_file=os.path.dirname(sample_score_file))
         assert analyser.top(3, "fa_atr") == top3_fa_atr
 
     def test_non_existing_file(self):
         with pytest.raises(FileNotFoundError):
-            RosettaEnergyUnitAnalyser(score_file=os.path.join(sample_score_file, "non_existing_file.sc"))
+            RosettaEnergyUnitAnalyser(score_file=os.path.join(
+                sample_score_file, "non_existing_file.sc"))
 
     def test_missing_score_term(self):
         with pytest.raises(ValueError):
-            RosettaEnergyUnitAnalyser(score_file=sample_score_file, score_term="missing_score_term")
+            RosettaEnergyUnitAnalyser(
+                score_file=sample_score_file, score_term="missing_score_term")
 
 
 # Run pytest to execute tests

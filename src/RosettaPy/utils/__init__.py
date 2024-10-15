@@ -2,18 +2,12 @@
 Utility functions of RosettaPy
 """
 
-from .tools import timing, tmpdir_manager, isolate
-from .task import (
-    RosettaCmdTask,
-    RosettaScriptsVariable,
-    RosettaScriptsVariableGroup,
-    RosettaScriptVariableNotExistWarning,
-    RosettaScriptVariableWarning,
-    IgnoreMissingFileWarning,
-)
-
 from .escape import Colors
-
+from .task import (IgnoreMissingFileWarning, RosettaCmdTask,
+                   RosettaScriptsVariable, RosettaScriptsVariableGroup,
+                   RosettaScriptVariableNotExistWarning,
+                   RosettaScriptVariableWarning)
+from .tools import isolate, timing, tmpdir_manager
 
 __all__ = [
     "timing",

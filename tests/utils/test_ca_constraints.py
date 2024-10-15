@@ -1,5 +1,6 @@
-import pytest
 from io import StringIO
+
+import pytest
 
 from RosettaPy.app.utils import PDBProcessor
 
@@ -10,7 +11,8 @@ def sample_pdb_lines():
     return [
         "ATOM    406  CA  ALA A  53      12.345  67.890  23.456  1.00 20.00           C\n",  # valid CA atom
         "ATOM    407  N   ALA A  53      12.345  67.890  23.456  1.00 20.00           N\n",  # non-CA atom
-        "HETATM  408  CA  LIG A  54      34.567  78.901  45.678  1.00 40.00           C\n",  # valid CA atom from HETATM
+        # valid CA atom from HETATM
+        "HETATM  408  CA  LIG A  54      34.567  78.901  45.678  1.00 40.00           C\n",
         "ATOM    409  CB  ALA A  53      12.345  67.890  23.456  1.00 20.00           C\n",  # non-CA atom
         "ATOM    410  CA  GLY A  54      13.345  68.890  24.456  1.00 21.00           C\n",  # valid CA atom
         "ATOM    411  O   ALA A  53      12.345  67.890  23.456  1.00 20.00           O\n",  # non-CA atom
@@ -48,13 +50,14 @@ def test_convert_pdb_to_constraints(tmpdir, sample_pdb_lines):
         f.writelines(sample_pdb_lines)
 
     # Run the conversion function
-    count = PDBProcessor.convert_pdb_to_constraints(str(pdb_file_path), str(output_file_path))
+    count = PDBProcessor.convert_pdb_to_constraints(
+        str(pdb_file_path), str(output_file_path))
 
     # Check that the correct number of constraints were written (3 valid CA atoms)
     assert count == 3
 
     # Check the contents of the output file
-    with open(output_file_path, "r") as f:
+    with open(output_file_path) as f:
         contents = f.read()
 
     expected_output = (
@@ -81,12 +84,13 @@ def test_no_ca_atoms_in_pdb(tmpdir):
         f.writelines(no_ca_atoms)
 
     # Run the conversion function
-    count = PDBProcessor.convert_pdb_to_constraints(str(pdb_file_path), str(output_file_path))
+    count = PDBProcessor.convert_pdb_to_constraints(
+        str(pdb_file_path), str(output_file_path))
 
     # Check that no constraints were written
     assert count == 0
 
-    with open(output_file_path, "r") as f:
+    with open(output_file_path) as f:
         contents = f.read()
 
     assert contents == ""  # No constraints should be written

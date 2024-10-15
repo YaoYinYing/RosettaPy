@@ -1,8 +1,10 @@
 import os
-import pytest
 from unittest import mock
-from RosettaPy.utils import timing, tmpdir_manager
+
+import pytest
 from git import exc
+
+from RosettaPy.utils import timing, tmpdir_manager
 from RosettaPy.utils.repository import RosettaRepoManager, main
 
 
@@ -24,7 +26,7 @@ def repo_manager():
 
 
 @pytest.mark.parametrize(
-    "installed_version,is_valid",
+    "installed,is_valid",
     [
         ("2.34.0", False),
         ("2.34.1", True),
@@ -38,8 +40,9 @@ def repo_manager():
         ("git version 2.47.0", True),
     ],
 )
-def test_version_compare(installed_version, is_valid, repo_manager):
-    assert repo_manager._compare_versions(installed_version=installed_version, required_version="2.34.1") == is_valid
+def test_version_compare(installed, is_valid, repo_manager):
+    assert repo_manager._compare_versions(
+        installed_version=installed, required_version="2.34.1") == is_valid
 
 
 @pytest.mark.parametrize(
@@ -54,7 +57,8 @@ def test_version_compare(installed_version, is_valid, repo_manager):
 )
 def test_invalid_version_compare(installed_version, repo_manager):
     with pytest.raises(ValueError, match=f"Version string '{installed_version}' is not in a valid format."):
-        repo_manager._compare_versions(installed_version=installed_version, required_version="2.34.1")
+        repo_manager._compare_versions(
+            installed_version=installed_version, required_version="2.34.1")
 
 
 @mock.patch("subprocess.check_output")
@@ -135,7 +139,7 @@ def test_clone_subdirectory_no_submodule(repo_manager):
     Test the full flow of clone_subdirectory when the repository is not yet cloned and submodules are skipped.
     """
     # not cloned
-    assert repo_manager.is_cloned() == False
+    assert repo_manager.is_cloned() is False
 
     # Ensure the directory does not exist initially
     assert not os.path.exists(repo_manager.target_dir)
@@ -147,10 +151,11 @@ def test_clone_subdirectory_no_submodule(repo_manager):
     assert os.path.exists(repo_manager.target_dir)
 
     # cloned
-    assert repo_manager.is_cloned() == True
+    assert repo_manager.is_cloned() is True
 
     # dir exists
-    assert os.path.exists(os.path.join(repo_manager.target_dir, repo_manager.subdirectory_to_clone))
+    assert os.path.exists(os.path.join(
+        repo_manager.target_dir, repo_manager.subdirectory_to_clone))
 
 
 @mock.patch("os.path.abspath")
@@ -163,13 +168,15 @@ def test_set_env_variable(mock_abspath, repo_manager):
     mock_abspath.return_value = "/absolute/path/to/subdir"
 
     # Call the method to set the environment variable
-    repo_manager.set_env_variable("ROSETTA_PYTHON_SCRIPTS", "source/scripts/python/public")
+    repo_manager.set_env_variable(
+        "ROSETTA_PYTHON_SCRIPTS", "source/scripts/python/public")
 
     # Check that the environment variable was set
     assert os.environ["ROSETTA_PYTHON_SCRIPTS"] == "/absolute/path/to/subdir"
 
     # Ensure that os.path.abspath was called with the correct arguments
-    mock_abspath.assert_called_once_with(os.path.join(repo_manager.target_dir, repo_manager.subdirectory_as_env))
+    mock_abspath.assert_called_once_with(os.path.join(
+        repo_manager.target_dir, repo_manager.subdirectory_as_env))
 
 
 def test_main_function():

@@ -2,10 +2,10 @@
 Analysis tool of Rosetta Energy Unit
 """
 
-from dataclasses import dataclass
 import os
-from typing import Dict, Literal, Optional, Tuple, Union
 import warnings
+from dataclasses import dataclass
+from typing import Dict, Literal, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -61,8 +61,9 @@ class RosettaEnergyUnitAnalyser:
         else:
             raise FileNotFoundError(f"Score file {self.score_file} not found.")
 
-        if not self.score_term in self.df.columns:
-            raise ValueError(f'Score term "{self.score_term}" not found in score file.')
+        if self.score_term not in self.df.columns:
+            raise ValueError(
+                f'Score term "{self.score_term}" not found in score file.')
 
     @staticmethod
     def df2dict(dfs: pd.DataFrame, k: str = "total_score") -> Tuple[Dict[Literal["score", "decoy"], Union[str, float]]]:

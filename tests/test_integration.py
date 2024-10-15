@@ -3,6 +3,7 @@ import subprocess
 from unittest import mock
 
 import pytest
+
 from .conftest import github_rosetta_test
 
 
@@ -29,8 +30,7 @@ def test_whichrosetta_integration(tmp_path, monkeypatch):
         # Invoke the whichrosetta command
         result = subprocess.run(
             ["whichrosetta", "rosetta_scripts"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
             env=os.environ.copy(),  # Use the modified environment
         )
@@ -44,8 +44,7 @@ def test_whichrosetta_integration(tmp_path, monkeypatch):
         # Now, execute the found binary to ensure it works
         result_binary = subprocess.run(
             [str(binary_path)],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
         )
         assert result_binary.returncode == 0

@@ -1,5 +1,7 @@
 import pytest
-from ..conftest import GITHUB_CONTAINER_ROSETTA_TEST, NO_NATIVE_ROSETTA, no_rosetta, is_github_actions, has_docker
+
+from ..conftest import (GITHUB_CONTAINER_ROSETTA_TEST, NO_NATIVE_ROSETTA,
+                        has_docker, is_github_actions, no_rosetta)
 
 
 @pytest.mark.integration
@@ -12,7 +14,8 @@ from ..conftest import GITHUB_CONTAINER_ROSETTA_TEST, NO_NATIVE_ROSETTA, no_rose
                 not GITHUB_CONTAINER_ROSETTA_TEST, reason="Skipping docker tests in GitHub Actions"
             ),
         ),
-        pytest.param(False, marks=pytest.mark.skipif(NO_NATIVE_ROSETTA, reason="No Rosetta Installed.")),
+        pytest.param(False, marks=pytest.mark.skipif(
+            NO_NATIVE_ROSETTA, reason="No Rosetta Installed.")),
     ],
 )
 def test_app_pross(use_docker):
