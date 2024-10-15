@@ -266,7 +266,7 @@ class Mutant:
             if sequence[pos - 1] != mutation.wt_res:
                 raise ValueError(
                     f"Mutation {mutation} does not match the wild-type sequence on "
-                    f"position <{pos}>:<{sequence[pos-1]}>:<{mutation.wt_res}>."
+                    f"position <{pos}>:<{sequence[pos - 1]}>:<{mutation.wt_res}>."
                 )
             sequence[pos - 1] = mutation.mut_res
 
