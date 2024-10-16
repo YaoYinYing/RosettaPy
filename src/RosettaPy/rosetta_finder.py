@@ -157,7 +157,8 @@ class RosettaFinder:
         # Determine the search paths
         self.search_paths: list[Path] = self.get_search_paths()
 
-    def build_regex_pattern(self, binary_name):
+    @staticmethod
+    def build_regex_pattern(binary_name):
         """
         Build the regex pattern to search for the Rosetta binary.
 

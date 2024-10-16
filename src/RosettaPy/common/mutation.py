@@ -151,7 +151,10 @@ class RosettaPyProteinSequence:
         if chain_id not in self.all_chain_ids:
             raise ValueError(f"Chain {chain_id} not found in the protein sequence.")
 
-        return next(filter(lambda x: x.chain_id == chain_id, self.chains)).sequence
+        try:
+            return next(filter(lambda x: x.chain_id == chain_id, self.chains)).sequence
+        except StopIteration as e:
+            raise ValueError(f"Chain {chain_id} is not found in the Protein Sequence.") from e
 
     @classmethod
     def from_pdb(cls, pdb_file: str) -> "RosettaPyProteinSequence":
@@ -303,6 +306,7 @@ class Mutant:
         Args:
             file_path (str): The file path to save the mutation file.
         """
+        # skipcq: PTC-W6004
         with open(file_path, "w") as file:
             for mutation in self.mutations:
                 rosetta_format = self.wt_protein_sequence.mutation_to_rosetta_format(mutation)
@@ -399,6 +403,7 @@ def mutants2mutfile(mutants: Union[List[Mutant], ValuesView[Mutant]], file_path:
     mutfile_content = f"total {len([_m for m in mutants_dict.values() for _m in m.mutations])}\n{as_mutfile}"
 
     # Write the MutFile content to the specified file.
+    # skipcq: PTC-W6004
     with open(file_path, "w") as file:
         file.write(mutfile_content)
 

@@ -8,7 +8,6 @@ Container module for run Rosetta via docker.
 
 import os
 import signal
-import tempfile
 import warnings
 from dataclasses import dataclass
 from typing import List, Tuple
@@ -19,8 +18,8 @@ from docker import types
 from ..utils.escape import Colors as C
 from ..utils.task import RosettaCmdTask
 
+# skipcq: BAN-B108
 _ROOT_MOUNT_DIRECTORY = os.path.abspath("/tmp/")
-os.makedirs(_ROOT_MOUNT_DIRECTORY, exist_ok=True)
 
 
 @dataclass

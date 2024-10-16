@@ -116,7 +116,8 @@ class PROSS:
         print(f'Best Decoy on refinement: {best_decoy["decoy"]} - {best_decoy["score"]}: {best_refined_pdb}')
 
         # Ensure the best refined PDB file exists
-        assert os.path.isfile(best_refined_pdb)
+        if not os.path.isfile(best_refined_pdb):
+            raise RuntimeError(f"Refinement against {self.instance} failed.")
 
         # Return the absolute path of the best refined PDB file
         return os.path.abspath(best_refined_pdb)
@@ -197,7 +198,8 @@ class PROSS:
         # Return the list of merged filter files and the directory path of the filterscan results
         return [os.path.basename(f) for f in merged_filters], filterscan_dir
 
-    def merge_resfiles(self, filterscan_res_dir: str, seq_length: int) -> List[str]:
+    @staticmethod
+    def merge_resfiles(filterscan_res_dir: str, seq_length: int) -> List[str]:
         """
         Merges temporary resfiles by their levels and writes the merged resfile to the target directory.
 

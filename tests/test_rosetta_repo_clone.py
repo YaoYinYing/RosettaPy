@@ -4,7 +4,7 @@ from unittest import mock
 import pytest
 from git import exc
 
-from RosettaPy.utils import timing, tmpdir_manager
+from RosettaPy.utils import tmpdir_manager
 from RosettaPy.utils.repository import RosettaRepoManager, main
 
 

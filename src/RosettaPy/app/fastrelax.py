@@ -96,7 +96,7 @@ class FastRelax:
         # Raise an error if the script is not found
         raise RuntimeError(
             f"No such relax script - {script_name}, "
-            f"All available scripts: {[os.path.basename(f).replace('.txt','') for f in all_scripts]}"
+            f"All available scripts: {[os.path.basename(f).replace('.txt', '') for f in all_scripts]}"
         )
 
     def __post_init__(self):

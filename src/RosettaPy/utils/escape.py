@@ -76,7 +76,6 @@ class Colors:
         if __import__("platform").system() == "Windows":
             kernel32 = __import__("ctypes").windll.kernel32
             kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
-            del kernel32
 
 
 # Dynamically create the class methods when the class is defined

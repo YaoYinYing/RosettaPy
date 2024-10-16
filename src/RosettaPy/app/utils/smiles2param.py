@@ -24,7 +24,7 @@ import subprocess
 import sys
 import warnings
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Dict
 
 import pandas as pd
 from rdkit import Chem, DataStructs
@@ -127,7 +127,10 @@ def generate_molecule(name, smiles):
     LIGAND_NAME = name
     m = Chem.MolFromSmiles(smiles)  # type: ignore
 
-    # m = protonate_tertiary_amine(m)
+    try:
+        m = protonate_tertiary_amine(m)
+    except Exception:
+        warnings.warn("Could not protonate tertiary amine")
 
     m_h = Chem.AddHs(m)  # type: ignore
     # Embeed the geometry
