@@ -2,6 +2,11 @@
 
 A Python utility for wrapping Rosetta command line tools.
 
+> [!NOTE]
+> _Before running `RosettaPy`, please **DO** make sure that you have abtained the correct license from Rosetta Commons._
+> _For more details, please see this [page](https://rosettacommons.org/software/download/)._
+ 
+
 ## License
 ![GitHub License](https://img.shields.io/github/license/YaoYinYing/RosettaPy)
 
@@ -53,18 +58,14 @@ A Python utility for wrapping Rosetta command line tools.
 
 `RosettaPy` is a Python module designed to locate Rosetta biomolecular modeling suite binaries that follow a specific naming pattern and execute Rosetta in command line. The module includes:
 
-### Building Blocks provided by `RosettaPy`
+### Building Blocks Provided by `RosettaPy`
 
-- An object-oriented `RosettaFinder` class to search for binaries.
+- A `RosettaFinder` class to search for binaries.
 - A `RosettaBinary` dataclass to represent the binary and its attributes.
 - A `RosettaCmdTask` dataclass to represent a single Rosetta run task.
-- A `RosettaContainer` dataclass to wrap runs into Rosetta Containers.
+- A `RosettaContainer` dataclass to wrap runs into Rosetta Containers and handle file system mounts.
 - A `MPI_node` dataclass to manage MPI resourses. _Not Seriously Tested_
-- A `RosettaRepoManager` dataclass to fetch necessary directories and files, and setup as an environment variable.
-- A shortcut method `partial_clone` to handle repository clonings and setups.
-  > [!NOTE]
-  > _Before run this tool, please **DO** make sure that you have abtained the correct license from Rosetta Commons._
-  > _For more details, please see this [page](https://rosettacommons.org/software/download/)._
+- A `RosettaRepoManager` dataclass to fetch necessary directories and files, and setup as an environment variable, together with shortcut method `partial_clone` to handle repository clonings and setups. 
 - A command-line wrapper dataclass `Rosetta` for handling Rosetta runs.
 - A `RosettaScriptsVariableGroup` dataclass to represent Rosetta scripts variables.
 - A general and simplified result analyzer `RosettaEnergyUnitAnalyser` to read and interpret Rosetta output score files.
@@ -150,6 +151,10 @@ rosetta = Rosetta(
     # Optionally, if one wishes to use the Rosetta container.
     # The image name can be found at https://hub.docker.com/r/rosettacommons/rosetta
     # run_node=RosettaContainer(image="rosettacommons/rosetta:latest")
+
+    # If you wish to run with Rosetta installed on local and built with `extra=mpi` flag via MPI,
+    # consider using `MPI_node` instance as `run_node`. This enables native parallelism feature with OpenMPI.
+    # run_node=MPI_node(nproc=10),
 )
 
 # Compose your Rosetta tasks matrix
@@ -172,6 +177,10 @@ tasks = [ # Create tasks for each variant
 rosetta.run(inputs=tasks)
 
 # Or create a distributed runs with structure labels (-nstruct)
+# For local run without MPI and dockerized runs, `RosettaPy` implemented this feature by
+# ignoring the build-in job distributer of Rosetta, canceling the default output structure
+# label, then attaching external structural label as unique job identifier and run the task
+# only once. This enables massive parallalism.
 options=[...] # Passing an optional list of options that will be used to all structure models
 rosetta.run(nstruct=nstruct, inputs=options) # input options will be passed to all runs equally
 
@@ -278,6 +287,7 @@ Contributions are welcome! Please submit a pull request or open an issue for bug
 ## Acknowledgements
 
 - **Rosetta Commons**: The Rosetta software suite for the computational modeling and analysis of protein structures.
+- **CIs, formatters, checkers and Hooks** that save my life and make this tool improved.
 
 ## Contact
 
