@@ -53,13 +53,18 @@ A Python utility for wrapping Rosetta command line tools.
 
 `RosettaPy` is a Python module designed to locate Rosetta biomolecular modeling suite binaries that follow a specific naming pattern and execute Rosetta in command line. The module includes:
 
-### Building Blocks
+### Building Blocks provided by `RosettaPy`
 
 - An object-oriented `RosettaFinder` class to search for binaries.
 - A `RosettaBinary` dataclass to represent the binary and its attributes.
 - A `RosettaCmdTask` dataclass to represent a single Rosetta run task.
 - A `RosettaContainer` dataclass to wrap runs into Rosetta Containers.
 - A `MPI_node` dataclass to manage MPI resourses. _Not Seriously Tested_
+- A `RosettaRepoManager` dataclass to fetch necessary directories and files, and setup as an environment variable.
+- A shortcut method `partial_clone` to handle repository clonings and setups.
+  > [!NOTE]
+  > _Before run this tool, please **DO** make sure that you have abtained the correct license from Rosetta Commons._
+  > _For more details, please see this [page](https://rosettacommons.org/software/download/)._
 - A command-line wrapper dataclass `Rosetta` for handling Rosetta runs.
 - A `RosettaScriptsVariableGroup` dataclass to represent Rosetta scripts variables.
 - A general and simplified result analyzer `RosettaEnergyUnitAnalyser` to read and interpret Rosetta output score files.
@@ -183,7 +188,50 @@ print(analyser.df.sort_values(by=analyser.score_term))
 print("-" * 79)
 
 print(f'Best Hit on this run: {best_hit["decoy"]} - {best_hit["score"]}: {pdb_path}')
-#
+```
+
+### Fetching additional scripts/database files from the Rosetta GitHub repository.
+
+> [!WARNING]
+> _AGAIN, before run this method, please **DO** make sure that you have licensed by Rosetta Commons._
+> _For more details of licensing, please see this [page](https://rosettacommons.org/software/download/)._
+
+This tool is helpful for fetching additional scripts/database files from the Rosetta GitHub repository.
+
+For example, if your local machine does not have Rosetta built and installed, and you wich check some files from `$ROSETTA3_DB` or `$ROSETTA_PYTHON_SCRIPTS` before run Rosetta tasks within Rosetta Container, you may quickly use this tool to fetch them into your local machine.
+
+The `partial_clone` function do will do the following steps:
+
+1. Check if the Git binary is feasible and the git version `>=2.34.1`. If not, then raise an error to notify the user to upgrade git.
+2. Check if the target directory is empty or not and the repository is not cloned yet.
+3. Setup partial clone and sparse checkout stuffs.
+4. Clone the repository and subdirectory to the target directory.
+5. Setup the environment variable with the target directory.
+
+```python
+
+import os
+from RosettaPy.utils import partial_clone
+
+def clone_db_relax_script():
+    """
+    A example for cloning the relax scripts from the Rosetta database.
+
+    This function uses the `partial_clone` function to clone specific relax scripts from the RosettaCommons GitHub repository.
+    It sets an environment variable to specify the location of the cloned subdirectory and prints the value of the environment variable after cloning.
+    """
+    # Clone the relax scripts from the Rosetta repository to a specified directory
+    partial_clone(
+        repo_url="https://github.com/RosettaCommons/rosetta",
+        target_dir="rosetta_db_clone_relax_script",
+        subdirectory_as_env="database",
+        subdirectory_to_clone="database/sampling/relax_scripts",
+        env_variable="ROSETTA3_DB",
+    )
+
+    # Print the value of the environment variable after cloning
+    print(f'ROSETTA3_DB={os.environ.get("ROSETTA3_DB")}')
+
 ```
 
 ## Environment Variables
@@ -204,28 +252,28 @@ The project includes unit tests using Python's `pytest` framework.
 
    ```bash
    git clone https://github.com/YaoYinYing/RosettaPy.git
-   cd RosettaPy
    ```
 
-2. Navigate to the project directory:
+2. Navigate to the project directory and install the required dependencies:
 
    ```bash
    cd RosettaPy
+   pip install '.[test]'
    ```
 
 3. Run the tests:
 
    ```bash
-   python -m pytest ./tests
+   # quick test cases
+   python -m pytest ./tests -m 'not integration'
+
+   # test integration cases
+   python -m pytest ./tests -m 'integration'
    ```
 
 ## Contributing
 
 Contributions are welcome! Please submit a pull request or open an issue for bug reports and feature requests.
-
-## License
-
-This project is licensed under the MIT License.
 
 ## Acknowledgements
 

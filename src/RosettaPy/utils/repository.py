@@ -49,14 +49,25 @@ from typing import Dict, Optional
 
 from git import Repo, exc
 
-from RosettaPy.utils import timing
+from .tools import timing
+
+
+class RosettaLicenseWarning(UserWarning):
+    """Warning for abtaing a license for the Rosetta source code."""
 
 
 class RosettaRepoManager:
     """
-    RosettaRepoManager is responsible for managing the cloning of specific subdirectories from large GitHub repositories
-    using shallow clone, partial clone, and sparse checkout techniques. It ensures that the repository is only cloned
-    if it hasn't been already, and sets an environment variable pointing to the cloned directory.
+    RosettaRepoManager is responsible for managing the cloning of specific subdirectories from large GitHub
+    repositories using shallow clone, partial clone, and sparse checkout techniques. It ensures that the
+    repository is only cloned if it hasn't been already, and sets an environment variable pointing to the
+    cloned directory.
+
+    RosettaRepoManager is responsible for managing the cloning of specific
+    subdirectories from large GitHub repositories using shallow clone,
+    partial clone, and sparse checkout techniques. It ensures that the
+    repository is only cloned if it hasn't been already, and sets an
+    environment variable pointing to the cloned directory.
 
     Attributes:
         repo_url (str): The URL of the repository to clone from.
@@ -100,6 +111,11 @@ class RosettaRepoManager:
         self.depth = depth
         self.skip_submodule = skip_submodule
 
+        if "rosettacommons" in self.repo_url:
+            warnings.warn(
+                RosettaLicenseWarning("Please make sure you have abtained a valid license for the Rosetta suite.")
+            )
+
     def ensure_git(self, required_version: str = "2.34.1"):
         """
         Ensures that Git is installed and is at least the required version.
@@ -120,7 +136,8 @@ class RosettaRepoManager:
 
             print(f"Git version {git_version} is sufficient.")
         except (subprocess.CalledProcessError, FileNotFoundError) as e:
-            raise RuntimeError("Git is not installed or could not be found. Please install Git and try again.") from e
+            _e_msg = "Git is not installed or could not be found. Please install Git and try again."
+            raise RuntimeError(_e_msg) from e
         except RuntimeError as e:
             raise RuntimeError(f"Git version is not supported. Please upgrade Git to {required_version}.") from e
 
@@ -293,6 +310,15 @@ def partial_clone(
 
 
 def clone_db_relax_script():
+    """
+    A example for cloning the relax scripts from the Rosetta database.
+
+    This function uses the `partial_clone` function to clone specific relax scripts from the RosettaCommons
+    GitHub repository.
+    It sets an environment variable to specify the location of the cloned subdirectory and prints the value of
+    the environment variable after cloning.
+    """
+    # Clone the relax scripts from the Rosetta repository to a specified directory
     partial_clone(
         repo_url="https://github.com/RosettaCommons/rosetta",
         target_dir="rosetta_db_clone_relax_script",
@@ -300,6 +326,8 @@ def clone_db_relax_script():
         subdirectory_to_clone="database/sampling/relax_scripts",
         env_variable="ROSETTA3_DB",
     )
+
+    # Print the value of the environment variable after cloning
     print(f'ROSETTA3_DB={os.environ.get("ROSETTA3_DB")}')
 
 

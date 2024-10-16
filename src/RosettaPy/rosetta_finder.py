@@ -8,17 +8,15 @@ import shutil
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, Optional, Union
+from typing import Literal, Optional
 
-ALL_MODES = ["static", "mpi", "default",
-             "cxx11threadserialization", "cxx11threadmpiserialization"]
+ALL_MODES = ["static", "mpi", "default", "cxx11threadserialization", "cxx11threadmpiserialization"]
 ALL_OS = ["linux", "macos"]
 ALL_COMPILERS = ["gcc", "clang"]
 ALL_RELEASES = ["release", "debug"]
 
 
-ALL_MODES_T = Literal["static", "mpi", "default",
-                      "cxx11threadserialization", "cxx11threadmpiserialization"]
+ALL_MODES_T = Literal["static", "mpi", "default", "cxx11threadserialization", "cxx11threadmpiserialization"]
 ALL_OS_T = Literal["linux", "macos"]
 ALL_COMPILERS_T = Literal["gcc", "clang"]
 ALL_RELEASES_T = Literal["release", "debug"]
@@ -123,8 +121,7 @@ class RosettaBinary:
         pattern = re.compile(regex, re.VERBOSE)
         match = pattern.match(filename)
         if not match:
-            raise ValueError(
-                f"Filename '{filename}' does not match the expected pattern.")
+            raise ValueError(f"Filename '{filename}' does not match the expected pattern.")
 
         binary_name = match.group("binary_name")
         mode = match.group("mode")
@@ -132,8 +129,7 @@ class RosettaBinary:
         compiler = match.group("compiler")
         release = match.group("release")
 
-        # type: ignore
-        return cls(dirname, binary_name, mode, os_name, compiler, release)
+        return cls(dirname, binary_name, mode, os_name, compiler, release)  # type: ignore
 
 
 class RosettaFinder:
@@ -156,8 +152,7 @@ class RosettaFinder:
 
         # OS check: Raise an error if not running on Linux or macOS
         if not sys.platform.startswith(("linux", "darwin")):
-            raise OSError(
-                "Unsupported OS. This script only runs on Linux or macOS.")
+            raise OSError("Unsupported OS. This script only runs on Linux or macOS.")
 
         # Determine the search paths
         self.search_paths: list[Path] = self.get_search_paths()
@@ -239,15 +234,13 @@ class RosettaFinder:
                 if not pattern.match(file.name):
                     continue
                 try:
-                    rosetta_binary = RosettaBinary.from_filename(
-                        str(path), file.name)
+                    rosetta_binary = RosettaBinary.from_filename(str(path), file.name)
                     if rosetta_binary.binary_name == binary_name:
                         return rosetta_binary
                 except ValueError:
                     continue
 
-        raise FileNotFoundError(
-            f"{binary_name} binary not found in the specified paths.")
+        raise FileNotFoundError(f"{binary_name} binary not found in the specified paths.")
 
 
 def main() -> None:
@@ -271,7 +264,6 @@ def main() -> None:
     finder = RosettaFinder(bin_path)
     binary_path = finder.find_binary(bin_str)
     if not os.path.isfile(binary_path.full_path):
-        raise FileNotFoundError(
-            f"Binary '{binary_path.full_path}' does not exist.")
+        raise FileNotFoundError(f"Binary '{binary_path.full_path}' does not exist.")
 
     print(binary_path.full_path)

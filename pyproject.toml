@@ -195,21 +195,12 @@ extension-pkg-whitelist= [
 ]
 ignore="CVS"
 ignore-patterns="test.*?py,conftest.py"
-init-hook='import sys; sys.setrecursionlimit(8 * sys.getrecursionlimit())'
-jobs=0
 limit-inference-results=100
-persistent="yes"
-suggestion-mode="yes"
-unsafe-load-any-extension="no"
 
 [tool.pylint.'MESSAGES CONTROL']
 enable="c-extension-no-member"
 
 [tool.pylint.'REPORTS']
-evaluation="10.0 - ((float(5 * error + warning + refactor + convention) / statement) * 10)"
-output-format="text"
-reports="no"
-score="yes"
 
 [tool.pylint.'REFACTORING']
 max-nested-blocks=5
@@ -279,7 +270,6 @@ check-str-concat-over-line-jumps="no"
 [tool.pylint.'TYPECHECK']
 contextmanager-decorators="contextlib.contextmanager"
 generated-members="numpy.*,np.*,pyspark.sql.functions,collect_list"
-ignore-mixin-members="yes"
 ignore-none="yes"
 ignore-on-opaque-inference="yes"
 ignored-classes="optparse.Values,thread._local,_thread._local,numpy,torch,swagger_client"
