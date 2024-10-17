@@ -327,11 +327,15 @@ class SmallMoleculeParamsGenerator:
 
         # Print the deprotonation result and the before and after SMILES representations.
         print(render(f"Deprotonated --- {ligand_name}", "light_purple-bold-negative"))
-        print(f'{render("Before: ","red-bold-italic")} {render("-","red-bold-negative")} {render(smiles,"red-bold")}')
         print(
-            f'{render("After:   ","green-bold-italic")}'
-            f'{render("+","green-bold-negative")}'
-            f'{render(updated,"green-bold")}'
+            f'{render("Before: ", "red-bold-italic")} '
+            f'{render("-", "red-bold-negative")} '
+            f'{render(smiles, "red-bold")}'
+        )
+        print(
+            f'{render("After:   ", "green-bold-italic")}'
+            f'{render("+", "green-bold-negative")}'
+            f'{render(updated, "green-bold")}'
         )
 
         # Generate conformers for the ligand molecule and perform energy minimization.

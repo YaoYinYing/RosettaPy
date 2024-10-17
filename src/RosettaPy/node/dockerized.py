@@ -149,8 +149,8 @@ class RosettaContainer:
                 joined_vf += "'"
 
             # Print original and processed strings for logging purposes
-            print(f"{render('Original:','blue-negative-bold')} {render(script_vars_v,'blue-negative')}")
-            print(f"{render('Rewrited:','purple-negative-bold')} {render(joined_vf,'purple-negative')}\n")
+            print(f"{render('Original:', 'blue-negative-bold')} {render(script_vars_v, 'blue-negative')}")
+            print(f"{render('Rewrited:', 'purple-negative-bold')} {render(joined_vf, 'purple-negative')}\n")
 
             return joined_vf
 
@@ -171,9 +171,9 @@ class RosettaContainer:
             script_vars_v = "=".join(script_vars[1:])
 
             print(
-                f"{render('Parsing:','purple-negative-bold')} "
-                f"{render(script_vars[0],'blue-negative')}="
-                f"{render(script_vars_v,'red-negative')}"
+                f"{render('Parsing:', 'purple-negative-bold')} "
+                f"{render(script_vars[0], 'blue-negative')}="
+                f"{render(script_vars_v, 'red-negative')}"
             )
 
             # Normal file input handling
@@ -280,10 +280,8 @@ class RosettaContainer:
         mounted_task, mounts = self.mount(input_task=task)
         client = docker.from_env()
 
-        print(f"{render('Mounted with Command: ','green-bold-negative')} {render(mounted_task.cmd,'bold-green')}")
-        print(
-            f"{render('Working directory ->','yellow-bold-negative')} {render(mounted_task.runtime_dir,'bold-yellow')}"
-        )
+        print(f"{render('Mounted with: ', 'green-bold-negative')} " f"{render(mounted_task.cmd, 'bold-green')}")
+        print(f"{render('Run at ->', 'yellow-bold-negative')} " f"{render(mounted_task.runtime_dir, 'bold-yellow')}")
 
         container = client.containers.run(
             image=self.image,
@@ -337,9 +335,9 @@ class RosettaContainer:
 
         # Print mount information
         print(
-            f"{render('Mount:','yellow-bold')} \n"
-            f"{render(f'- {source_path}','red-bold')} {render('->','bold-purple-negative')} \n"
-            f"{render(f'+ {target_path}','green-bold')}\n"
+            f"{render('Mount:', 'yellow-bold')} \n"
+            f"{render(f'- {source_path}', 'red-bold')} {render('->', 'bold-purple-negative')} \n"
+            f"{render(f'+ {target_path}', 'green-bold')}\n"
         )
 
         # Create and return the mount object and mounted path
