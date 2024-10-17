@@ -38,7 +38,6 @@ class CartesianDDG:
     save_dir: str = "tests/outputs"
     job_id: str = "cart_ddg"
 
-    nstruct_relax: int = 30
     use_legacy: bool = False
     ddg_iteration: int = 3
 
@@ -60,7 +59,7 @@ class CartesianDDG:
         os.makedirs(os.path.join(self.save_dir, self.job_id), exist_ok=True)
         self.save_dir = os.path.abspath(self.save_dir)
 
-    def relax(self):
+    def relax(self, nstruct_relax: int = 30):
         """
         Method to perform structure relaxation using Rosetta.
 
@@ -87,7 +86,7 @@ class CartesianDDG:
         )
 
         with timing("Cartesian ddG: Relax"):
-            rosetta.run(nstruct=self.nstruct_relax)
+            rosetta.run(nstruct=nstruct_relax)
 
         analyser = RosettaEnergyUnitAnalyser(rosetta.output_scorefile_dir)
         analyser.top(10)
@@ -176,13 +175,14 @@ def main(legacy: bool = False, use_docker=False):
     docker_label = "_docker" if use_docker else ""
     cart_ddg = CartesianDDG(
         pdb="tests/data/3fap_hf3_A_short.pdb",
-        nstruct_relax=4,
         use_legacy=legacy,
         job_id="cart_ddg" + docker_label if not legacy else "cart_ddg_legacy" + docker_label,
         node=(RosettaContainer(image="rosettacommons/rosetta:mpi", prohibit_mpi=True) if use_docker else None),
     )
 
-    pdb_path = cart_ddg.relax()
+    pdb_path = cart_ddg.relax(
+        nstruct_relax=4,
+    )
     df = cart_ddg.cartesian_ddg(input_pdb=pdb_path)
 
     print(df)

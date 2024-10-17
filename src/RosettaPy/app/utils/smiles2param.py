@@ -20,19 +20,19 @@ Utility functions of Small Molecule Comformer Sampling
 
 
 import os
-import subprocess
 import sys
 import warnings
 from dataclasses import dataclass
 from typing import Dict
 
 import pandas as pd
+from joblib import Parallel, delayed
 from rdkit import Chem, DataStructs
 from rdkit.Chem import AllChem
 from rdkit.Chem.Fingerprints import FingerprintMols  # type: ignore
 
-from RosettaPy.utils.escape import render
-from RosettaPy.utils.repository import partial_clone
+from RosettaPy import Rosetta
+from RosettaPy.utils import RosettaCmdTask, partial_clone, render
 
 
 # Functions
@@ -94,6 +94,10 @@ def protonate_tertiary_amine(mol):
         # Find the intersection, which represents the tertiary amines
         ntert = a.intersection(b)
         # Iterate over the identified tertiary amine sites to modify the molecule
+        print(f'{render(len(ntert), "purple-bold-negative")} tertiary amines found:')
+        if len(ntert) <= 0:
+            return mol
+
         for n in ntert:
             # Convert the molecule to a canonical SMILES string representation
             molStrings = Chem.MolToSmiles(mol, isomericSmiles=True)  # type: ignore
@@ -101,7 +105,13 @@ def protonate_tertiary_amine(mol):
             atomSymbol9 = mol.GetAtomWithIdx(n[0]).GetSymbol()
             formalCharge9 = mol.GetAtomWithIdx(n[0]).GetFormalCharge()
             # Calculate the molecular formula for verification
-            test7 = Chem.AllChem.CalcMolFormula(mol)  # type: ignore
+            molFormula = Chem.AllChem.CalcMolFormula(mol)  # type: ignore
+            print(
+                f"{render('Molecular Strings: ', 'yellow-bold-negative')} {render(molStrings, 'yellow-bold-italic')}\n"
+                f"{render('Atom Symbol: ', 'blue-bold-negative')} {render(atomSymbol9, 'blue-bold-italic')}\n"
+                f"{render('Formal Charge: ', 'green-bold-negative')} {render(formalCharge9, 'green-bold-italic')}\n"
+                f"{render('Molecular Formula: ', 'red-bold-negative')} {render(molFormula, 'red-bold-italic')}\n"
+            )
             # Set the formal charge of the nitrogen atom to +1 to protonate it
             mol.GetAtomWithIdx(n[0]).SetFormalCharge(1)
             # Update the property cache of the molecule to reflect the changes
@@ -109,6 +119,7 @@ def protonate_tertiary_amine(mol):
             # Return the modified molecule
             return mol
     else:
+        print(f'{render("No", "purple-bold-negative")} tertiary amines found:')
         # If no matches are found, return the original molecule without modification
         return mol
 
@@ -318,7 +329,7 @@ class SmallMoleculeParamsGenerator:
         print(render(f"Deprotonated --- {ligand_name}", "light_purple-bold-negative"))
         print(f'{render("Before: ","red-bold-italic")} {render("-","red-bold-negative")} {render(smiles,"red-bold")}')
         print(
-            f'{render("After:  ","green-bold-italic")}'
+            f'{render("After:   ","green-bold-italic")}'
             f'{render("+","green-bold-negative")}'
             f'{render(updated,"green-bold")}'
         )
@@ -334,7 +345,7 @@ class SmallMoleculeParamsGenerator:
         # Generate the Rosetta input file for the processed ligand.
         self.generate_rosetta_input(mol=mol, name=ligand_name, charge=Chem.GetFormalCharge(mol))  # type: ignore
 
-    def convert(self, ligands: Dict[str, str]):
+    def convert(self, ligands: Dict[str, str], n_jobs: int = 1):
         """
         Converts ligands from SMILES strings to molecules and generates similarity metrics.
 
@@ -344,8 +355,9 @@ class SmallMoleculeParamsGenerator:
 
         SmallMoleculeParamsGenerator.compare_fingerprints(ligands)
 
-        for i, v in ligands.items():
-            self.convert_single(ligand_name=i, smiles=v)
+        Parallel(n_jobs=n_jobs, verbose=101)(
+            delayed(self.convert_single)(ligand_name=i, smiles=v) for i, v in ligands.items()
+        )
 
     def generate_rosetta_input(self, mol, name, charge=0):
         """
@@ -356,32 +368,36 @@ class SmallMoleculeParamsGenerator:
             name (str): The name of the molecule.
             charge (int): The formal charge of the molecule.
         """
-        os.makedirs(f"{self.save_dir}/{name}", exist_ok=True)
-        wd = os.getcwd()
-        os.chdir(f"{self.save_dir}/{name}")
-        w = Chem.SDWriter(f"{name}.sdf")  # type: ignore
+        task_dir = os.path.abspath(self.save_dir)
+        sdf_path = os.path.join(task_dir, f"{name}.sdf")
+
+        w = Chem.SDWriter(sdf_path)  # type: ignore
         for i in mol.GetConformers():
             w.write(mol, confId=i.GetId())
         w.close()
 
-        exe = [
-            sys.executable,
-            os.path.join(self._rosetta_python_script_dir, "molfile_to_params.py"),
-            f"{name}.sdf",
-            "-n",
-            name,
-            "--conformers-in-one-file",
-            f"--recharge={str(charge)}",
-            "-c",
-            "--clobber",
-        ]
-        print(f'Launching script: {" ".join(exe)}')
-        subprocess.Popen(exe)
-        print(exe)
-        os.chdir(wd)
+        return Rosetta.execute(
+            RosettaCmdTask(
+                cmd=[
+                    sys.executable,
+                    os.path.join(self._rosetta_python_script_dir, "molfile_to_params.py"),
+                    f"{sdf_path}",
+                    "-n",
+                    name,
+                    "--conformers-in-one-file",
+                    f"--recharge={str(charge)}",
+                    "-c",
+                    "--clobber",
+                ],
+                base_dir=task_dir,
+                task_label=name,
+            )
+        )
 
 
-def main():
+def main(
+    n_jobs: int = 3,
+):
     """
     Main function to remove specific keys from the environment variables and convert small molecule parameters.
 
@@ -408,7 +424,8 @@ def main():
             "OPY": "C1=CC(=CC=C1C[C@@H](C(=O)O)N)OP(=O)(O)O",
             "ASA": "CC(=O)OC1=CC=CC=C1C(=O)O",  # Aspirin
             "CAF": "CN1C=NC2=C1C(=O)N(C(=O)N2C)C",  # Caffeine
-        }
+        },
+        n_jobs=n_jobs,
     )
 
 

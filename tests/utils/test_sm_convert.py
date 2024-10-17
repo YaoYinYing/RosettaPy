@@ -10,6 +10,7 @@ from RosettaPy.app.utils.smiles2param import (SmallMoleculeParamsGenerator,
                                               generate_molecule,
                                               get_conformers,
                                               protonate_tertiary_amine)
+from RosettaPy.utils.task import RosettaCmdTask
 
 
 # Test case for deprotonate_acids
@@ -109,33 +110,34 @@ def test_compare_fingerprints():
 
 
 # Test generate_rosetta_input method
-@patch("os.makedirs")
-@patch("os.chdir")
+@patch("RosettaPy.Rosetta.execute")
 @patch("rdkit.Chem.SDWriter.write")
-@patch("subprocess.Popen")
-def test_generate_rosetta_input(mock_popen, mock_writer, mock_chdir, mock_makedirs, generator):
+def test_generate_rosetta_input(mock_writer, mock_rosetta, generator):
     mol_mock = MagicMock()
     mol_mock.GetConformers.return_value = [MagicMock()]
     generator._rosetta_python_script_dir = "/mock/scripts"
 
     generator.generate_rosetta_input(mol_mock, "test_ligand", charge=0)
+    save_dir = os.path.abspath(os.path.join(".", "test_ligands"))
 
-    mock_makedirs.assert_called_once_with("./test_ligands//test_ligand", exist_ok=True)
-    mock_chdir.assert_any_call("./test_ligands//test_ligand")
-    mock_writer.assert_called_once_with(mol_mock, confId=mol_mock.GetConformers()[0].GetId())
-    mock_popen.assert_called_once_with(
-        [
+    expected_task = RosettaCmdTask(
+        cmd=[
             sys.executable,
             "/mock/scripts/molfile_to_params.py",
-            "test_ligand.sdf",
+            os.path.join(save_dir, "test_ligand.sdf"),
             "-n",
             "test_ligand",
             "--conformers-in-one-file",
             "--recharge=0",
             "-c",
             "--clobber",
-        ]
+        ],
+        base_dir=save_dir,
+        task_label="test_ligand",
     )
+
+    mock_writer.assert_called_once_with(mol_mock, confId=mol_mock.GetConformers()[0].GetId())
+    mock_rosetta.assert_called_once_with(expected_task)
 
 
 # Test convert method
@@ -148,3 +150,10 @@ def test_convert(mock_convert_single, mock_compare_fingerprints, generator):
 
     mock_compare_fingerprints.assert_called_once_with(ligands)
     assert mock_convert_single.call_count == 2
+
+
+@pytest.mark.parametrize("n_jobs", [1, 3])
+def test_main_test(n_jobs):
+    from RosettaPy.app.utils.smiles2param import main
+
+    main(n_jobs)

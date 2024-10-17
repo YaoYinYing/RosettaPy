@@ -13,16 +13,16 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 
-class MPI_IncompatibleInputWarning(RuntimeWarning):
+class MpiIncompatibleInputWarning(RuntimeWarning):
     """
     Incompatible Input matrix against MPI execution.
     """
 
 
 @dataclass
-class MPI_node:
+class MpiNode:
     """
-    MPI_node class for configuring and running MPI tasks.
+    MpiNode class for configuring and running MPI tasks.
 
     Attributes:
         nproc (int): Total number of processors.
@@ -96,12 +96,12 @@ class MPI_node:
             os.remove(self.node_file)
 
     @classmethod
-    def from_slurm(cls) -> "MPI_node":
+    def from_slurm(cls) -> "MpiNode":
         """
-        Class method to create an MPI_node instance from Slurm environment variables.
+        Class method to create an MpiNode instance from Slurm environment variables.
 
         Returns:
-            MPI_node: Instance configured using Slurm environment variables.
+            MpiNode: Instance configured using Slurm environment variables.
         """
         try:
             nodes = (

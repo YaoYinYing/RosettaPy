@@ -42,7 +42,6 @@ class RosettaLigand:
     save_dir: str = "tests/outputs"
     job_id: str = "rosettaligand"
     cst: Optional[str] = None
-    nstruct: int = 1_000
     box_size: int = 30
     move_distance: float = 0.5
     gridwidth: int = 45
@@ -72,8 +71,7 @@ class RosettaLigand:
             str: XML for the StartFrom mover or an empty string.
         """
         if self.has_startfrom:
-            assert isinstance(
-                self.start_from_xyz, tuple), "Start from xyz requires a tuple of 3 floats"
+            assert isinstance(self.start_from_xyz, tuple), "Start from xyz requires a tuple of 3 floats"
             return f"""<StartFrom name="startfrom" chain="{self.chain_id_for_dock}">
 <Coordinates x="{self.start_from_xyz[0]}" y="{self.start_from_xyz[1]}" z="{self.start_from_xyz[2]}"/>
 </StartFrom>"""
@@ -138,19 +136,17 @@ class RosettaLigand:
         ligands = []
         for _, l in enumerate(self.ligands):
             if not (isinstance(l, str) and l.endswith(".params")):
-                warnings.warn(IgnoreMissingFileWarning(
-                    f"Invalid Parameter input for ligand - {l}"))
+                warnings.warn(IgnoreMissingFileWarning(f"Invalid Parameter input for ligand - {l}"))
                 continue
 
             if not os.path.isfile(l):
-                warnings.warn(IgnoreMissingFileWarning(
-                    f"Ignore nofound ligand - {l}"))
+                warnings.warn(IgnoreMissingFileWarning(f"Ignore nofound ligand - {l}"))
                 continue
 
             ligands.extend(["-extra_res_fa", os.path.abspath(l)])
         return ligands
 
-    def dock(self) -> str:
+    def dock(self, nstruct: int = 1_000) -> str:
         """
         Performs docking using Rosetta and returns the path to the best hit PDB file.
 
@@ -182,8 +178,7 @@ class RosettaLigand:
 
         rosetta = Rosetta(
             bin="rosetta_scripts",
-            flags=[os.path.join(
-                script_dir, "deps/rosettaligand/flags/rosetta_ligand.flags")],
+            flags=[os.path.join(script_dir, "deps/rosettaligand/flags/rosetta_ligand.flags")],
             opts=opts,
             output_dir=docking_dir,
             save_all_together=False,
@@ -192,13 +187,11 @@ class RosettaLigand:
         )
 
         with timing("RosettaLigand: Docking"):
-            rosetta.run(nstruct=self.nstruct)
+            rosetta.run(nstruct=nstruct)
 
-        analyser = RosettaEnergyUnitAnalyser(
-            score_file=rosetta.output_scorefile_dir)
+        analyser = RosettaEnergyUnitAnalyser(score_file=rosetta.output_scorefile_dir)
         best_hit = analyser.best_decoy
-        pdb_path = os.path.join(rosetta.output_pdb_dir,
-                                f'{best_hit["decoy"]}.pdb')
+        pdb_path = os.path.join(rosetta.output_pdb_dir, f'{best_hit["decoy"]}.pdb')
 
         print("Analysis of the best decoy:")
         print("-" * 79)
@@ -206,8 +199,7 @@ class RosettaLigand:
 
         print("-" * 79)
 
-        print(
-            f'Best Hit on this RosettaLigand run: {best_hit["decoy"]} - {best_hit["score"]}: {pdb_path}')
+        print(f'Best Hit on this RosettaLigand run: {best_hit["decoy"]} - {best_hit["score"]}: {pdb_path}')
 
         return pdb_path
 
@@ -220,15 +212,14 @@ def main(startfrom=None, use_docker=False):
     runner = RosettaLigand(
         pdb="tests/data/6zcy_lig.pdb",
         ligands=["tests/data/lig/lig.fa.params"],
-        nstruct=4,
         start_from_xyz=startfrom,
-        job_id="rosettaligand" +
-            docker_label if startfrom is None else "rosettaligand_startfrom" + docker_label,
-        node=RosettaContainer(
-            image="rosettacommons/rosetta:mpi") if use_docker else None,
+        job_id="rosettaligand" + docker_label if startfrom is None else "rosettaligand_startfrom" + docker_label,
+        node=RosettaContainer(image="rosettacommons/rosetta:mpi") if use_docker else None,
     )
 
-    runner.dock()
+    runner.dock(
+        nstruct=4,
+    )
 
 
 if __name__ == "__main__":

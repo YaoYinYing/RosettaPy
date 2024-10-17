@@ -5,7 +5,7 @@ A Python utility for wrapping Rosetta command line tools.
 > [!NOTE]
 > _Before running `RosettaPy`, please **DO** make sure that you have abtained the correct license from Rosetta Commons._
 > _For more details, please see this [page](https://rosettacommons.org/software/download/)._
- 
+
 
 ## License
 ![GitHub License](https://img.shields.io/github/license/YaoYinYing/RosettaPy)
@@ -64,8 +64,8 @@ A Python utility for wrapping Rosetta command line tools.
 - A `RosettaBinary` dataclass to represent the binary and its attributes.
 - A `RosettaCmdTask` dataclass to represent a single Rosetta run task.
 - A `RosettaContainer` dataclass to wrap runs into Rosetta Containers and handle file system mounts.
-- A `MPI_node` dataclass to manage MPI resourses. _Not Seriously Tested_
-- A `RosettaRepoManager` dataclass to fetch necessary directories and files, and setup as an environment variable, together with shortcut method `partial_clone` to handle repository clonings and setups. 
+- A `MpiNode` dataclass to manage MPI resourses. _Not Seriously Tested_
+- A `RosettaRepoManager` dataclass to fetch necessary directories and files, and setup as an environment variable, together with shortcut method `partial_clone` to handle repository clonings and setups.
 - A command-line wrapper dataclass `Rosetta` for handling Rosetta runs.
 - A `RosettaScriptsVariableGroup` dataclass to represent Rosetta scripts variables.
 - A general and simplified result analyzer `RosettaEnergyUnitAnalyser` to read and interpret Rosetta output score files.
@@ -153,8 +153,8 @@ rosetta = Rosetta(
     # run_node=RosettaContainer(image="rosettacommons/rosetta:latest")
 
     # If you wish to run with Rosetta installed on local and built with `extra=mpi` flag via MPI,
-    # consider using `MPI_node` instance as `run_node`. This enables native parallelism feature with OpenMPI.
-    # run_node=MPI_node(nproc=10),
+    # consider using `MpiNode` instance as `run_node`. This enables native parallelism feature with OpenMPI.
+    # run_node=MpiNode(nproc=10),
 )
 
 # Compose your Rosetta tasks matrix

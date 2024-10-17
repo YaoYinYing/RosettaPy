@@ -3,6 +3,6 @@ Node classes for Rosetta Runs.
 """
 
 from .dockerized import RosettaContainer
-from .mpi import MPI_node
+from .mpi import MpiNode
 
-__all__ = ["MPI_node", "RosettaContainer"]
+__all__ = ["MpiNode", "RosettaContainer"]

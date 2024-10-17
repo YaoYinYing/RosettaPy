@@ -1,3 +1,7 @@
+"""
+Cartesian ddG Analysis Utilities.
+"""
+
 import json
 import os
 import warnings
@@ -170,8 +174,7 @@ class RosettaCartesianddGAnalyser:
             "cart_bonded_label",
             "cart_bonded",
         ]
-        df = pd.read_csv(path_and_file_name, skiprows=0,
-                         sep=r"\s+", names=header_text)
+        df = pd.read_csv(path_and_file_name, skiprows=0, sep=r"\s+", names=header_text)
 
         labels = [label for label in df.columns if label.endswith("label")]
         df.drop(["COMPLEX"] + labels, axis=1, inplace=True)
@@ -195,8 +198,7 @@ class RosettaCartesianddGAnalyser:
         :return: A pandas DataFrame containing the data from the JSON file.
         """
         with open(path_and_file_name) as jr:
-            ddg_json: List[Dict[Literal["mutations", "scores"], Any]] = json.load(
-                jr)
+            ddg_json: List[Dict[Literal["mutations", "scores"], Any]] = json.load(jr)
 
         mutant_ddg_records = []
         # Track unique mutant IDs and rounds
@@ -204,8 +206,7 @@ class RosettaCartesianddGAnalyser:
         id_cache: str = ""
         id_count: int = 0
         for _j in ddg_json:
-            mutations: List[Dict[Literal["mut", "pos", "wt"],
-                                 str]] = _j["mutations"]
+            mutations: List[Dict[Literal["mut", "pos", "wt"], str]] = _j["mutations"]
             scores: Dict[str, Any] = _j["scores"]
 
             if RosettaCartesianddGAnalyser.is_wild_type(mutations):
@@ -286,17 +287,12 @@ class RosettaCartesianddGAnalyser:
         else:
             self.dg_df_raws = [self.read_ddg(f) for f in self.files]
 
-        self.dg_df_raws = list(
-            filter(lambda df: not df.empty, self.dg_df_raws))
+        self.dg_df_raws = list(filter(lambda df: not df.empty, self.dg_df_raws))
 
-        ddg_summary = pd.concat([self.raw_to_ddg(df)
-                                for df in self.dg_df_raws])
-        ddg_summary.loc[(ddg_summary["ddG_cart"] <
-                         ddg_summary["cutoff"]), "Accepted"] = 1
-        ddg_summary.loc[(ddg_summary["ddG_cart"] >=
-                         ddg_summary["cutoff"]), "Accepted"] = 0
-        ddg_summary = ddg_summary.loc[ddg_summary["Baseline"].str.startswith(
-            "MUT_"), :]
+        ddg_summary = pd.concat([self.raw_to_ddg(df) for df in self.dg_df_raws])
+        ddg_summary.loc[(ddg_summary["ddG_cart"] < ddg_summary["cutoff"]), "Accepted"] = 1
+        ddg_summary.loc[(ddg_summary["ddG_cart"] >= ddg_summary["cutoff"]), "Accepted"] = 0
+        ddg_summary = ddg_summary.loc[ddg_summary["Baseline"].str.startswith("MUT_"), :]
 
         self.ddg_summary = ddg_summary
         return ddg_summary
@@ -316,20 +312,16 @@ class RosettaCartesianddGAnalyser:
         Returns:
             pd.DataFrame: A DataFrame with processed ddG values and cutoff.
         """
-        df_tot_ = df_raw.groupby(["Baseline"])["total"].apply(
-            get_stats).unstack().reset_index()
-        df_tot_["ddG_cart"] = df_tot_["mean"] - \
-            df_tot_["mean"].loc[(df_tot_["Baseline"] == "WT")].values[0]
+        df_tot_ = df_raw.groupby(["Baseline"])["total"].apply(get_stats).unstack().reset_index()
+        df_tot_["ddG_cart"] = df_tot_["mean"] - df_tot_["mean"].loc[(df_tot_["Baseline"] == "WT")].values[0]
 
         cutoff = (
             df_tot_[df_tot_["Baseline"] == "WT"]["ddG_cart"].values[0]
             + 2 * df_tot_[df_tot_["Baseline"] == "WT"]["std"].values[0]
         )
 
-        df_tot_["WT_mean"] = df_tot_["mean"].loc[(
-            df_tot_["Baseline"] == "WT")].values[0]
-        df_tot_["WT_mean_std"] = df_tot_[
-            "std"].loc[(df_tot_["Baseline"] == "WT")].values[0]
+        df_tot_["WT_mean"] = df_tot_["mean"].loc[(df_tot_["Baseline"] == "WT")].values[0]
+        df_tot_["WT_mean_std"] = df_tot_["std"].loc[(df_tot_["Baseline"] == "WT")].values[0]
         df_tot_["cutoff"] = cutoff
 
         df_tot_.drop(df_tot_[df_tot_["Baseline"] == "WT"].index, inplace=True)
@@ -340,8 +332,7 @@ def main():
     """
     Test
     """
-    ddg_analyser = RosettaCartesianddGAnalyser(
-        "tests/data/ddg_runtimes", recursive=True)
+    ddg_analyser = RosettaCartesianddGAnalyser("tests/data/ddg_runtimes", recursive=True)
     df = ddg_analyser.parse_ddg_files()
 
     print(df)

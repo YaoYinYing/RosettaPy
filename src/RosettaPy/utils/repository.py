@@ -85,15 +85,7 @@ class RosettaRepoManager:
         set_env_variable(env_var, subdirectory_as_env): Sets an environment variable to the subdirectory's path.
     """
 
-    def __init__(
-        self,
-        repo_url: str,
-        subdirectory_to_clone: str,
-        subdirectory_as_env: str,
-        target_dir: str,
-        depth: int = 1,
-        skip_submodule: bool = False,
-    ):
+    def __init__(self, repo_url: str, subdirectory_to_clone: str, subdirectory_as_env: str, target_dir: str):
         """
         Initializes the RosettaRepoManager to manage the cloning of a specific subdirectory from a GitHub repository.
 
@@ -108,8 +100,8 @@ class RosettaRepoManager:
         self.subdirectory_to_clone = subdirectory_to_clone
         self.subdirectory_as_env = subdirectory_as_env
         self.target_dir = target_dir
-        self.depth = depth
-        self.skip_submodule = skip_submodule
+        self.depth = 1
+        self.skip_submodule = False
 
         if "rosettacommons" in self.repo_url:
             warnings.warn(
@@ -287,7 +279,6 @@ def partial_clone(
     subdirectory_to_clone: str = "database",
     subdirectory_as_env: str = "database",
     env_variable: str = "ROSETTA3_DB",
-    skip_submodule: bool = False,
 ):
     """
     Partially cloning the specific subdirectory
@@ -295,9 +286,7 @@ def partial_clone(
 
     """
     warnings.warn(UserWarning(f"Fetching {env_variable}:{subdirectory_as_env} from Rosetta GitHub Repository ..."))
-    manager = RosettaRepoManager(
-        repo_url, subdirectory_to_clone, subdirectory_as_env, target_dir, skip_submodule=skip_submodule
-    )
+    manager = RosettaRepoManager(repo_url, subdirectory_to_clone, subdirectory_as_env, target_dir)
 
     manager.ensure_git()
 

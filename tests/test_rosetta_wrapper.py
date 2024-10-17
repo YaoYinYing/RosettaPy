@@ -8,7 +8,7 @@ import pytest
 
 from RosettaPy import RosettaBinary, RosettaFinder
 # Import the classes from your module
-from RosettaPy.rosetta import MPI_IncompatibleInputWarning, MPI_node, Rosetta
+from RosettaPy.rosetta import MpiIncompatibleInputWarning, MpiNode, Rosetta
 from RosettaPy.utils import (RosettaCmdTask, RosettaScriptsVariable,
                              RosettaScriptsVariableGroup, timing)
 from tests.conftest import github_rosetta_test
@@ -79,7 +79,7 @@ def test_timing(capfd):
 
 def test_mpi_node_initialization_without_node_matrix():
     with patch("shutil.which", return_value="/usr/bin/mpirun"):
-        mpi_node = MPI_node(nproc=4)
+        mpi_node = MpiNode(nproc=4)
         assert mpi_node.nproc == 4
         assert mpi_node.node_matrix is None
         assert mpi_node.mpi_excutable == "/usr/bin/mpirun"
@@ -89,7 +89,7 @@ def test_mpi_node_initialization_without_node_matrix():
 def test_mpi_node_initialization_with_node_matrix(tmp_path):
     with patch("shutil.which", return_value="/usr/bin/mpirun"):
         node_matrix = {"node1": 2, "node2": 2}
-        mpi_node = MPI_node(node_matrix=node_matrix)
+        mpi_node = MpiNode(node_matrix=node_matrix)
         assert mpi_node.nproc == 4
         assert mpi_node.node_matrix == node_matrix
         assert mpi_node.node_file is not None
@@ -103,7 +103,7 @@ def test_mpi_node_initialization_with_node_matrix(tmp_path):
 @pytest.mark.skipif(github_rosetta_test(), reason="No need to run this test in Dockerized Rosetta.")
 def test_mpi_node_apply():
     with patch("shutil.which", return_value="/usr/bin/mpirun"):
-        mpi_node = MPI_node(nproc=4)
+        mpi_node = MpiNode(nproc=4)
         cmd = ["rosetta_scripts", "-s", "input.pdb"]
         with mpi_node.apply(cmd) as updated_cmd:
             expected_cmd = mpi_node.local + cmd
@@ -117,7 +117,7 @@ def test_mpi_node_apply():
 def test_mpi_node_from_slurm(mock_check_output):
     mock_check_output.return_value = b"node01\nnode02\n"
     with patch("shutil.which", return_value="/usr/bin/mpirun"):
-        mpi_node = MPI_node.from_slurm()
+        mpi_node = MpiNode.from_slurm()
         assert mpi_node.nproc == 4
         assert mpi_node.node_matrix == {"node01": 2, "node02": 2}
 
@@ -173,7 +173,7 @@ def test_rosetta_run_mpi(mock_popen, mock_isfile, mock_which, temp_dir, user, ui
 
     # Mock the Rosetta binary with MPI mode
     rosetta_binary = RosettaBinary(temp_dir, "rosetta_scripts", "mpi", "linux", "gcc", "release")
-    mpi_node = MPI_node(nproc=4)
+    mpi_node = MpiNode(nproc=4)
     mpi_node.user = uid
     rosetta = Rosetta(bin=rosetta_binary, run_node=mpi_node, verbose=True)
 
@@ -221,7 +221,7 @@ def test_rosetta_init_no_mpi_executable(mock_which, temp_dir):
     rosetta_binary = RosettaFinder().find_binary("rosetta_scripts")
 
     with pytest.warns(UserWarning) as record:
-        Rosetta(bin=rosetta_binary, run_node=MPI_node(0, {"node1": 1}))
+        Rosetta(bin=rosetta_binary, run_node=MpiNode(0, {"node1": 1}))
 
     assert any("MPI nodes are given yet not supported" in str(warning.message) for warning in record)
 
@@ -299,7 +299,7 @@ def test_rosetta_mpi_incompatible_input_warning(mock_which, mock_popen, temp_dir
 
     rosetta_binary = RosettaFinder().find_binary("rosetta_scripts")
 
-    mpi_node = MPI_node(nproc=4)
+    mpi_node = MpiNode(nproc=4)
     rosetta = Rosetta(bin=rosetta_binary, run_node=mpi_node)
 
     # Mock the process
@@ -308,7 +308,7 @@ def test_rosetta_mpi_incompatible_input_warning(mock_which, mock_popen, temp_dir
     mock_process.wait.return_value = 0
     mock_popen.return_value = mock_process
 
-    with pytest.warns(MPI_IncompatibleInputWarning) as record:
+    with pytest.warns(MpiIncompatibleInputWarning) as record:
         rosetta.run(inputs=[{"-in:file:s": "input1.pdb"}, {"-in:file:s": "input2.pdb"}])
 
     assert any(

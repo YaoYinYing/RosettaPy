@@ -21,7 +21,6 @@ def repo_manager():
             subdirectory_to_clone="source/scripts/python/public",
             subdirectory_as_env="source/scripts/python/public",
             target_dir=os.path.join(temp_dir, "rosetta"),
-            skip_submodule=True,  # Set to True for the purpose of testing skip_submodule functionality
         )
 
 

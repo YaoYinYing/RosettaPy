@@ -16,8 +16,8 @@ from typing import Callable, Dict, List, Optional, Union
 
 from joblib import Parallel, delayed
 
-from .node import MPI_node, RosettaContainer
-from .node.mpi import MPI_IncompatibleInputWarning
+from .node import MpiNode, RosettaContainer
+from .node.mpi import MpiIncompatibleInputWarning
 # internal imports
 from .rosetta_finder import RosettaBinary, RosettaFinder
 from .utils import (IgnoreMissingFileWarning, RosettaCmdTask,
@@ -35,7 +35,7 @@ class Rosetta:
         flags (List[str]): List of flag files to include.
         opts (List[str]): List of command-line options.
         use_mpi (bool): Whether to use MPI for execution.
-        mpi_node (MPI_node): MPI node configuration.
+        mpi_node (MpiNode): MPI node configuration.
     """
 
     bin: Union[RosettaBinary, str]
@@ -44,7 +44,7 @@ class Rosetta:
     flags: Optional[List[str]] = field(default_factory=list)
     opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = field(default_factory=list)
     use_mpi: bool = False
-    run_node: Optional[Union[MPI_node, RosettaContainer]] = None
+    run_node: Optional[Union[MpiNode, RosettaContainer]] = None
 
     job_id: str = "default"
     output_dir: str = ""
@@ -288,7 +288,7 @@ class Rosetta:
         :return: List of RosettaCmdTask
         """
         assert isinstance(
-            self.run_node, (MPI_node, RosettaContainer)
+            self.run_node, (MpiNode, RosettaContainer)
         ), "MPI node/RosettaContainer instance is not initialized."
 
         _base_cmd = copy.copy(base_cmd)
@@ -300,10 +300,10 @@ class Rosetta:
             _base_cmd.extend(["-nstruct", str(nstruct)])
 
         if dockerized:
-            # skip setups of MPI_node because we have already recomposed.
+            # skip setups of MpiNode because we have already recomposed.
             return [RosettaCmdTask(cmd=_base_cmd)]
 
-        assert isinstance(self.run_node, (MPI_node)), "MPI node instance is required for MPI run."
+        assert isinstance(self.run_node, (MpiNode)), "MPI node instance is required for MPI run."
 
         with self.run_node.apply(_base_cmd) as updated_cmd:
             if self.isolation:
@@ -399,10 +399,10 @@ class Rosetta:
         :return: List of RosettaCmdTask.
         """
         cmd = self.compose()
-        if self.use_mpi and isinstance(self.run_node, MPI_node):
+        if self.use_mpi and isinstance(self.run_node, MpiNode):
             if inputs is not None:
                 warnings.warn(
-                    MPI_IncompatibleInputWarning(
+                    MpiIncompatibleInputWarning(
                         "Customized Inputs for MPI nodes will be flattened and passed to master node"
                     )
                 )
