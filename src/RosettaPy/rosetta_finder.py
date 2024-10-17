@@ -16,10 +16,10 @@ ALL_COMPILERS = ["gcc", "clang"]
 ALL_RELEASES = ["release", "debug"]
 
 
-ALL_MODES_T = Literal["static", "mpi", "default", "cxx11threadserialization", "cxx11threadmpiserialization"]
-ALL_OS_T = Literal["linux", "macos"]
-ALL_COMPILERS_T = Literal["gcc", "clang"]
-ALL_RELEASES_T = Literal["release", "debug"]
+ModeType = Literal["static", "mpi", "default", "cxx11threadserialization", "cxx11threadmpiserialization"]
+OsType = Literal["linux", "macos"]
+CompilerType = Literal["gcc", "clang"]
+ReleaseType = Literal["release", "debug"]
 
 
 @dataclass
@@ -45,10 +45,10 @@ class RosettaBinary:
 
     dirname: str
     binary_name: str
-    mode: Optional[ALL_MODES_T] = None
-    os: Optional[ALL_OS_T] = None
-    compiler: Optional[ALL_COMPILERS_T] = None
-    release: Optional[ALL_RELEASES_T] = None
+    mode: Optional[ModeType] = None
+    os: Optional[OsType] = None
+    compiler: Optional[CompilerType] = None
+    release: Optional[ReleaseType] = None
 
     _regex_subfix = rf"""
             (

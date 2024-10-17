@@ -15,11 +15,8 @@ from typing import List, Tuple
 import docker
 from docker import types
 
-from ..utils.escape import Colors as C
+from ..utils.escape import render
 from ..utils.task import RosettaCmdTask
-
-# skipcq: BAN-B108
-_ROOT_MOUNT_DIRECTORY = os.path.abspath("/tmp/")
 
 
 @dataclass
@@ -29,8 +26,8 @@ class RosettaContainer:
     """
 
     image: str = "rosettacommons/rosetta:mpi"
-    root_mount_directory: str = _ROOT_MOUNT_DIRECTORY
     mpi_available: bool = False
+    root_mount_directory: str = os.path.abspath("/tmp/")
     user: str = f"{os.geteuid()}:{os.getegid()}"
     nproc: int = 0
     prohibit_mpi: bool = False  # to overide the mpi_available flag
@@ -152,8 +149,8 @@ class RosettaContainer:
                 joined_vf += "'"
 
             # Print original and processed strings for logging purposes
-            print(f"{C.blue(C.negative(C.bold('Original:')))} {C.blue(C.negative(script_vars_v))}")
-            print(f"{C.purple(C.negative(C.bold('Rewrited:')))} {C.purple(C.negative(joined_vf))}\n")
+            print(f"{render('Original:','blue-negative-bold')} {render(script_vars_v,'blue-negative')}")
+            print(f"{render('Rewrited:','purple-negative-bold')} {render(joined_vf,'purple-negative')}\n")
 
             return joined_vf
 
@@ -174,9 +171,9 @@ class RosettaContainer:
             script_vars_v = "=".join(script_vars[1:])
 
             print(
-                f"{C.purple(C.negative(C.bold('Parsing:')))} "
-                f"{C.blue(C.negative(script_vars[0]))}="
-                f"{C.red(C.negative(script_vars_v))}"
+                f"{render('Parsing:','purple-negative-bold')} "
+                f"{render(script_vars[0],'blue-negative')}="
+                f"{render(script_vars_v,'red-negative')}"
             )
 
             # Normal file input handling
@@ -283,8 +280,10 @@ class RosettaContainer:
         mounted_task, mounts = self.mount(input_task=task)
         client = docker.from_env()
 
-        print(f"{C.green(C.bold(C.negative('Mounted with Command: ')))} {C.bold(C.green(str(mounted_task.cmd)))}")
-        print(f"{C.yellow(C.bold(C.negative('Working directory ->')))} {C.bold(C.yellow(mounted_task.runtime_dir))}")
+        print(f"{render('Mounted with Command: ','green-bold-negative')} {render(mounted_task.cmd,'bold-green')}")
+        print(
+            f"{render('Working directory ->','yellow-bold-negative')} {render(mounted_task.runtime_dir,'bold-yellow')}"
+        )
 
         container = client.containers.run(
             image=self.image,
@@ -307,7 +306,8 @@ class RosettaContainer:
 
         return task
 
-    def _create_mount(self, mount_name: str, path: str, read_only=False) -> Tuple[types.Mount, str]:
+    @staticmethod
+    def _create_mount(mount_name: str, path: str, read_only=False) -> Tuple[types.Mount, str]:
         """
         Create a mount point for each file and directory used by the model.
 
@@ -322,7 +322,7 @@ class RosettaContainer:
         """
         # Get the absolute path and the target mount path
         path = os.path.abspath(path)
-        target_path = os.path.join(self.root_mount_directory, mount_name)
+        target_path = os.path.join("/tmp/", mount_name)
 
         # Determine the source path and mounted path based on whether the path points to a directory or a file
         if os.path.isdir(path):
@@ -337,9 +337,9 @@ class RosettaContainer:
 
         # Print mount information
         print(
-            f"{C.yellow(C.bold('Mount:'))} \n"
-            f"{C.red(C.bold(f'- {source_path}'))} {C.bold(C.purple(C.negative('->')))} \n"
-            f"{C.green(C.bold(f'+ {target_path}'))}\n"
+            f"{render('Mount:','yellow-bold')} \n"
+            f"{render(f'- {source_path}','red-bold')} {render('->','bold-purple-negative')} \n"
+            f"{render(f'+ {target_path}','green-bold')}\n"
         )
 
         # Create and return the mount object and mounted path

@@ -307,7 +307,7 @@ class Mutant:
             file_path (str): The file path to save the mutation file.
         """
         # skipcq: PTC-W6004
-        with open(file_path, "w") as file:
+        with open(file_path, "w", encoding="utf-8") as file:
             for mutation in self.mutations:
                 rosetta_format = self.wt_protein_sequence.mutation_to_rosetta_format(mutation)
                 file.write(f"{rosetta_format}\n")
@@ -404,7 +404,7 @@ def mutants2mutfile(mutants: Union[List[Mutant], ValuesView[Mutant]], file_path:
 
     # Write the MutFile content to the specified file.
     # skipcq: PTC-W6004
-    with open(file_path, "w") as file:
+    with open(file_path, "w", encoding="utf-8") as file:
         file.write(mutfile_content)
 
     return mutfile_content

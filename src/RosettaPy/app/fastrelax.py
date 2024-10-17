@@ -69,10 +69,10 @@ class FastRelax:
             script_name = script_name[:-4]
 
         # Get the ROSETTA3_DB environment variable
-        ROSETTA3_DB = os.environ.get("ROSETTA3_DB")
-        if not ROSETTA3_DB:
+        rosetta3_db_path = os.environ.get("ROSETTA3_DB")
+        if not rosetta3_db_path:
 
-            ROSETTA3_DB = partial_clone(
+            rosetta3_db_path = partial_clone(
                 repo_url="https://github.com/RosettaCommons/rosetta",
                 target_dir="rosetta_db_clone",
                 subdirectory_as_env="database",
@@ -83,8 +83,8 @@ class FastRelax:
 
         # List all available relaxation scripts in the database
         all_scripts = [
-            os.path.join(ROSETTA3_DB, f[:-4])
-            for f in os.listdir(f"{ROSETTA3_DB}/sampling/relax_scripts/")
+            os.path.join(rosetta3_db_path, f[:-4])
+            for f in os.listdir(f"{rosetta3_db_path}/sampling/relax_scripts/")
             if f.endswith(".txt") and f != "README.txt" and "dualspace" not in f
         ]
 

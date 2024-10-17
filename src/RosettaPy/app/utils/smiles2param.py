@@ -31,7 +31,7 @@ from rdkit import Chem, DataStructs
 from rdkit.Chem import AllChem
 from rdkit.Chem.Fingerprints import FingerprintMols  # type: ignore
 
-from RosettaPy.utils.escape import Colors as C
+from RosettaPy.utils.escape import render
 from RosettaPy.utils.repository import partial_clone
 
 
@@ -315,9 +315,13 @@ class SmallMoleculeParamsGenerator:
         mol = generate_molecule(ligand_name, updated)
 
         # Print the deprotonation result and the before and after SMILES representations.
-        print(C.light_purple(C.bold(C.negative(f"Deprotonated --- {ligand_name}"))))
-        print(f'{C.red(C.bold(C.italic("Before: ")))} {C.red(C.bold(C.negative("-")))} {C.red(C.bold(smiles))}')
-        print(f'{C.green(C.bold(C.italic("After:  ")))} {C.green(C.bold(C.negative("+")))} {C.green(C.bold(updated))}')
+        print(render(f"Deprotonated --- {ligand_name}", "light_purple-bold-negative"))
+        print(f'{render("Before: ","red-bold-italic")} {render("-","red-bold-negative")} {render(smiles,"red-bold")}')
+        print(
+            f'{render("After:  ","green-bold-italic")}'
+            f'{render("+","green-bold-negative")}'
+            f'{render(updated,"green-bold")}'
+        )
 
         # Generate conformers for the ligand molecule and perform energy minimization.
         cids = get_conformers(mol, self.num_conformer, 0.1)

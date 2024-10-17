@@ -3,6 +3,7 @@
 # pylint: disable=missing-function-docstring
 # pylint: disable=missing-module-docstring
 # pylint: disable=missing-class-docstring
+from typing import Any, List, Union
 
 class Colors:
     BLACK: str
@@ -29,6 +30,8 @@ class Colors:
     NEGATIVE: str
     CROSSED: str
     RESET: str
+
+    all_colors: List[str]
 
     @staticmethod
     def black(text: str) -> str: ...
@@ -78,3 +81,9 @@ class Colors:
     def crossed(text: str) -> str: ...
     @staticmethod
     def reset(text: str) -> str: ...
+    @staticmethod
+    def render(text: Union[str, Any], style: Union[str, List[str]]) -> str: ...
+    @staticmethod
+    def _create_class_methods() -> None: ...
+
+def render(text: Union[str, Any], styles: Union[str, List[str]]) -> str: ...

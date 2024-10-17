@@ -215,7 +215,7 @@ class RosettaRepoManager:
             repo.git.config("core.sparseCheckout", "true")
 
             sparse_checkout_file = os.path.join(self.target_dir, ".git", "info", "sparse-checkout")
-            with open(sparse_checkout_file, "w") as f:
+            with open(sparse_checkout_file, "w", encoding="utf-8") as f:
                 f.write(f"{self.subdirectory_to_clone}\n")
 
             repo.git.pull("origin", "main")
@@ -242,7 +242,7 @@ class RosettaRepoManager:
             print("No submodules found.")
             return
 
-        with open(gitmodules_path) as gitmodules_file:
+        with open(gitmodules_path, encoding="utf-8") as gitmodules_file:
             lines = gitmodules_file.readlines()
 
         submodules_to_update = []

@@ -241,16 +241,16 @@ class PROSS:
 
                 # If this is the first resfile, initialize the target resfile with the first temporary file's content
                 if first_resfile:
-                    with open(tmp_resfile_path) as tmp_file:
+                    with open(tmp_resfile_path, encoding="utf-8") as tmp_file:
                         content = tmp_file.read()
-                    with open(target_resfile_path, "w") as resfile:
+                    with open(target_resfile_path, "w", encoding="utf-8") as resfile:
                         resfile.write(content)
                     first_resfile = False
                 else:
                     # Otherwise, append relevant lines (those starting with digits) from subsequent temporary files
-                    with open(tmp_resfile_path) as tmp_file:
+                    with open(tmp_resfile_path, encoding="utf-8") as tmp_file:
                         lines = tmp_file.readlines()
-                    with open(target_resfile_path, "a") as resfile:
+                    with open(target_resfile_path, "a", encoding="utf-8") as resfile:
                         resfile.writelines(line for line in lines if line.strip() and line[0].isdigit())
 
             # Add the path of the merged resfile to the list

@@ -5,6 +5,12 @@ Color escape code class
 # pylint: disable=too-few-public-methods
 # pylint: disable=protected-access
 
+from typing import Any, List, Union
+
+
+class UninitializedClassError(RuntimeError):
+    """Raised when a class is used before it is initialized."""
+
 
 class Colors:
     """Class for ANSI color codes, used to output colored and formatted text on supported terminals.
@@ -50,21 +56,36 @@ class Colors:
     CROSSED = "\033[9m"
     RESET = "\033[0m"
 
+    # a placeholder class property
+    all_colors: List[str] = []
+
     @classmethod
     def _create_class_methods(cls):
         """Dynamically create class methods for each color and formatting option."""
-        for attr_name in dir(cls):
-            # Only process attributes that are color codes (uppercase, no underscore)
-            if attr_name.isupper() and not attr_name.startswith("_"):
-                # Get the color code
-                color_code = getattr(cls, attr_name)
+        if cls.all_colors:
+            return
 
-                # Define a class method that wraps text with the color code
-                def color_method(cls, text, color_code=color_code):
-                    return f"{color_code}{text}{cls.RESET}"
+        cls.all_colors = [
+            attr_name.lower()
+            for attr_name in dir(Colors)
+            if attr_name.isupper() and not attr_name.startswith("_") and attr_name != "RESET"
+        ]
 
-                # Attach the method to the class with a lowercase name
-                setattr(cls, attr_name.lower(), classmethod(color_method))
+        for attr_name in cls.all_colors:
+            # Get the color code
+            color_code = getattr(cls, attr_name.upper())
+
+            # Define a class method that wraps text with the color code
+            def color_method(cls, text, color_code=color_code):
+                return f"{color_code}{text}{cls.RESET}"
+
+            color_method.__doc__ = f"""Print input text colored as {attr_name}\n
+                                    :param text: Text to be colored and printed
+                                    :return: Text with color code wrapped
+                                    """
+
+            # Attach the method to the class with a lowercase name
+            setattr(cls, attr_name, classmethod(color_method))
 
     # Cancel SGR codes if not writing to a terminal
     if not __import__("sys").stdout.isatty():
@@ -78,12 +99,41 @@ class Colors:
             kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
 
 
-# Dynamically create the class methods when the class is defined
 Colors._create_class_methods()
+
+
+def render(text: Union[str, Any], styles: Union[str, List[str]] = "blue-bold") -> str:
+    """
+    Render the given text with the specified style.
+
+    This method converts the style parameter (which consists of color and format names separated by hyphens)
+    into uppercase format suitable for console output, then wraps the text with this format.
+
+    :param text: The text content to be rendered.
+    :param styles: The display style of the text, default is 'blue-bold-italic'.
+                It can include color and format names, separated by hyphens.
+    :return: The formatted text string.
+    """
+
+    text = str(text)
+
+    # split all style into a list if it's a string, otherwise assume it's already a list
+    # if not isinstance(styles, (str, list)):
+    #     raise ValueError("style must be a string or list of strings")
+
+    if isinstance(styles, str):
+        styles = styles.split("-")
+
+    # Split the style parameter by hyphens, convert each part to uppercase,
+    # but only process the parts that are in the list of all available colors
+    # Join them together, wrap the text, and return
+    style_strings = [getattr(Colors, _s.upper()) for _s in styles if _s.lower() in Colors.all_colors]
+    return f'{"".join(style_strings)}{text}{Colors.RESET}'
+
 
 if __name__ == "__main__":
     for i in dir(Colors):
-        if i[0:1] != "_" and i != "RESET":
+        if i[0:1] != "_" and i != "RESET" and i.isupper():
             print(f"{i:>16} {getattr(Colors, i) + i + Colors.RESET}")
 
     SAMPLE_TEXT = """Welcome to The World of Color Escape Code."""

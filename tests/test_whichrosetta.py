@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from .conftest import github_rosetta_test
+from tests.conftest import github_rosetta_test
 
 # Assuming 'whichrosetta' is an installed command available in the PATH.
 # If not, you need to adjust the PATH or ensure the command is available during testing.
