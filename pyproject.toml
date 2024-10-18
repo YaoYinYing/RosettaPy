@@ -35,7 +35,7 @@ dependencies = [
     "matplotlib",
     "docker>=7.1.0",
     "gitpython",
-    "virtualenv<=20.26.6"
+    "virtualenv<=20.27.0"
 ]
 
 [project.optional-dependencies]
