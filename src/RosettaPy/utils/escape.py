@@ -5,7 +5,7 @@ Color escape code class
 # pylint: disable=too-few-public-methods
 # pylint: disable=protected-access
 
-from typing import Any, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 
 class UninitializedClassError(RuntimeError):
@@ -129,6 +129,44 @@ def render(text: Union[str, Any], styles: Union[str, List[str]] = "blue-bold") -
     # Join them together, wrap the text, and return
     style_strings = [getattr(Colors, _s.upper()) for _s in styles if _s.lower() in Colors.all_colors]
     return f'{"".join(style_strings)}{text}{Colors.RESET}'
+
+
+def print_diff(
+    title: str, labels: Dict[str, str], label_colors: Optional[List[str]] = None, title_color: Optional[str] = None
+):
+    """
+    Render a diff table with the given title, labels, and colors.
+    """
+    if not label_colors:
+        label_colors = ["red", "green"]
+
+    if not title_color:
+        title_color = "light_purple"
+
+    diff_labels = ["-", "+"]
+
+    print(render(f"{title}", f"{title_color}-bold-negative"))
+    zip_render(labels=labels, label_colors=label_colors, diff_labels=diff_labels)
+
+
+def zip_render(labels: Dict[str, str], label_colors: List[str], diff_labels: Optional[List[str]] = None):
+    """
+    Zip render labels, colors, and diff labels.
+    """
+
+    if not diff_labels:
+        diff_labels = [":=" for _ in labels]
+
+    label_widths = max(
+        len(label) for label in labels
+    )  # Get the maximum length of the labels, or you can define a specific width
+
+    for (label, text), color, diff_label in zip(labels.items(), label_colors, diff_labels):
+        print(
+            f'{render(f"{label:{label_widths}}", f"{color}-bold-italic")} '
+            f'{render(f" {diff_label} ", f"{color}-bold-negative")} '
+            f'{render(text, f"{color}-bold")}'
+        )
 
 
 if __name__ == "__main__":

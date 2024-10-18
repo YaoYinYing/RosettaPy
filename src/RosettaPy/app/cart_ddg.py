@@ -4,7 +4,7 @@ Example Application of Cartesian ddG
 
 import os
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -12,6 +12,7 @@ from RosettaPy import (Rosetta, RosettaCartesianddGAnalyser,
                        RosettaEnergyUnitAnalyser)
 from RosettaPy.common.mutation import Mutant, mutants2mutfile
 from RosettaPy.node.dockerized import RosettaContainer
+from RosettaPy.node.mpi import MpiNode
 from RosettaPy.utils import timing
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -42,7 +43,7 @@ class CartesianDDG:
     ddg_iteration: int = 3
 
     mutant_pdb_dir = "tests/data/designed/pross/"
-    node: Optional[RosettaContainer] = None
+    node: Optional[Union[RosettaContainer, MpiNode]] = None
 
     def __post_init__(self):
         """

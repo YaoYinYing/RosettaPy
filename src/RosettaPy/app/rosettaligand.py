@@ -7,11 +7,12 @@ Example Application of RosettaLigand
 import os
 import warnings
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from RosettaPy import (Rosetta, RosettaEnergyUnitAnalyser,
                        RosettaScriptsVariableGroup)
 from RosettaPy.node.dockerized import RosettaContainer
+from RosettaPy.node.mpi import MpiNode
 from RosettaPy.rosetta import IgnoreMissingFileWarning
 from RosettaPy.utils import timing
 
@@ -48,7 +49,7 @@ class RosettaLigand:
     chain_id_for_dock = "B"
     start_from_xyz: Optional[Tuple[float, float, float]] = None
 
-    node: Optional[RosettaContainer] = None
+    node: Optional[Union[RosettaContainer, MpiNode]] = None
 
     @property
     def has_startfrom(self) -> bool:

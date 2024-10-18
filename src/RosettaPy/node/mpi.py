@@ -47,7 +47,7 @@ class MpiNode:
         if not isinstance(self.node_matrix, dict):
             return
 
-        with open(self.node_file, "w") as f:
+        with open(self.node_file, "w", encoding="utf-8") as f:
             for node, nproc in self.node_matrix.items():
                 f.write(f"{node} slots={nproc}\n")
         # fix nproc to real node matrix
@@ -104,16 +104,21 @@ class MpiNode:
             MpiNode: Instance configured using Slurm environment variables.
         """
         try:
+            which_scontrol = shutil.which("scontrol")
+            if which_scontrol is None:
+                raise RuntimeError("scontrol not found")
             nodes = (
-                subprocess.check_output(["scontrol", "show", "hostnames", os.environ["SLURM_JOB_NODELIST"]])
+                subprocess.check_output([which_scontrol, "show", "hostnames", os.environ["SLURM_JOB_NODELIST"]])
                 .decode()
                 .strip()
                 .split("\n")
             )
+        except RuntimeError as e:
+            raise RuntimeError(f"Expected scontrol not found. {e}") from e
         except KeyError as e:
-            raise RuntimeError(f"Environment variable {e} not set") from None
+            raise RuntimeError(f"Environment variable {e} not set") from e
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"Failed to get node list: {e.output}") from None
+            raise RuntimeError(f"Failed to get node list: {e.output}") from e
 
         slurm_cpus_per_task = os.environ.get("SLURM_CPUS_PER_TASK", "1")
         slurm_ntasks_per_node = os.environ.get("SLURM_NTASKS_PER_NODE", "1")

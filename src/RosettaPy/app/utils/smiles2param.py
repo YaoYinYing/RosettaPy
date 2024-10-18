@@ -32,7 +32,8 @@ from rdkit.Chem import AllChem
 from rdkit.Chem.Fingerprints import FingerprintMols  # type: ignore
 
 from RosettaPy import Rosetta
-from RosettaPy.utils import RosettaCmdTask, partial_clone, render
+from RosettaPy.utils import (RosettaCmdTask, partial_clone, print_diff, render,
+                             zip_render)
 
 
 # Functions
@@ -106,12 +107,16 @@ def protonate_tertiary_amine(mol):
             formalCharge9 = mol.GetAtomWithIdx(n[0]).GetFormalCharge()
             # Calculate the molecular formula for verification
             molFormula = Chem.AllChem.CalcMolFormula(mol)  # type: ignore
-            print(
-                f"{render('Molecular Strings: ', 'yellow-bold-negative')} {render(molStrings, 'yellow-bold-italic')}\n"
-                f"{render('Atom Symbol: ', 'blue-bold-negative')} {render(atomSymbol9, 'blue-bold-italic')}\n"
-                f"{render('Formal Charge: ', 'green-bold-negative')} {render(formalCharge9, 'green-bold-italic')}\n"
-                f"{render('Molecular Formula: ', 'red-bold-negative')} {render(molFormula, 'red-bold-italic')}\n"
+            zip_render(
+                labels={
+                    "Molecular Strings": molStrings,
+                    "Atom Symbol": atomSymbol9,
+                    "Formal Charge": formalCharge9,
+                    "Molecular Formula": molFormula,
+                },
+                label_colors=["yellow", "blue", "green", "red"],
             )
+
             # Set the formal charge of the nitrogen atom to +1 to protonate it
             mol.GetAtomWithIdx(n[0]).SetFormalCharge(1)
             # Update the property cache of the molecule to reflect the changes
@@ -296,14 +301,13 @@ class SmallMoleculeParamsGenerator:
                 print(f"Ignore molecule `{n}` for fingerprints pairwise due to: {e}")
                 continue
             print(c_smiles[n], c_smiles_v[i + 1:])
-            for j, _ in enumerate(s):
+            for j, _s in enumerate(s):
                 qu.append(c_smiles[n])
                 ta.append(c_smiles_v[i + 1:][j])
-                sim.append(s[j])
+                sim.append(_s)
 
         # Build the DataFrame and sort it
-        d = {"query": qu, "target": ta, "Similarity": sim}
-        df_final = pd.DataFrame(data=d)
+        df_final = pd.DataFrame(data={"query": qu, "target": ta, "Similarity": sim})
         df_final = df_final.sort_values("Similarity", ascending=False)
         print(df_final)
 
@@ -326,16 +330,8 @@ class SmallMoleculeParamsGenerator:
         mol = generate_molecule(ligand_name, updated)
 
         # Print the deprotonation result and the before and after SMILES representations.
-        print(render(f"Deprotonated --- {ligand_name}", "light_purple-bold-negative"))
-        print(
-            f'{render("Before: ", "red-bold-italic")} '
-            f'{render("-", "red-bold-negative")} '
-            f'{render(smiles, "red-bold")}'
-        )
-        print(
-            f'{render("After:   ", "green-bold-italic")}'
-            f'{render("+", "green-bold-negative")}'
-            f'{render(updated, "green-bold")}'
+        print_diff(
+            f"Deprotonation - {ligand_name}", {"Before:": smiles, "After:": updated}, ["red", "green"], "light_purple"
         )
 
         # Generate conformers for the ligand molecule and perform energy minimization.

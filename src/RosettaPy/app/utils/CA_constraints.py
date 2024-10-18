@@ -52,7 +52,9 @@ class PDBProcessor:
             count: Sequence Length
         """
         # Open the PDB file for reading and the output file for writing
-        with open(pdb_file_path) as pdb_file, open(output_file_path, "w") as output_file:
+        with open(pdb_file_path, encoding="utf-8") as pdb_file, open(
+            output_file_path, "w", encoding="utf-8"
+        ) as output_file:
             c = 0
             for line in pdb_file:
                 constraint = PDBProcessor.get_calpha_constraint_line(line)

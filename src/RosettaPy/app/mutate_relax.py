@@ -4,7 +4,7 @@ Example Application of Mutate and Relax Protocol against Clustered Sequences.
 
 import os
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from Bio.Data import IUPACData
 from Bio.SeqIO import parse
@@ -12,6 +12,7 @@ from Bio.SeqIO import parse
 from RosettaPy import (Rosetta, RosettaEnergyUnitAnalyser,
                        RosettaScriptsVariableGroup)
 from RosettaPy.node.dockerized import RosettaContainer
+from RosettaPy.node.mpi import MpiNode
 from RosettaPy.utils import timing
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -35,7 +36,7 @@ class ScoreClusters:
     save_dir: str = "tests/outputs"
     job_id: str = "score_clusters"
 
-    node: Optional[RosettaContainer] = None
+    node: Optional[Union[RosettaContainer, MpiNode]] = None
 
     def __post_init__(self):
         """
@@ -63,14 +64,12 @@ class ScoreClusters:
         Returns:
         RosettaEnergyUnitAnalyser: An object containing the analysis of the scoring results.
         """
-        score_dir = os.path.join(
-            self.save_dir, self.job_id, f"branch_{branch}")
+        score_dir = os.path.join(self.save_dir, self.job_id, f"branch_{branch}")
         os.makedirs(score_dir, exist_ok=True)
 
         rosetta = Rosetta(
             bin="rosetta_scripts",
-            flags=[os.path.join(
-                script_dir, "deps/mutate_relax/flags/cluster_scoring.flags")],
+            flags=[os.path.join(script_dir, "deps/mutate_relax/flags/cluster_scoring.flags")],
             opts=[
                 "-in:file:s",
                 os.path.abspath(self.pdb),
@@ -113,11 +112,9 @@ class ScoreClusters:
         List[RosettaEnergyUnitAnalyser]: A list of objects containing the analysis of the scoring
         results for each cluster.
         """
-        cluster_fastas = [c for c in os.listdir(
-            cluster_dir) if c.startswith("c.") and c.endswith(".fasta")]
+        cluster_fastas = [c for c in os.listdir(cluster_dir) if c.startswith("c.") and c.endswith(".fasta")]
 
-        clusters = {c.replace(".fasta", ""): self.fasta2mutlabels(
-            os.path.join(cluster_dir, c)) for c in cluster_fastas}
+        clusters = {c.replace(".fasta", ""): self.fasta2mutlabels(os.path.join(cluster_dir, c)) for c in cluster_fastas}
 
         res: List[RosettaEnergyUnitAnalyser] = []
 
@@ -220,13 +217,11 @@ def main(num_mut: int = 1, use_docker=False):
     scorer = ScoreClusters(
         pdb="tests/data/1SUO.pdb",
         chain_id="A",
-        node=(RosettaContainer(image="rosettacommons/rosetta:mpi",
-              prohibit_mpi=True) if use_docker else None),
+        node=(RosettaContainer(image="rosettacommons/rosetta:mpi", prohibit_mpi=True) if use_docker else None),
         job_id=f"score_cluster_{docker_label}_{str(num_mut)}",
     )
 
-    ret = scorer.run(
-        f"tests/data/cluster/1SUO_A_1SUO.ent.mut_designs_{num_mut}")
+    ret = scorer.run(f"tests/data/cluster/1SUO_A_1SUO.ent.mut_designs_{num_mut}")
 
     for i, r in enumerate(ret):
         top = r.best_decoy

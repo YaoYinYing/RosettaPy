@@ -1,7 +1,5 @@
 from unittest.mock import patch
 
-import pytest
-
 from RosettaPy.utils.escape import Colors, render
 
 # Sample ANSI color codes for testing

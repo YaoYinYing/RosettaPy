@@ -2,7 +2,7 @@
 Utility functions of RosettaPy
 """
 
-from .escape import Colors, render
+from .escape import Colors, print_diff, render, zip_render
 from .repository import RosettaRepoManager, partial_clone
 from .task import (IgnoreMissingFileWarning, RosettaCmdTask,
                    RosettaScriptsVariable, RosettaScriptsVariableGroup,
@@ -22,6 +22,8 @@ __all__ = [
     "IgnoreMissingFileWarning",
     "Colors",
     "render",
+    "print_diff",
+    "zip_render",
     "partial_clone",
     "RosettaRepoManager",
 ]

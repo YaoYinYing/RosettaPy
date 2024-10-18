@@ -5,10 +5,10 @@ Example Application of FastRelax.
 import os
 import warnings
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union
 
 from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser
-from RosettaPy.node.dockerized import RosettaContainer
+from RosettaPy.node import MpiNode, RosettaContainer
 from RosettaPy.utils import timing
 from RosettaPy.utils.repository import partial_clone
 
@@ -17,6 +17,64 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 
 class RelaxScriptInputWarning(UserWarning):
     """Warning of Relax script input format"""
+
+
+def get_relax_scripts_from_db(script_name: str) -> str:
+    """
+    Gets the full path of the relaxation script from the database.
+
+    Args:
+        script_name (str): The name of the relaxation script.
+
+    Returns:
+        str: The full name of the relaxation script without the .txt extension.
+
+    Raises:
+        RuntimeError: If the relaxation script is not found or ROSETTA3_DB is not set.
+
+    References:
+    ERROR: [ERROR] relaxscript argument /usr/local/database/MonomerRelax2019.txt should not have extensions.
+    Additionally, /usr/local/database/MonomerRelax2019 does not appear to be a valid script name.
+    Please look at main/database/sampling/relax_scripts/ or the wiki for valid names.
+    """
+    # Check if the script name already exists in the file system
+    if os.path.exists(script_name):
+        return os.path.basename(script_name).replace(".txt", "")
+
+    # Remove .txt extension if present
+    if script_name.endswith(".txt"):
+        script_name = script_name[:-4]
+
+    # Get the ROSETTA3_DB environment variable
+    rosetta3_db_path = os.environ.get("ROSETTA3_DB")
+    if not rosetta3_db_path:
+
+        rosetta3_db_path = partial_clone(
+            repo_url="https://github.com/RosettaCommons/rosetta",
+            target_dir="rosetta_db_clone",
+            subdirectory_as_env="database",
+            subdirectory_to_clone="database/sampling/relax_scripts",
+            env_variable="ROSETTA3_DB",
+        )
+        print(f'ROSETTA3_DB={os.environ.get("ROSETTA3_DB")}')
+
+    # List all available relaxation scripts in the database
+    all_scripts = [
+        os.path.join(rosetta3_db_path, f[:-4])
+        for f in os.listdir(f"{rosetta3_db_path}/sampling/relax_scripts/")
+        if f.endswith(".txt") and f != "README.txt" and "dualspace" not in f
+    ]
+
+    # Check if the requested script is available
+    for script in all_scripts:
+        if os.path.basename(script) == script_name:
+            return script_name
+
+    # Raise an error if the script is not found
+    raise RuntimeError(
+        f"No such relax script - {script_name}, "
+        f"All available scripts: {[os.path.basename(f).replace('.txt', '') for f in all_scripts]}"
+    )
 
 
 @dataclass
@@ -39,65 +97,7 @@ class FastRelax:
     relax_script: str = "MonomerRelax2019"
     default_repeats: int = 15
     dualspace: bool = False
-    node: Optional[RosettaContainer] = None
-
-    @staticmethod
-    def get_relax_scripts_from_db(script_name: str) -> str:
-        """
-        Gets the full path of the relaxation script from the database.
-
-        Args:
-            script_name (str): The name of the relaxation script.
-
-        Returns:
-            str: The full name of the relaxation script without the .txt extension.
-
-        Raises:
-            RuntimeError: If the relaxation script is not found or ROSETTA3_DB is not set.
-
-        References:
-        ERROR: [ERROR] relaxscript argument /usr/local/database/MonomerRelax2019.txt should not have extensions.
-        Additionally, /usr/local/database/MonomerRelax2019 does not appear to be a valid script name.
-        Please look at main/database/sampling/relax_scripts/ or the wiki for valid names.
-        """
-        # Check if the script name already exists in the file system
-        if os.path.exists(script_name):
-            return os.path.basename(script_name).replace(".txt", "")
-
-        # Remove .txt extension if present
-        if script_name.endswith(".txt"):
-            script_name = script_name[:-4]
-
-        # Get the ROSETTA3_DB environment variable
-        rosetta3_db_path = os.environ.get("ROSETTA3_DB")
-        if not rosetta3_db_path:
-
-            rosetta3_db_path = partial_clone(
-                repo_url="https://github.com/RosettaCommons/rosetta",
-                target_dir="rosetta_db_clone",
-                subdirectory_as_env="database",
-                subdirectory_to_clone="database/sampling/relax_scripts",
-                env_variable="ROSETTA3_DB",
-            )
-            print(f'ROSETTA3_DB={os.environ.get("ROSETTA3_DB")}')
-
-        # List all available relaxation scripts in the database
-        all_scripts = [
-            os.path.join(rosetta3_db_path, f[:-4])
-            for f in os.listdir(f"{rosetta3_db_path}/sampling/relax_scripts/")
-            if f.endswith(".txt") and f != "README.txt" and "dualspace" not in f
-        ]
-
-        # Check if the requested script is available
-        for script in all_scripts:
-            if os.path.basename(script) == script_name:
-                return script_name
-
-        # Raise an error if the script is not found
-        raise RuntimeError(
-            f"No such relax script - {script_name}, "
-            f"All available scripts: {[os.path.basename(f).replace('.txt', '') for f in all_scripts]}"
-        )
+    node: Optional[Union[RosettaContainer, MpiNode]] = None
 
     def __post_init__(self):
         """
@@ -121,7 +121,7 @@ class FastRelax:
         if self.relax_script.endswith(".txt"):
             warnings.warn(RelaxScriptInputWarning("Relaxscript argument should not have extensions."))
 
-        self.relax_script = self.get_relax_scripts_from_db(self.relax_script)
+        self.relax_script = get_relax_scripts_from_db(self.relax_script)
 
     def run(self, nstruct: int = 8) -> RosettaEnergyUnitAnalyser:
         """

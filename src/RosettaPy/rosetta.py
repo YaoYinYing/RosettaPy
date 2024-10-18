@@ -191,25 +191,25 @@ class Rosetta:
         :return: Returns the command task object after execution, including the command execution results.
         """
         # Use subprocess.Popen to execute the command, redirecting output and setting encoding to UTF-8.
-        process = subprocess.Popen(
+        with subprocess.Popen(
             task.cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, encoding="utf-8"
-        )
+        ) as process:
 
-        # Print command execution information.
-        print(f'Launching command: {" ".join(task.cmd)}')
-        # Communicate to get the command's output and error.
-        stdout, stderr = process.communicate()
-        # Wait for the command to complete and get the return code.
-        retcode = process.wait()
+            # Print command execution information.
+            print(f'Launching command: {" ".join(task.cmd)}')
+            # Communicate to get the command's output and error.
+            stdout, stderr = process.communicate()
+            # Wait for the command to complete and get the return code.
+            retcode = process.wait()
 
-        if retcode:
-            # If the command fails, print the failure message and raise an exception.
-            print(f"Command failed with return code {retcode}")
-            print(stdout)
-            warnings.warn(RuntimeWarning(stderr))
-            raise RuntimeError(f"Command failed with return code {retcode}")
+            if retcode:
+                # If the command fails, print the failure message and raise an exception.
+                print(f"Command failed with return code {retcode}")
+                print(stdout)
+                warnings.warn(RuntimeWarning(stderr))
+                raise RuntimeError(f"Command failed with return code {retcode}")
 
-        return task
+            return task
 
     def setup_tasks_local(
         self,

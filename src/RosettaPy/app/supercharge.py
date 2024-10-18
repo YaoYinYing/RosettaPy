@@ -6,7 +6,7 @@ import os
 from typing import List, Optional
 
 from RosettaPy import Rosetta
-from RosettaPy.node import MpiNode, RosettaContainer
+from RosettaPy.node import RosettaContainer
 from RosettaPy.rosetta import RosettaCmdTask
 
 
@@ -74,7 +74,7 @@ def supercharge(
         ],
         save_all_together=True,  # Save all results together
         isolation=True,  # Run in isolation to prevent contamination of other tasks
-        run_node=MpiNode(nproc=10),
+        run_node=(RosettaContainer(image="rosettacommons/rosetta:mpi", prohibit_mpi=True) if use_docker else None),
     )
 
     # Generate instance name based on the PDB file name

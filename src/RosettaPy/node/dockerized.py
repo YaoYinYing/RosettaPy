@@ -15,7 +15,7 @@ from typing import List, Tuple
 import docker
 from docker import types
 
-from ..utils.escape import render
+from ..utils.escape import print_diff, render
 from ..utils.task import RosettaCmdTask
 
 
@@ -27,6 +27,7 @@ class RosettaContainer:
 
     image: str = "rosettacommons/rosetta:mpi"
     mpi_available: bool = False
+    # skipcq: BAN-B108
     root_mount_directory: str = os.path.abspath("/tmp/")
     user: str = f"{os.geteuid()}:{os.getegid()}"
     nproc: int = 0
@@ -148,9 +149,12 @@ class RosettaContainer:
             if not joined_vf.endswith("'"):
                 joined_vf += "'"
 
-            # Print original and processed strings for logging purposes
-            print(f"{render('Original:', 'blue-negative-bold')} {render(script_vars_v, 'blue-negative')}")
-            print(f"{render('Rewrited:', 'purple-negative-bold')} {render(joined_vf, 'purple-negative')}\n")
+            print_diff(
+                title="Mounted",
+                labels={"Original": script_vars_v, "Rewrited": joined_vf},
+                label_colors=["blue", "purple"],
+                title_color="light_purple",
+            )
 
             return joined_vf
 
@@ -334,10 +338,10 @@ class RosettaContainer:
         os.makedirs(source_path, exist_ok=True)
 
         # Print mount information
-        print(
-            f"{render('Mount:', 'yellow-bold')} \n"
-            f"{render(f'- {source_path}', 'red-bold')} {render('->', 'bold-purple-negative')} \n"
-            f"{render(f'+ {target_path}', 'green-bold')}\n"
+        print_diff(
+            title="Mount:",
+            labels={"source": source_path, "target": target_path},
+            title_color="yellow",
         )
 
         # Create and return the mount object and mounted path

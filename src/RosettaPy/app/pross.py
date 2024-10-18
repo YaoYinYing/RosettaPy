@@ -4,12 +4,12 @@ Example Application of PROSS Reimplemented with RosettaPy
 
 import os
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from RosettaPy import (Rosetta, RosettaEnergyUnitAnalyser,
                        RosettaScriptsVariableGroup)
 from RosettaPy.app.utils import PDBProcessor
-from RosettaPy.node.dockerized import RosettaContainer
+from RosettaPy.node import MpiNode, RosettaContainer
 from RosettaPy.utils import timing
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -34,7 +34,7 @@ class PROSS:
     seq_len: int = 0
     instance: str = ""
 
-    node: Optional[RosettaContainer] = None
+    node: Optional[Union[RosettaContainer, MpiNode]] = None
 
     def __post_init__(self):
         """
@@ -193,71 +193,10 @@ class PROSS:
             rosetta.run(inputs=[{"-parser:script_vars": f"current_res={i}"} for i in range(1, self.seq_len + 1)])
 
         # Merge resfiles
-        merged_filters = self.merge_resfiles(filterscan_dir, self.seq_len)
+        merged_filters = merge_resfiles(filterscan_dir, self.seq_len)
 
         # Return the list of merged filter files and the directory path of the filterscan results
         return [os.path.basename(f) for f in merged_filters], filterscan_dir
-
-    @staticmethod
-    def merge_resfiles(filterscan_res_dir: str, seq_length: int) -> List[str]:
-        """
-        Merges temporary resfiles by their levels and writes the merged resfile to the target directory.
-
-        Args:
-            filterscan_res_dir (str): Directory path where resfiles are stored.
-            seq_length (int): The sequence length indicating how many resfiles are expected.
-
-        Returns:
-            List[str]: Paths to the merged resfiles.
-        """
-
-        # Print a banner and indicate the start of the merging process
-        print("Step 4: merge resfiles.")
-
-        # Initialize a list to store the paths of all merged resfiles
-        resfiles = []
-
-        # Iterate over the different levels
-        for level in [0.5, -0.45, -0.75, -1, -1.25, -1.5, -1.8, -2]:
-            # Construct the filename for the current level resfile
-            resfile_fn = f"designable_aa_resfile.{level}"
-            # Mark whether this is the first resfile
-            first_resfile = True
-
-            # Construct the full path for the target resfile
-            target_resfile_path = os.path.join(filterscan_res_dir, "resfiles", resfile_fn)
-
-            # Iterate over each resfile ID from 1 to seq_length
-            for res_id in range(1, seq_length + 1):
-                # Construct the filename for the temporary resfile
-                tmp_resfile_fn = f"designable_aa_resfile-{res_id}.{level}"
-                # Construct the full path for the temporary resfile
-                tmp_resfile_path = os.path.join(filterscan_res_dir, "resfiles", "tmp", tmp_resfile_fn)
-
-                # Check if the temporary resfile exists
-                if not os.path.isfile(tmp_resfile_path):
-                    # If it does not exist, skip it
-                    continue
-
-                # If this is the first resfile, initialize the target resfile with the first temporary file's content
-                if first_resfile:
-                    with open(tmp_resfile_path, encoding="utf-8") as tmp_file:
-                        content = tmp_file.read()
-                    with open(target_resfile_path, "w", encoding="utf-8") as resfile:
-                        resfile.write(content)
-                    first_resfile = False
-                else:
-                    # Otherwise, append relevant lines (those starting with digits) from subsequent temporary files
-                    with open(tmp_resfile_path, encoding="utf-8") as tmp_file:
-                        lines = tmp_file.readlines()
-                    with open(target_resfile_path, "a", encoding="utf-8") as resfile:
-                        resfile.writelines(line for line in lines if line.strip() and line[0].isdigit())
-
-            # Add the path of the merged resfile to the list
-            resfiles.append(target_resfile_path)
-
-        # Return the list containing the paths of all merged resfiles
-        return resfiles
 
     def design(self, filters: List[str], refined_pdb: str, filterscan_dir):
         """
@@ -326,6 +265,67 @@ class PROSS:
         print(f'Best Hit on this PROSS run: {best_hit["decoy"]} - {best_hit["score"]}: {pdb_path}')
 
         return pdb_path
+
+
+def merge_resfiles(filterscan_res_dir: str, seq_length: int) -> List[str]:
+    """
+    Merges temporary resfiles by their levels and writes the merged resfile to the target directory.
+
+    Args:
+        filterscan_res_dir (str): Directory path where resfiles are stored.
+        seq_length (int): The sequence length indicating how many resfiles are expected.
+
+    Returns:
+        List[str]: Paths to the merged resfiles.
+    """
+
+    # Print a banner and indicate the start of the merging process
+    print("Step 4: merge resfiles.")
+
+    # Initialize a list to store the paths of all merged resfiles
+    resfiles = []
+
+    # Iterate over the different levels
+    for level in [0.5, -0.45, -0.75, -1, -1.25, -1.5, -1.8, -2]:
+        # Construct the filename for the current level resfile
+        resfile_fn = f"designable_aa_resfile.{level}"
+        # Mark whether this is the first resfile
+        first_resfile = True
+
+        # Construct the full path for the target resfile
+        target_resfile_path = os.path.join(filterscan_res_dir, "resfiles", resfile_fn)
+
+        # Iterate over each resfile ID from 1 to seq_length
+        for res_id in range(1, seq_length + 1):
+            # Construct the filename for the temporary resfile
+            tmp_resfile_fn = f"designable_aa_resfile-{res_id}.{level}"
+            # Construct the full path for the temporary resfile
+            tmp_resfile_path = os.path.join(filterscan_res_dir, "resfiles", "tmp", tmp_resfile_fn)
+
+            # Check if the temporary resfile exists
+            if not os.path.isfile(tmp_resfile_path):
+                # If it does not exist, skip it
+                continue
+
+            # If this is the first resfile, initialize the target resfile with the first temporary file's content
+            if first_resfile:
+                with open(tmp_resfile_path, encoding="utf-8") as tmp_file:
+                    content = tmp_file.read()
+                with open(target_resfile_path, "w", encoding="utf-8") as resfile:
+                    resfile.write(content)
+                first_resfile = False
+            else:
+                # Otherwise, append relevant lines (those starting with digits) from subsequent temporary files
+                with open(tmp_resfile_path, encoding="utf-8") as tmp_file:
+                    lines = tmp_file.readlines()
+                with open(target_resfile_path, "a", encoding="utf-8") as resfile:
+                    resfile.writelines(line for line in lines if line.strip() and line[0].isdigit())
+
+        # Add the path of the merged resfile to the list
+        resfiles.append(target_resfile_path)
+
+    # Return the list containing the paths of all merged resfiles
+    return resfiles
 
 
 def main(use_docker=False):

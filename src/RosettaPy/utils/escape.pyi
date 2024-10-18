@@ -3,7 +3,7 @@
 # pylint: disable=missing-function-docstring
 # pylint: disable=missing-module-docstring
 # pylint: disable=missing-class-docstring
-from typing import Any, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 class Colors:
     BLACK: str
@@ -87,3 +87,7 @@ class Colors:
     def _create_class_methods() -> None: ...
 
 def render(text: Union[str, Any], styles: Union[str, List[str]]) -> str: ...
+def print_diff(
+    title: str, labels: Dict[str, str], label_colors: Optional[List[str]] = None, title_color: Optional[str] = None
+): ...
+def zip_render(labels: Dict[str, str], label_colors: List[str], diff_labels: Optional[List[str]] = None): ...
