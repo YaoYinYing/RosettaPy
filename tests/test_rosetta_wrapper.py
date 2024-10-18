@@ -158,11 +158,10 @@ def test_rosetta_run_local(mock_popen, mock_isfile, mock_which, temp_dir):
     "user,uid,userstring",
     [("root", 0, "--allow-run-as-root"), ("debian", 8964, "")],
 )
-@patch("shutil.which", return_value="/usr/bin/mpirun")
 @patch("os.path.isfile", return_value=True)
 @patch("subprocess.Popen")
 @pytest.mark.skipif(github_rosetta_test(), reason="No need to run this test in Dockerized Rosetta.")
-def test_rosetta_run_mpi(mock_popen, mock_isfile, mock_which, temp_dir, user, uid, userstring):
+def test_rosetta_run_mpi(mock_popen, mock_isfile, temp_dir, user, uid, userstring):
 
     file_path = os.path.join(temp_dir, "rosetta_scripts.mpi.linuxgccrelease")
     os.environ["ROSETTA_BIN"] = temp_dir
@@ -173,7 +172,8 @@ def test_rosetta_run_mpi(mock_popen, mock_isfile, mock_which, temp_dir, user, ui
 
     # Mock the Rosetta binary with MPI mode
     rosetta_binary = RosettaBinary(temp_dir, "rosetta_scripts", "mpi", "linux", "gcc", "release")
-    mpi_node = MpiNode(nproc=4)
+    with patch("shutil.which", return_value="/usr/bin/mpirun") as mock_which_mpirun:
+        mpi_node = MpiNode(nproc=4)
     mpi_node.user = uid
     rosetta = Rosetta(bin=rosetta_binary, run_node=mpi_node, verbose=True)
 

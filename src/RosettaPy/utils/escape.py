@@ -157,9 +157,7 @@ def zip_render(labels: Dict[str, str], label_colors: List[str], diff_labels: Opt
     if not diff_labels:
         diff_labels = [":=" for _ in labels]
 
-    label_widths = max(
-        len(label) for label in labels
-    )  # Get the maximum length of the labels, or you can define a specific width
+    label_widths = max(len(label) for label in labels)
 
     for (label, text), color, diff_label in zip(labels.items(), label_colors, diff_labels):
         print(
