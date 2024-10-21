@@ -20,33 +20,114 @@ from ..utils.task import RosettaCmdTask
 
 
 @dataclass
-class RosettaContainer:
+class RosettaPyMount:
     """
-    A class to represent a docker container for Rosetta.
+    Mount point for docker container.
     """
 
-    image: str = "rosettacommons/rosetta:mpi"
-    mpi_available: bool = False
-    # skipcq: BAN-B108
-    root_mount_directory: str = os.path.abspath("/tmp/")
-    user: str = f"{os.geteuid()}:{os.getegid()}"
-    nproc: int = 0
-    prohibit_mpi: bool = False  # to overide the mpi_available flag
+    name: str
+    source: str
+    target: str
+    mounted: str
+    readonly: bool = False
 
-    def __post_init__(self):
-        # Automatically set MPI availability based on the image name
-        if self.image.endswith("mpi"):
-            self.mpi_available = True
-        # Set a default number of processors if not specified
-        if self.nproc <= 0:
-            self.nproc = 4
+    @property
+    def mount(self) -> types.Mount:
+        """
+        Creates and returns a `types.Mount` object for configuring a mount point.
 
-        # Respect the MPI prohibition flag
-        if self.prohibit_mpi:
-            self.mpi_available = False
+        Parameters:
+        - self: The instance of the class containing the method.
+
+        Returns:
+        - A `types.Mount` object with the specified target, source, read-only status, and type.
+        """
+        # Create a Mount object with the specified attributes
+        return types.Mount(
+            target=self.target,
+            source=self.source,
+            read_only=self.readonly,
+            type="bind",
+        )
+
+    @classmethod
+    def from_path(
+        cls,
+        path_to_mount: str,
+    ) -> "RosettaPyMount":
+        """
+        Create a Mount instance from the given path.
+
+        This method first normalizes the given path to ensure consistent formatting across different operating systems.
+        It then retrieves the mounted name using the normalized path and finally creates and returns a Mount instance.
+
+        Parameters:
+        - path_to_mount (str): The path that needs to be mounted.
+
+        Returns:
+        - Mount: A Mount instance created based on the given path.
+        """
+
+        # Normalize the given mount path to ensure consistent formatting
+        normalized_path = os.path.normpath(path_to_mount)
+
+        # Retrieve the mounted name using the normalized path
+        mounted_name = cls.get_mounted_name(normalized_path)
+
+        # Create and return a Mount instance
+        return cls._create_mount(mounted_name, normalized_path)
+
+    @classmethod
+    def _create_mount(cls, mount_name: str, path: str, read_only=False) -> "RosettaPyMount":
+        """
+        Create a mount point for each file and directory used by the model.
+
+        Parameters:
+        - mount_name (str): The name of the mount point.
+        - path (str): The path to the file or directory.
+        - read_only (bool): Whether the mount point is read-only. Defaults to False.
+
+        Returns:
+        - RosettaPyMount: The created mount point object.
+        """
+        # Get the absolute path and the target mount path
+        path = os.path.abspath(path)
+        # skipcq: BAN-B108
+        target_path = os.path.join("/tmp/", mount_name)
+
+        # Determine the source path and mounted path based on whether the path points to a directory or a file
+        if os.path.isdir(path):
+            source_path = path
+            mounted_path = target_path
+        else:
+            source_path = os.path.dirname(path)
+            mounted_path = os.path.join(target_path, os.path.basename(path))
+
+        # Ensure the source path exists
+        if not os.path.exists(source_path):
+            os.makedirs(source_path)
+
+        # Print mount information
+        print_diff(
+            title="Mount:",
+            labels={"source": source_path, "target": target_path},
+            title_color="yellow",
+        )
+
+        # Create and return the mount object and mounted path
+
+        mount = cls(
+            name=mount_name,
+            source=str(source_path),
+            target=str(target_path),
+            mounted=str(mounted_path),
+            readonly=read_only,
+        )
+
+        return mount
 
     @staticmethod
-    def mounted_name(path: str) -> str:
+    def get_mounted_name(path: str) -> str:
         """
         Returns a formatted name suitable for mounting based on the given path.
 
@@ -65,12 +146,199 @@ class RosettaContainer:
 
         if not os.path.exists(path):
             raise FileNotFoundError(f"{path} does not exist.")
+
         path = os.path.abspath(path)
-        dirname = os.path.dirname(path) if os.path.isfile(path) else path
+
+        if os.path.isfile(path):
+            dirname = os.path.dirname(path)
+        else:
+            dirname = path
 
         return dirname.replace("/", "-").strip("-")
 
-    def mount(self, input_task: RosettaCmdTask) -> Tuple[RosettaCmdTask, List[types.Mount]]:
+    @classmethod
+    def squeeze(cls, mounts: List[types.Mount]) -> List[types.Mount]:
+        """
+        Convert a list of mounts to a set, removing duplicates.
+
+        This method primarily aims to eliminate any duplicate mounts by converting the list to a set.
+        Using a set instead of a list to represent the collection of mounts ensures that each mount is unique,
+        which is useful for avoiding redundant processing of mounts.
+
+        Parameters:
+        mounts (List[types.Mount]): A list of mounts, which may contain duplicates.
+
+        Returns:
+        Set[types.Mount]: A set of mounts with no duplicates.
+        """
+        mount_set = []
+        for mount in mounts:
+            if mount in mount_set:
+                continue
+            mount_set.append(mount)
+
+        len_before = len(mounts)
+        len_after = len(mount_set)
+        if len_before != len_after:
+            print_diff(
+                "Duplicate mounts",
+                {
+                    "Before": len_before,
+                    "After": len_after,
+                },
+            )
+            warnings.warn(RuntimeWarning(f"Duplicate mounts is removed: {len_before - len_after}"))
+
+        return mount_set
+
+
+def get_quoted(text: str) -> str:
+    """
+    Ensures the input string is enclosed in single quotes.
+
+    If the input string does not start with a single quote, one is added at the beginning.
+    If the input string does not end with a single quote, one is added at the end.
+
+    Parameters:
+    text (str): The string to be processed.
+
+    Returns:
+    str: The string enclosed in single quotes.
+    """
+
+    text = text.replace("\n", "")
+    # Ensure the result starts and ends with single quotes
+    if not text.startswith("'"):
+        text = "'" + text
+
+    if not text.endswith("'"):
+        text += "'"
+
+    return text
+
+
+@dataclass
+class RosettaContainer:
+    """
+    A class to represent a docker container for Rosetta.
+    """
+
+    image: str = "rosettacommons/rosetta:mpi"
+    mpi_available: bool = False
+    user: str = f"{os.geteuid()}:{os.getegid()}"
+    nproc: int = 0
+    prohibit_mpi: bool = False  # to overide the mpi_available flag
+
+    def __post_init__(self):
+        # Automatically set MPI availability based on the image name
+        if self.image.endswith("mpi"):
+            self.mpi_available = True
+        # Set a default number of processors if not specified
+        if self.nproc <= 0:
+            self.nproc = 4
+
+        # Respect the MPI prohibition flag
+        if self.prohibit_mpi:
+            self.mpi_available = False
+
+    @staticmethod
+    def _process_xml_fragment(script_vars_v: str) -> Tuple[str, List[RosettaPyMount]]:
+        """
+        Process an XML fragment to handle file and directory paths.
+
+        This function takes a string containing paths potentially mixed with other text,
+        identifies the paths, and creates RosettaPyMount objects for them. It also
+        reconstructs the input string with the mounted paths, preserving the original
+        structure as much as possible.
+
+        Parameters:
+        - script_vars_v (str): A string containing paths mixed with other text.
+
+        Returns:
+        - Tuple[str, List[RosettaPyMount]]: A tuple containing the reconstructed string
+        and a list of RosettaPyMount objects created from the paths.
+        """
+
+        # Initialize lists to store processed paths and RosettaPyMount objects
+        vf_list = []
+        mounts = []
+
+        # Split the input string by double quotes and process each segment
+        vf_split = script_vars_v.split('"')
+        for _, vf in enumerate(vf_split):
+            # Check if the segment is a valid file or directory path
+            if os.path.isfile(vf) or os.path.isdir(vf):
+                # Create a RosettaPyMount object from the path and add it to the mounts list
+                mount = RosettaPyMount.from_path(vf)
+                mounts.append(mount)
+                # Add the mounted path representation to vf_list
+                vf_list.append(mount.mounted)
+                continue
+            # Add the unmodified segment to vf_list
+            vf_list.append(vf)
+
+        # Join the processed segments back together
+        joined_vf = get_quoted('"'.join(vf_list))
+
+        # Print a comparison between the original and processed strings
+        print_diff(
+            title="Mounted",
+            labels={"Original": script_vars_v, "Rewrited": joined_vf},
+            label_colors=["blue", "purple"],
+            title_color="light_purple",
+        )
+
+        # Return the reconstructed string and the list of mounts
+        return joined_vf, mounts
+
+    @staticmethod
+    def _mount_from_xml_variable(_cmd: str) -> Tuple[str, List[RosettaPyMount]]:
+        """
+        Processes XML variable commands, parsing and mounting file paths or XML fragments.
+
+        This function is designed to handle strings that may represent direct file paths or XML fragments containing
+        file paths. It identifies the type of command and processes it accordingly, either by mounting the file path
+        or parsing the XML fragment.
+
+        Parameters:
+        - _cmd (str): The command string to be processed, typically containing a variable assignment or an XML fragment.
+
+        Returns:
+        - Tuple[str, List[RosettaPyMount]]: A tuple containing the processed command string and a list of mounted
+        objects.
+        """
+        # Split the command by the '=' to separate the variable name from its value
+        script_vars = _cmd.split("=")
+        # Rejoin any parts that follow the first '=' as they constitute the variable's value
+        script_vars_v = "=".join(script_vars[1:])
+
+        # Print the parsing information for debugging purposes
+        print(
+            f"{render('Parsing:', 'purple-negative-bold')} "
+            f"{render(script_vars[0], 'blue-negative')}="
+            f"{render(script_vars_v, 'red-negative')}"
+        )
+
+        # Normal file input handling
+        if os.path.isfile(script_vars_v) or os.path.isdir(script_vars_v):
+            # If the value is a valid file or directory path, create a RosettaPyMount object from it
+            mount = RosettaPyMount.from_path(script_vars_v)
+            # Return the variable assignment with the mounted path and a list containing the mount object
+            return f"{script_vars[0]}={mount.mounted}", [mount]
+
+        # Handling of XML file blocks with file inputs
+        # Example: '<AddOrRemoveMatchCsts name="cstadd" cstfile="/my/example.cst" cst_instruction="add_new"/>'
+        if " " in script_vars_v and "<" in script_vars_v:  # Indicates an XML fragment
+            # If the value appears to be an XML fragment, process it using the _process_xml_fragment method
+            joined_vf, mounts = RosettaContainer._process_xml_fragment(script_vars_v)
+            # Return the variable assignment with the processed XML fragment and the list of mount objects
+            return f"{script_vars[0]}={joined_vf}", mounts
+
+        # If the value does not match any of the above conditions, return the original command and an empty list
+        return _cmd, []
+
+    @staticmethod
+    def mount(input_task: RosettaCmdTask) -> Tuple[RosettaCmdTask, List[types.Mount]]:
         """
         Prepares the mounting environment for a single task.
 
@@ -84,147 +352,46 @@ class RosettaContainer:
             with mounted paths and a list of mounts.
         """
 
-        _mounts = []
-        _mounted_paths = []
-        mounted_cmd = []
+        all_mounts: List[RosettaPyMount] = []
+        updated_cmd_with_mounts = []
 
-        def unique_mount(
-            path_to_mount: str,
-        ) -> str:
-            """
-            Normalize the given mount path and create a unique mount point.
-
-            This function first normalizes the received mount path to ensure a consistent format.
-            Then, it checks the existing mounts, and if the mount point does not already exist,
-            it creates a new mount point and records it.
-            Finally, it returns the normalized mount path or the existing one if it was already mounted.
-
-            Parameters:
-            - path_to_mount (str): The path to be mounted.
-
-            Returns:
-            - str: The normalized mount path.
-            """
-            normalized_path = os.path.normpath(path_to_mount)
-            mount, mounted = self._create_mount(RosettaContainer.mounted_name(normalized_path), normalized_path)
-            if not any(m == mount for m in _mounts):
-                _mounts.append(mount)
-                _mounted_paths.append(mounted)
-
-            return mounted
-
-        def process_xml_fragment(script_vars_v: str) -> str:
-            """
-            Process XML Fragment Function
-
-            This function processes a given XML script variable string. It checks each part of the string to
-            see if it is a file or directory path. If so, it handles these paths accordingly and constructs
-            a new string that reflects any necessary changes.
-
-            Parameters:
-            - script_vars_v (str): The input XML script variable string to be processed.
-
-            Returns:
-            - str: The processed and potentially modified XML script variable string.
-            """
-
-            vf_list = []
-
-            # Split the input string by double quotes and process each segment
-            vf_split = script_vars_v.split('"')
-            for _, vf in enumerate(vf_split):
-                if os.path.isfile(vf) or os.path.isdir(vf):
-                    mounted = unique_mount(vf)
-                    vf_list.append(mounted)
-                    continue
-                vf_list.append(vf)
-
-            # Join the processed segments back together
-            joined_vf = '"'.join(vf_list)
-
-            # Ensure the result starts and ends with single quotes
-            if not joined_vf.startswith("'"):
-                joined_vf = "'" + joined_vf
-
-            if not joined_vf.endswith("'"):
-                joined_vf += "'"
-
-            print_diff(
-                title="Mounted",
-                labels={"Original": script_vars_v, "Rewrited": joined_vf},
-                label_colors=["blue", "purple"],
-                title_color="light_purple",
-            )
-
-            return joined_vf
-
-        def process_xml_variable(_cmd: str) -> str:
-            """
-            Process an XML formatted variable definition string.
-
-            This function takes a command string that defines a variable and processes it based on its content.
-            - If the value is a file or directory path, it remaps the path to a unique mount point.
-            - If the value contains XML fragments along with file paths, it processes these fragments accordingly.
-            - Otherwise, it returns the original command string.
-
-            :param _cmd: A string representing a variable assignment, e.g., 'var=/path/to/file'.
-            :return: A processed string with potential path remapping or the original command.
-            """
-
-            script_vars = _cmd.split("=")
-            script_vars_v = "=".join(script_vars[1:])
-
-            print(
-                f"{render('Parsing:', 'purple-negative-bold')} "
-                f"{render(script_vars[0], 'blue-negative')}="
-                f"{render(script_vars_v, 'red-negative')}"
-            )
-
-            # Normal file input handling
-            if os.path.isfile(script_vars_v) or os.path.isdir(script_vars_v):
-                mounted = unique_mount(script_vars_v)
-                return f"{script_vars[0]}={mounted}"
-
-            # Handling of XML file blocks with file inputs
-            # Example: '<AddOrRemoveMatchCsts name="cstadd" cstfile="/my/example.cst" cst_instruction="add_new"/>'
-            if " " in script_vars_v and "<" in script_vars_v:  # Indicates an XML fragment
-                joined_vf = process_xml_fragment(script_vars_v)
-                return f"{script_vars[0]}={joined_vf}"
-
-            return _cmd
-
-        for i, _cmd in enumerate(input_task.cmd):
+        for i, cmd_segment in enumerate(input_task.cmd):
             try:
                 # Handle general options
-                if _cmd.startswith("-"):
-                    mounted_cmd.append(_cmd)
+                if cmd_segment.startswith("-"):
+                    updated_cmd_with_mounts.append(cmd_segment)
                     continue
 
                 # Handle option input
-                if os.path.isfile(_cmd) or os.path.isdir(_cmd):
-                    mounted = unique_mount(_cmd)
-                    mounted_cmd.append(mounted)
+                if os.path.isfile(cmd_segment) or os.path.isdir(cmd_segment):
+                    mount = RosettaPyMount.from_path(cmd_segment)
+                    all_mounts.append(mount)
+                    updated_cmd_with_mounts.append(mount.mounted)
                     continue
 
                 # Handle Rosetta flag files
-                if _cmd.startswith("@"):
-                    _flag_file = _cmd[1:]
-                    mounted = unique_mount(_flag_file)
-                    mounted_cmd.append(f"@{mounted}")
+                if cmd_segment.startswith("@"):
+                    mount = RosettaPyMount.from_path(cmd_segment[1:])
+                    all_mounts.append(mount)
+                    updated_cmd_with_mounts.append(f"@{mount.mounted}")
                     continue
 
                 # Handle Rosetta Scripts variables
-                if "=" in _cmd and input_task.cmd[i - 1] == "-parser:script_vars":
-                    mounted_cmd.append(process_xml_variable(_cmd))
+                if "=" in cmd_segment and input_task.cmd[i - 1] == "-parser:script_vars":
+                    updated_cmd_segment, partial_mounts = RosettaContainer._mount_from_xml_variable(cmd_segment)
+                    all_mounts.extend(partial_mounts)
+                    updated_cmd_with_mounts.append(updated_cmd_segment)
                     continue
 
-                mounted_cmd.append(_cmd)
+                updated_cmd_with_mounts.append(cmd_segment)
 
             except Exception as e:
-                print(f"Error processing command '{_cmd}': {e}")
-                mounted_cmd.append(_cmd)
+                # handle exceptions without breaking the loop
+                print(f"Error processing command '{cmd_segment}': {e}")
+                updated_cmd_with_mounts.append(cmd_segment)
         try:
-            os.makedirs(input_task.runtime_dir, exist_ok=True)
+            if not os.path.exists(input_task.runtime_dir):
+                os.makedirs(input_task.runtime_dir)
         except FileExistsError:
             warnings.warn(
                 RuntimeWarning(
@@ -233,14 +400,15 @@ class RosettaContainer:
                 )
             )
 
-        mounted_runtime_dir = unique_mount(input_task.runtime_dir)
+        mounted_runtime_dir = RosettaPyMount.from_path(input_task.runtime_dir)
+        all_mounts.append(mounted_runtime_dir)
 
         mounted_task = RosettaCmdTask(
-            cmd=mounted_cmd,
-            base_dir=mounted_runtime_dir,
+            cmd=updated_cmd_with_mounts,
+            base_dir=mounted_runtime_dir.mounted,
         )
 
-        return mounted_task, _mounts
+        return mounted_task, RosettaPyMount.squeeze([mount.mount for mount in all_mounts])
 
     def recompose(self, cmd: List[str]) -> List[str]:
         """
@@ -281,7 +449,7 @@ class RosettaContainer:
         """
 
         # Mount the necessary files and directories, then run the task
-        mounted_task, mounts = self.mount(input_task=task)
+        mounted_task, mounts = RosettaContainer.mount(input_task=task)
         client = docker.from_env()
 
         print(f"{render('Mounted with: ', 'green-bold-negative')} " f"{render(mounted_task.cmd, 'bold-green')}")
@@ -307,48 +475,3 @@ class RosettaContainer:
             print(line.strip().decode("utf-8"))
 
         return task
-
-    @staticmethod
-    def _create_mount(mount_name: str, path: str, read_only=False) -> Tuple[types.Mount, str]:
-        """
-        Create a mount point for each file and directory used by the model.
-
-        Parameters:
-        - mount_name (str): The name of the mount point.
-        - path (str): The path to the file or directory.
-        - read_only (bool): Whether the mount point is read-only. Defaults to False.
-
-        Returns:
-        - types.Mount: The created mount point object.
-        - str: The path of the mounted point within the container.
-        """
-        # Get the absolute path and the target mount path
-        path = os.path.abspath(path)
-        target_path = os.path.join("/tmp/", mount_name)
-
-        # Determine the source path and mounted path based on whether the path points to a directory or a file
-        if os.path.isdir(path):
-            source_path = path
-            mounted_path = target_path
-        else:
-            source_path = os.path.dirname(path)
-            mounted_path = os.path.join(target_path, os.path.basename(path))
-
-        # Ensure the source path exists
-        os.makedirs(source_path, exist_ok=True)
-
-        # Print mount information
-        print_diff(
-            title="Mount:",
-            labels={"source": source_path, "target": target_path},
-            title_color="yellow",
-        )
-
-        # Create and return the mount object and mounted path
-        mount = types.Mount(
-            target=str(target_path),
-            source=str(source_path),
-            type="bind",
-            read_only=read_only,
-        )
-        return mount, str(mounted_path)

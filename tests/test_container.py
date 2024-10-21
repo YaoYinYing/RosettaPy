@@ -4,9 +4,9 @@ import tempfile
 from unittest.mock import MagicMock, patch
 
 import pytest
-from docker import types
 
 from RosettaPy.node import RosettaContainer
+from RosettaPy.node.dockerized import RosettaPyMount, get_quoted
 from RosettaPy.utils import RosettaCmdTask
 
 
@@ -20,296 +20,268 @@ def temp_dir():
 
 
 @pytest.fixture
-def rosetta_container():
-    """Fixture to create a RosettaContainer instance."""
-    return RosettaContainer(
-        image="rosettacommons/rosetta:mpi",
-        mpi_available=True,
-        nproc=4,
-        prohibit_mpi=False,
+def mock_task():
+    return RosettaCmdTask(
+        cmd=["/path/to/executable", "-option", "file.txt", "@flagfile", "-parser:script_vars", "var=/some/path"],
+        base_dir="/tmp/runtime_dir",
     )
 
 
-def test_post_init(rosetta_container):
-    """Test the __post_init__ method."""
-    assert rosetta_container.mpi_available
-    assert rosetta_container.nproc == 4
+def get_mounted_name(path: str):
+    with patch("os.path.exists", return_value=True), patch("os.path.isdir", return_value=True):
+        return RosettaPyMount.get_mounted_name(os.path.abspath(path))
 
 
-def test_mounted_name_valid_path(temp_dir, rosetta_container):
-    """Test the mounted_name method with a valid path."""
-    test_dir = os.path.join(temp_dir, "test_dir")
-    os.makedirs(test_dir, exist_ok=True)
-    result = rosetta_container.mounted_name(str(test_dir))
-    expected = str(test_dir).replace("/", "-").strip("-")
-    assert result == expected
+def get_mounted_path(path: str, as_dir: bool = False):
+    path = os.path.abspath(os.path.normpath(path))
+
+    # if it is a directory
+    if as_dir:
+        return os.path.join("/tmp/", get_mounted_name(path))
+
+    # if not a directory
+    return os.path.join("/tmp/", get_mounted_name(os.path.dirname(path)), os.path.basename(path))
 
 
-def test_mounted_name_valid_file(temp_dir, rosetta_container):
-    """Test the mounted_name method with a valid path."""
-    test_file = os.path.join(temp_dir, "test_dir", "sample.txt")
-    os.makedirs(os.path.dirname(test_file), exist_ok=True)
-    with open(test_file, "w") as fh:
-        fh.write("content")
-
-    result = rosetta_container.mounted_name(str(test_file))
-    expected = os.path.dirname(test_file).replace("/", "-").strip("-")
-    assert result == expected
+def test_get_quoted():
+    expected = "'test'"
+    assert get_quoted("test") == expected
+    assert get_quoted("'test") == expected
+    assert get_quoted("test'") == expected
+    assert get_quoted("'test'") == expected
 
 
-def test_mounted_name_invalid_path():
-    """Test the mounted_name method with an invalid path."""
-    with pytest.raises(FileNotFoundError):
-        RosettaContainer.mounted_name("/non/existent/path")
+def test_rosetta_pymount_from_path():
+    with patch("os.path.normpath", return_value="/normalized/path"), patch(
+        "os.path.abspath", return_value="/absolute/path"
+    ), patch("os.path.isdir", return_value=True), patch("os.path.exists", return_value=True), patch(
+        "os.makedirs"
+    ) as mock_makedirs, patch(
+        "docker.types.Mount"
+    ) as mock_mount:
+
+        mock_mount.return_value = MagicMock()
+        mounted = RosettaPyMount.from_path("/path/to/mount")
+
+        assert mounted.source == "/absolute/path"
+        assert mounted.target == "/tmp/absolute-path"
+        assert mounted.mounted == "/tmp/absolute-path"
 
 
-@patch("os.makedirs")
-def test_mount_method_2(mock_makedirs, rosetta_container):
-    """Test the mount method."""
-    task = RosettaCmdTask(cmd=["-in:file", "input.pdb", "-out:file", "output.pdb"], base_dir="/tmp/runtime")
-    with patch("os.path.exists", return_value=True), patch("os.path.isfile", return_value=True), patch.object(
-        rosetta_container,
-        "_create_mount",
-        return_value=(types.Mount(target="/mount", source="/source"), "/mounted/path"),
-    ):
-        mounted_task, mounts = rosetta_container.mount(task)
-        assert mounted_task.cmd == ["-in:file", "/mounted/path", "-out:file", "/mounted/path"]
-        assert len(mounts) > 0
+def test_rosetta_pymount_get_mounted_name():
+    with patch("os.path.exists", return_value=True), patch("os.path.abspath", return_value="/absolute/path"):
+
+        with patch("os.path.isfile", return_value=False):
+            result = RosettaPyMount.get_mounted_name("/some/path")
+            assert result == "absolute-path"
+
+        with patch("os.path.isfile", return_value=True):
+            result = RosettaPyMount.get_mounted_name("/some/file.txt")
+            assert result == "absolute"
 
 
-def test_recompose_mpi_available(rosetta_container):
-    """Test the recompose method when MPI is available."""
-    cmd = ["rosetta_script", "-in:file", "input.pdb"]
-    recomposed_cmd = rosetta_container.recompose(cmd)
-    expected_cmd = ["mpirun", "--use-hwthread-cpus", "-np", "4", "--allow-run-as-root"] + cmd
-    assert recomposed_cmd == expected_cmd
+def test_rosetta_container_recompose():
+    container = RosettaContainer(image="rosettacommons/rosetta:mpi", mpi_available=True, nproc=4)
+    cmd = ["some_executable", "-flag"]
+    recomposed_cmd = container.recompose(cmd)
+
+    assert recomposed_cmd == [
+        "mpirun",
+        "--use-hwthread-cpus",
+        "-np",
+        "4",
+        "--allow-run-as-root",
+        "some_executable",
+        "-flag",
+    ]
 
 
-def test_recompose_mpi_not_available():
-    """Test the recompose method when MPI is not available."""
-    rosetta_container = RosettaContainer(mpi_available=False, prohibit_mpi=True)
-    cmd = ["rosetta_script", "-in:file", "input.pdb"]
-    with pytest.warns(RuntimeWarning):
-        recomposed_cmd = rosetta_container.recompose(cmd)
+def test_rosetta_container_run_single_task(mock_task):
+    with patch("docker.from_env") as mock_docker, patch(
+        "RosettaPy.node.dockerized.RosettaContainer.mount", return_value=(mock_task, [])
+    ) as mock_mount, patch("signal.signal") as mock_signal:
+
+        mock_client = mock_docker.return_value
+        mock_container = mock_client.containers.run.return_value
+        mock_container.logs.return_value = [b"Log line 1\n", b"Log line 2\n"]
+
+        container = RosettaContainer()
+        result_task = container.run_single_task(mock_task)
+
+        mock_client.containers.run.assert_called_once_with(
+            image=container.image,
+            command=mock_task.cmd,
+            remove=True,
+            detach=True,
+            mounts=[],
+            user=container.user,
+            stdout=True,
+            stderr=True,
+            working_dir=mock_task.runtime_dir,
+            platform="linux/amd64",
+        )
+        mock_signal.assert_called_once()
+        assert result_task == mock_task
+
+
+def test_rosetta_container_recompose_no_mpi():
+    container = RosettaContainer(image="rosettacommons/rosetta:static", mpi_available=False)
+    cmd = ["some_executable", "-flag"]
+    recomposed_cmd = container.recompose(cmd)
+
     assert recomposed_cmd == cmd
 
 
-@patch("docker.from_env")
-def test_run_single_task(mock_docker, rosetta_container, temp_dir):
-    """Test the run_single_task method."""
-    task = RosettaCmdTask(cmd=["-in:file", "input.pdb"], base_dir=temp_dir)
-    mock_container = MagicMock()
-    mock_container.logs.return_value = [b"Processing input.pdb", b"Finished"]
-    mock_docker.return_value.containers.run.return_value = mock_container
+def test_rosetta_pymount_squeeze():
+    mount1 = MagicMock()
+    mount2 = MagicMock()
+    mount3 = mount1  # Duplicate
 
-    with patch.object(rosetta_container, "mount", return_value=(task, [])), patch("signal.signal"):
-        result_task = rosetta_container.run_single_task(task)
-        assert result_task == task
-        mock_container.logs.assert_called_once_with(stream=True)
-
-
-def get_mounted_path(rosetta_container, fp):
-    """Helper function to compute the mounted path for a given file or directory."""
-    mounted_name = rosetta_container.mounted_name(fp)
-    if os.path.isdir(fp):
-        # Directory mount
-        return os.path.join(rosetta_container.root_mount_directory, mounted_name)
-    else:
-        # File mount
-        return os.path.join(rosetta_container.root_mount_directory, mounted_name, os.path.basename(fp))
+    result = RosettaPyMount.squeeze([mount1, mount2, mount3])
+    assert len(result) == 2
 
 
 @pytest.mark.parametrize(
-    "cmd, file_paths, dir_paths, expected_cmd, expected_mounts_count",
+    "file_paths, dir_paths, cmd, expected_cmd, expected_mounts_count",
     [
-        # Test case 1: Simple command with options and files
+        (["input.pdb"], [], ["-in:file:s", "input.pdb"], ["-in:file:s", get_mounted_path("input.pdb")], 2),
         (
-            ["-in:file:s", "input.pdb", "-out:file:o", "output.pdb"],
-            ["input.pdb", "output.pdb"],  # Files that exist
-            [],  # No directories
-            None,  # Will compute expected_cmd in the test function
-            3,  # Number of expected mounts
+            [],
+            [
+                "/path/to/pdb",
+                "/path/to/scorefile",
+            ],
+            [
+                "-out:path:pdb",
+                "/path/to/pdb",
+                "-out:path:score",
+                "/path/to/scorefile",
+            ],
+            [
+                "-out:path:pdb",
+                get_mounted_path("/path/to/pdb/", as_dir=True),
+                "-out:path:score",
+                get_mounted_path("/path/to/scorefile/", as_dir=True),
+            ],
+            3,
         ),
-        # Test case 3: Command with directory
         (
-            ["-in:path", "input_dir/"],
-            [],  # No files
-            ["input_dir/"],  # Directories that exist
-            None,
+            ["input.pdb"],
+            [
+                "/path/to/pdb",
+                "/path/to/scorefile",
+            ],
+            [
+                "-in:file:s",
+                "input.pdb",
+                "-out:path:pdb",
+                "/path/to/pdb",
+                "-out:path:score",
+                "/path/to/scorefile",
+            ],
+            [
+                "-in:file:s",
+                get_mounted_path("input.pdb"),
+                "-out:path:pdb",
+                get_mounted_path("/path/to/pdb/", as_dir=True),
+                "-out:path:score",
+                get_mounted_path("/path/to/scorefile/", as_dir=True),
+            ],
+            4,
+        ),
+        (["flag.txt"], [], ["@flag.txt"], [f'@{get_mounted_path("flag.txt")}'], 2),
+        ([], [], ["-parser:script_vars", "var=1"], ["-parser:script_vars", "var=1"], 1),
+        (
+            ["value.txt"],
+            [],
+            ["-parser:script_vars", "var=value.txt"],
+            ["-parser:script_vars", f"var={get_mounted_path('value.txt')}"],
             2,
         ),
-        # Test case 4: Command with options only
-        # No files  # No directories
-        (["-help", "-version"], [], [], ["-help", "-version"], 1),
-        # Test case 5: Empty command list
-        ([], [], [], [], 1),
+        (
+            ["constraints.cst"],
+            [],
+            ["-parser:script_vars", "xml_var='<Add file=\"constraints.cst\" />'"],
+            ["-parser:script_vars", f"xml_var='<Add file=\"{get_mounted_path('constraints.cst')}\" />'"],
+            2,
+        ),
+        ([], [], ["-out:prefix", "test"], ["-out:prefix", "test"], 1),
+        (
+            ["test_scripts.xml"],
+            [],
+            [
+                "-parser:protocol",
+                "test_scripts.xml",
+            ],
+            [
+                "-parser:protocol",
+                get_mounted_path("test_scripts.xml"),
+            ],
+            2,
+        ),
+        (
+            ["/test/input.pdb", "/test/relax_script.txt"],
+            [],
+            [
+                "-in:file:s",
+                "/test/input.pdb",
+                "-relax:script",
+                "/test/relax_script.txt",
+                "-relax:default_repeats",
+                "15",
+                "-out:prefix",
+                "my_fastrelax_",
+                "-out:file:scorefile",
+                "my_fastrelax.sc",
+                "-score:weights",
+                "ref2015_cart",
+                "-relax:dualspace",
+                "true",
+            ],
+            [
+                "-in:file:s",
+                get_mounted_path("/test/input.pdb"),
+                "-relax:script",
+                get_mounted_path("/test/relax_script.txt"),
+                "-relax:default_repeats",
+                "15",
+                "-out:prefix",
+                "my_fastrelax_",
+                "-out:file:scorefile",
+                "my_fastrelax.sc",
+                "-score:weights",
+                "ref2015_cart",
+                "-relax:dualspace",
+                "true",
+            ],
+            2,
+        ),
     ],
 )
-def test_mount_method(
-    cmd,
-    file_paths,
-    dir_paths,
-    expected_cmd,
-    expected_mounts_count,
-    temp_dir,
-    rosetta_container,
-):
-    """Test the mount method with various inputs."""
-    task = RosettaCmdTask(cmd=cmd, base_dir=temp_dir)
+def test_mount_with_command(file_paths, dir_paths, cmd, expected_cmd, expected_mounts_count, temp_dir):
+    """Test mounting when the command includes relative file paths."""
 
-    # Define side effect functions for os.path.isfile and os.path.isdir
+    file_paths = [os.path.abspath(file_path) for file_path in file_paths]
+    dir_paths = [os.path.abspath(dir_path) for dir_path in dir_paths]
+
     def is_file_side_effect(path):
-        return path in file_paths
+        path = os.path.abspath(path)
+        _ = path in file_paths
+        return _
 
     def is_dir_side_effect(path):
-        return path.rstrip("/") in [d.rstrip("/") for d in dir_paths]
-
-    # Define the side effect for _create_mount
-    def create_mount_side_effect(mn, p, ro=False):
-        if is_dir_side_effect(p):
-            # Directory mount
-            target = os.path.join(rosetta_container.root_mount_directory, mn)
-            mounted_path = target
-        else:
-            # File mount
-            target = os.path.join(rosetta_container.root_mount_directory, mn)
-            mounted_path = os.path.join(target, os.path.basename(p))
-        return (types.Mount(target=target, source=os.path.abspath(p.rstrip("/")), type="bind"), mounted_path)
+        path = os.path.abspath(path)
+        _ = path in dir_paths
+        return _
 
     with patch("os.path.exists", return_value=True), patch("os.path.isfile", side_effect=is_file_side_effect), patch(
         "os.path.isdir", side_effect=is_dir_side_effect
-    ), patch.object(rosetta_container, "_create_mount", side_effect=create_mount_side_effect):
+    ):
+        task = RosettaCmdTask(cmd=cmd, base_dir=temp_dir)
 
-        # Compute expected_cmd if not provided
-        if expected_cmd is None:
-            expected_cmd = []
-            for arg in cmd:
-                if arg.startswith("-") or arg.startswith("@"):
-                    expected_cmd.append(arg)
-                elif is_file_side_effect(arg) or is_dir_side_effect(arg):
-                    mn = rosetta_container.mounted_name(os.path.abspath(arg))
-                    if is_dir_side_effect(arg):
-                        # Directory mount
-                        mounted_path = os.path.join(rosetta_container.root_mount_directory, mn)
-                    else:
-                        # File mount
-                        mounted_path = os.path.join(rosetta_container.root_mount_directory, mn, os.path.basename(arg))
-                    expected_cmd.append(mounted_path)
-                else:
-                    expected_cmd.append(arg)
-
-        mounted_task, mounts = rosetta_container.mount(task)
+        mounted_task, mounts = RosettaContainer.mount(task)
         assert mounted_task.cmd == expected_cmd
         assert len(mounts) == expected_mounts_count
-
-
-def test_mount_with_flag_files(rosetta_container, temp_dir):
-    """Test mounting when script_vars include XML fragments with file paths."""
-    flag_file = "flag.txt"
-    task = RosettaCmdTask(cmd=["rosetta_scripts", f"@{flag_file}", "-nstruct", "1000"], base_dir=temp_dir)
-
-    def is_file_side_effect(path):
-        return path == flag_file
-
-    def create_mount_side_effect(mn, p, ro=False):
-        target = os.path.join(rosetta_container.root_mount_directory, mn)
-        mounted_path = os.path.join(target, os.path.basename(p))
-        return (types.Mount(target=target, source=os.path.abspath(p), type="bind"), mounted_path)
-
-    with patch("os.path.exists", return_value=True), patch(
-        "os.path.isfile", side_effect=is_file_side_effect
-    ), patch.object(rosetta_container, "_create_mount", side_effect=create_mount_side_effect):
-
-        mounted_task, mounts = rosetta_container.mount(task)
-
-        # Expected mounted path for constraints.cst
-        mn = rosetta_container.mounted_name(os.path.abspath(flag_file))
-        flag_mounted_path = os.path.join(rosetta_container.root_mount_directory, mn, flag_file)
-
-        expected_flag = f"@{flag_mounted_path}"
-        expected_cmd = ["rosetta_scripts", expected_flag, "-nstruct", "1000"]
-        assert mounted_task.cmd == expected_cmd
-        assert len(mounts) == 2
-
-
-def test_mount_with_complex_script_vars(rosetta_container, temp_dir):
-    """Test mounting when script_vars include XML fragments with file paths."""
-    xml_fragment = '<Add file="constraints.cst" />'
-    task = RosettaCmdTask(cmd=["-parser:script_vars", f"xml_var='{xml_fragment}'"], base_dir=temp_dir)
-
-    def is_file_side_effect(path):
-        return path == "constraints.cst"
-
-    def create_mount_side_effect(mn, p, ro=False):
-        target = os.path.join(rosetta_container.root_mount_directory, mn)
-        mounted_path = os.path.join(target, os.path.basename(p))
-        return (types.Mount(target=target, source=os.path.abspath(p), type="bind"), mounted_path)
-
-    with patch("os.path.exists", return_value=True), patch(
-        "os.path.isfile", side_effect=is_file_side_effect
-    ), patch.object(rosetta_container, "_create_mount", side_effect=create_mount_side_effect):
-
-        mounted_task, mounts = rosetta_container.mount(task)
-
-        # Expected mounted path for constraints.cst
-        mn = rosetta_container.mounted_name(os.path.abspath("constraints.cst"))
-        constraints_mounted_path = os.path.join(rosetta_container.root_mount_directory, mn, "constraints.cst")
-
-        expected_xml_fragment = f"'<Add file=\"{constraints_mounted_path}\" />'"
-        expected_cmd = ["-parser:script_vars", f"xml_var={expected_xml_fragment}"]
-        assert mounted_task.cmd == expected_cmd
-        assert len(mounts) == 2
-
-
-def test_mount_with_multiple_files_same_name(rosetta_container, temp_dir):
-    """Test mounting multiple files with the same name in different directories."""
-    task = RosettaCmdTask(cmd=["-in:file:s", "/path1/input.pdb", "/path2/input.pdb"], base_dir=temp_dir)
-    file_paths = ["/path1/input.pdb", "/path2/input.pdb"]
-
-    def is_file_side_effect(path):
-        return path in file_paths
-
-    def create_mount_side_effect(mn, p, ro=False):
-        target = os.path.join(rosetta_container.root_mount_directory, mn)
-        mounted_path = os.path.join(target, os.path.basename(p))
-        return (types.Mount(target=target, source=os.path.abspath(p), type="bind"), mounted_path)
-
-    with patch("os.path.exists", return_value=True), patch(
-        "os.path.isfile", side_effect=is_file_side_effect
-    ), patch.object(rosetta_container, "_create_mount", side_effect=create_mount_side_effect):
-
-        mounted_task, mounts = rosetta_container.mount(task)
-
-        # Expected commands
-        expected_cmd = ["-in:file:s"]
-        for fp in ["/path1/input.pdb", "/path2/input.pdb"]:
-            mn = rosetta_container.mounted_name(os.path.abspath(fp))
-            mounted_path = os.path.join(rosetta_container.root_mount_directory, mn, "input.pdb")
-            expected_cmd.append(mounted_path)
-
-        assert mounted_task.cmd == expected_cmd
-        assert len(mounts) == 3
-
-
-@pytest.mark.parametrize(
-    "cmd, file_paths, expected_exception",
-    [
-        # Test case: Non-existent file
-        (["-in:file:s", "nonexistent.pdb"], [], FileNotFoundError),  # No files exist
-    ],
-)
-def test_mount_with_exceptions(rosetta_container, cmd, file_paths, expected_exception, temp_dir):
-    """Test that the mount method raises exceptions as expected."""
-
-    task = RosettaCmdTask(cmd=cmd, base_dir=temp_dir)
-
-    def is_file_side_effect(path):
-        return path in file_paths
-
-    with patch("os.path.exists", return_value=False), patch(
-        "os.path.isfile", side_effect=is_file_side_effect
-    ), pytest.raises(expected_exception):
-        rosetta_container.mount(task)
 
 
 @pytest.mark.parametrize(
@@ -324,7 +296,7 @@ def test_mount_with_exceptions(rosetta_container, cmd, file_paths, expected_exce
         ),
     ],
 )
-def test_mount_with_relative_paths(rosetta_container, cmd, file_paths, expected_cmd, expected_mounts_count, temp_dir):
+def test_mount_with_relative_paths(cmd, file_paths, expected_cmd, expected_mounts_count, temp_dir):
     """Test mounting when the command includes relative file paths."""
     task = RosettaCmdTask(cmd=cmd, base_dir=temp_dir)
 
@@ -332,20 +304,25 @@ def test_mount_with_relative_paths(rosetta_container, cmd, file_paths, expected_
         return os.path.abspath(path) in file_paths
 
     def create_mount_side_effect(mn, p, ro=False):
-        target = os.path.join(rosetta_container.root_mount_directory, mn)
+        target = os.path.join("/tmp", mn)
         mounted_path = os.path.join(target, os.path.basename(p))
-        return (types.Mount(target=target, source=os.path.abspath(p), type="bind"), mounted_path)
+        return RosettaPyMount(
+            name=mn,
+            source=os.path.abspath(p),
+            target=target,
+            mounted=mounted_path,
+        )
 
     with patch("os.path.exists", return_value=True), patch("os.path.isfile", side_effect=is_file_side_effect), patch(
         "os.path.abspath", side_effect=lambda p: "/abs/path/input.pdb"
-    ), patch.object(rosetta_container, "_create_mount", side_effect=create_mount_side_effect):
+    ), patch.object(RosettaPyMount, "_create_mount", side_effect=create_mount_side_effect):
 
         # Compute expected_cmd if not provided
         if expected_cmd is None:
-            mn = rosetta_container.mounted_name("/abs/path/input.pdb")
-            mounted_path = os.path.join(rosetta_container.root_mount_directory, mn, "input.pdb")
+            mn = RosettaPyMount.get_mounted_name("/abs/path/input.pdb")
+            mounted_path = os.path.join("/tmp", mn, "input.pdb")
             expected_cmd = ["-in:file:s", mounted_path]
 
-        mounted_task, mounts = rosetta_container.mount(task)
+        mounted_task, mounts = RosettaContainer.mount(task)
         assert mounted_task.cmd == expected_cmd
         assert len(mounts) == expected_mounts_count

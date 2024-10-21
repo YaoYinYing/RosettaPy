@@ -132,7 +132,7 @@ def render(text: Union[str, Any], styles: Union[str, List[str]] = "blue-bold") -
 
 
 def print_diff(
-    title: str, labels: Dict[str, str], label_colors: Optional[List[str]] = None, title_color: Optional[str] = None
+    title: str, labels: Dict[str, Any], label_colors: Optional[List[str]] = None, title_color: Optional[str] = None
 ):
     """
     Render a diff table with the given title, labels, and colors.
@@ -149,7 +149,7 @@ def print_diff(
     zip_render(labels=labels, label_colors=label_colors, diff_labels=diff_labels)
 
 
-def zip_render(labels: Dict[str, str], label_colors: List[str], diff_labels: Optional[List[str]] = None):
+def zip_render(labels: Dict[str, Any], label_colors: List[str], diff_labels: Optional[List[str]] = None):
     """
     Zip render labels, colors, and diff labels.
     """
@@ -163,7 +163,7 @@ def zip_render(labels: Dict[str, str], label_colors: List[str], diff_labels: Opt
         print(
             f'{render(f"{label:{label_widths}}", f"{color}-bold-italic")} '
             f'{render(f" {diff_label} ", f"{color}-bold-negative")} '
-            f'{render(text, f"{color}-bold")}'
+            f'{render(str(text), f"{color}-bold")}'
         )
 
 

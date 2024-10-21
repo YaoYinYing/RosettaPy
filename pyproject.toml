@@ -34,8 +34,7 @@ dependencies = [
     "numpy>=1.20.3,<3",
     "matplotlib",
     "docker>=7.1.0",
-    "gitpython",
-    "virtualenv<=20.26.6"
+    "gitpython"
 ]
 
 [project.optional-dependencies]
@@ -61,7 +60,8 @@ test = [
     "pytest-order",
     "pytest-github-actions-annotate-failures",
     "shellcheck-py==0.10.0.1",
-    "pre-commit"
+    "pre-commit",
+    "virtualenv<=20.26.6"
 ]
 
 [project.urls]
