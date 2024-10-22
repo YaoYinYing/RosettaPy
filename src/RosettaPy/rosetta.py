@@ -35,7 +35,7 @@ class Rosetta:
         flags (List[str]): List of flag files to include.
         opts (List[str]): List of command-line options.
         use_mpi (bool): Whether to use MPI for execution.
-        mpi_node (MpiNode): MPI node configuration.
+        run_node (MpiNode|RosettaContainer): Run node configuration.
     """
 
     bin: Union[RosettaBinary, str]
@@ -196,7 +196,7 @@ class Rosetta:
         )
 
         # Print command execution information.
-        print(f'Launching command: {" ".join(task.cmd)}')
+        print(f'Launching command: `{" ".join(task.cmd)}`')
         # Communicate to get the command's output and error.
         stdout, stderr = process.communicate()
         # Wait for the command to complete and get the return code.
@@ -225,21 +225,21 @@ class Rosetta:
         :param nstruct: Number of structures to generate.
         :return: List of RosettaCmdTask.
         """
-        _base_cmd = copy.copy(base_cmd)
+        base_cmd_copy = copy.copy(base_cmd)
 
         now = datetime.now().strftime("%Y%m%d_%H%M%S")  # formatted date-time
 
         if nstruct and nstruct > 0:
             # if inputs are given and nstruct is specified, flatten and pass inputs to all tasks
             if inputs:
-                for i, _i in enumerate(inputs):
-                    __i = self.expand_input_dict(_i)
-                    _base_cmd.extend(__i)
-                    print(f"Additional input args is passed: {__i}")
+                for _, input_dict in enumerate(inputs):
+                    expanded_input_string = self.expand_input_dict(input_dict)
+                    base_cmd_copy.extend(expanded_input_string)
+                    print(f"Additional input args is passed: {expanded_input_string}")
 
             cmd_jobs = [
                 RosettaCmdTask(
-                    cmd=_base_cmd
+                    cmd=base_cmd_copy
                     + [
                         "-suffix",
                         f"_{i:05}",
@@ -258,7 +258,7 @@ class Rosetta:
             # if nstruct is not given and inputs are given, expand input and distribute them as task payload
             cmd_jobs = [
                 RosettaCmdTask(
-                    cmd=_base_cmd + self.expand_input_dict(input_arg),
+                    cmd=base_cmd_copy + self.expand_input_dict(input_arg),
                     task_label=f"task-{self.job_id}-no-{i}" if self.isolation else None,
                     base_dir=os.path.join(self.output_dir, f"{now}-{self.job_id}-runtimes"),
                 )
@@ -267,7 +267,7 @@ class Rosetta:
             warnings.warn(UserWarning(f"Processing {len(cmd_jobs)} commands"))
             return cmd_jobs
 
-        cmd_jobs = [RosettaCmdTask(cmd=_base_cmd)]
+        cmd_jobs = [RosettaCmdTask(cmd=base_cmd_copy)]
 
         warnings.warn(UserWarning("No inputs are given. Running single job."))
         return cmd_jobs
@@ -277,7 +277,6 @@ class Rosetta:
         base_cmd: List[str],
         inputs: Optional[List[Dict[str, Union[str, RosettaScriptsVariableGroup]]]] = None,
         nstruct: Optional[int] = None,
-        dockerized: bool = False,
     ) -> List[RosettaCmdTask]:
         """
         Setup a command using MPI.
@@ -287,25 +286,27 @@ class Rosetta:
         :param nstruct: Number of structures to generate.
         :return: List of RosettaCmdTask
         """
-        assert isinstance(
-            self.run_node, (MpiNode, RosettaContainer)
-        ), "MPI node/RosettaContainer instance is not initialized."
+        if not isinstance(self.run_node, (MpiNode, RosettaContainer)):
+            raise RuntimeError("MPI node/RosettaContainer instance is not initialized.")
 
-        _base_cmd = copy.copy(base_cmd)
+        # make a copy command list
+        base_cmd_copy = copy.copy(base_cmd)
+        # if inputs are given, flatten and attach them to the command
         if inputs:
-            for _, _i in enumerate(inputs):
-                _base_cmd.extend(self.expand_input_dict(_i))
+            for _, input_dict in enumerate(inputs):
+                base_cmd_copy.extend(self.expand_input_dict(input_dict))
 
+        # if nstruct is given, attach it to the command
         if nstruct:
-            _base_cmd.extend(["-nstruct", str(nstruct)])
+            base_cmd_copy.extend(["-nstruct", str(nstruct)])
 
-        if dockerized:
+        # early return if container setup is done
+        if isinstance(self.run_node, RosettaContainer):
             # skip setups of MpiNode because we have already recomposed.
-            return [RosettaCmdTask(cmd=_base_cmd)]
+            return [RosettaCmdTask(cmd=base_cmd_copy)]
 
-        assert isinstance(self.run_node, (MpiNode)), "MPI node instance is required for MPI run."
-
-        with self.run_node.apply(_base_cmd) as updated_cmd:
+        # else: this must be a MpiNode instance, continue to configure it
+        with self.run_node.apply(base_cmd_copy) as updated_cmd:
             if self.isolation:
                 warnings.warn(RuntimeWarning("Ignoring isolated mode for MPI run."))
             return [RosettaCmdTask(cmd=updated_cmd)]
@@ -373,9 +374,10 @@ class Rosetta:
             List[RosettaCmdTask]: The results of the executed tasks.
         """
         # Ensure that the run_node is an instance of RosettaContainer
-        assert isinstance(
-            self.run_node, RosettaContainer
-        ), "To run with local docker container, you need to initialize RosettaContainer instance as self.run_node"
+        if not isinstance(self.run_node, RosettaContainer):
+            raise RuntimeError(
+                "To run with local docker container, you need to initialize RosettaContainer instance as self.run_node"
+            )
 
         # Define a partial function to execute tasks using the run_node
         run_func = functools.partial(Rosetta.execute, func=self.run_node.run_single_task)
@@ -413,8 +415,8 @@ class Rosetta:
             recomposed_cmd = self.run_node.recompose(cmd)
             print(f"Recomposed Command: \n{recomposed_cmd}")
             if self.run_node.mpi_available:
-                tasks = self.setup_tasks_mpi(base_cmd=recomposed_cmd, inputs=inputs, nstruct=nstruct, dockerized=True)
-                assert len(tasks) == 1, "Only one task should be returned from setup_tasks_mpi"
+                # only one task is returned
+                tasks = self.setup_tasks_mpi(base_cmd=recomposed_cmd, inputs=inputs, nstruct=nstruct)
                 return [self.run_node.run_single_task(task=tasks[0])]
 
             tasks = self.setup_tasks_local(base_cmd=recomposed_cmd, inputs=inputs, nstruct=nstruct)
@@ -429,13 +431,14 @@ class Rosetta:
 
         :return: The composed command as a list of strings.
         """
-        assert isinstance(self.bin, RosettaBinary), "Rosetta binary must be a RosettaBinary object"
+        if not isinstance(self.bin, RosettaBinary):
+            raise RuntimeError("Rosetta binary must be a RosettaBinary object")
 
         cmd = [
             (
                 self.bin.full_path
                 if not isinstance(self.run_node, RosettaContainer)
-                else f"/usr/local/bin/{self.bin.binary_name}"
+                else f"/usr/local/bin/{self.bin.binary_name}"  # hard-coded bin path for container
             )
         ]
         if self.flags:

@@ -2,8 +2,7 @@ import os
 
 import pytest
 
-from RosettaPy import \
-    RosettaEnergyUnitAnalyser  # Replace with the actual module name
+from RosettaPy import RosettaEnergyUnitAnalyser
 
 sample_score_file = "tests/data/score.sc"
 best_decoy = {"score": -388.465, "decoy": "3fap_hf3_A_0003"}

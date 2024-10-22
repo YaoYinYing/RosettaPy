@@ -127,6 +127,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Yinying edited here
 tests/outputs/
 *.pdb
 resfile_output_Rsc
@@ -134,3 +136,5 @@ test_ligand.sdf
 rosetta_subdir_clone/
 rosetta_db_clone/
 rosetta_python_script_dir/
+nodefile*
+output*

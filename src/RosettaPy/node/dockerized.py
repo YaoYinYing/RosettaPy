@@ -159,27 +159,33 @@ class RosettaPyMount:
     @classmethod
     def squeeze(cls, mounts: List[types.Mount]) -> List[types.Mount]:
         """
-        Convert a list of mounts to a set, removing duplicates.
+        Removes duplicate `Mount` objects from a list without changing the order of the original list.
 
-        This method primarily aims to eliminate any duplicate mounts by converting the list to a set.
-        Using a set instead of a list to represent the collection of mounts ensures that each mount is unique,
-        which is useful for avoiding redundant processing of mounts.
+        This method does not use a set to avoid hashing issues since `types.Mount` objects are not hashable.
+        Instead, it iterates through the list, adding items to a new list only if they are not already present,
+        thereby removing duplicates while preserving the original order.
 
         Parameters:
-        mounts (List[types.Mount]): A list of mounts, which may contain duplicates.
+            mounts (List[types.Mount]): A list of `Mount` objects that may contain duplicates.
 
         Returns:
-        Set[types.Mount]: A set of mounts with no duplicates.
+            List[types.Mount]: A list of `Mount` objects with duplicates removed.
         """
+        # Initialize an empty list to store unique `Mount` objects
         mount_set = []
+        # will not use Set here bcs `types.Mount` is not hashable
         for mount in mounts:
+            # Check if the current `Mount` object is already in `mount_set`
             if mount in mount_set:
+                # If so, skip it to remove duplicates
                 continue
+            # If not, add it to `mount_set`
             mount_set.append(mount)
 
-        len_before = len(mounts)
-        len_after = len(mount_set)
-        if len_before != len_after:
+        # Get the length of the list before and after duplicate removal
+        # If the lengths are different, it means duplicates were removed
+        if (len_before := len(mounts)) != (len_after := len(mount_set)):
+            # Print the difference in length before and after removing duplicates
             print_diff(
                 "Duplicate mounts",
                 {
@@ -187,8 +193,10 @@ class RosettaPyMount:
                     "After": len_after,
                 },
             )
+            # Warn the user about duplicate `Mount` objects being removed
             warnings.warn(RuntimeWarning(f"Duplicate mounts is removed: {len_before - len_after}"))
 
+        # Return the list of `Mount` objects with duplicates removed
         return mount_set
 
 

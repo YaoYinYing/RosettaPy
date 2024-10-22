@@ -3,8 +3,6 @@ Utility functions of Small Molecule Comformer Sampling
 """
 
 # pylint: disable=no-member
-# pylint: disable=unused-variable
-# pylint: disable=invalid-name
 
 
 # # Design of small molecule binders
@@ -101,18 +99,18 @@ def protonate_tertiary_amine(mol):
 
         for n in ntert:
             # Convert the molecule to a canonical SMILES string representation
-            molStrings = Chem.MolToSmiles(mol, isomericSmiles=True)  # type: ignore
+            mol_strings = Chem.MolToSmiles(mol, isomericSmiles=True)  # type: ignore
             # Get the symbol and formal charge of the nitrogen atom
-            atomSymbol9 = mol.GetAtomWithIdx(n[0]).GetSymbol()
-            formalCharge9 = mol.GetAtomWithIdx(n[0]).GetFormalCharge()
+            atom_symbol = mol.GetAtomWithIdx(n[0]).GetSymbol()
+            formal_charge = mol.GetAtomWithIdx(n[0]).GetFormalCharge()
             # Calculate the molecular formula for verification
-            molFormula = Chem.AllChem.CalcMolFormula(mol)  # type: ignore
+            mol_formula = Chem.AllChem.CalcMolFormula(mol)  # type: ignore
             zip_render(
                 labels={
-                    "Molecular Strings": molStrings,
-                    "Atom Symbol": atomSymbol9,
-                    "Formal Charge": formalCharge9,
-                    "Molecular Formula": molFormula,
+                    "Molecular Strings": mol_strings,
+                    "Atom Symbol": atom_symbol,
+                    "Formal Charge": formal_charge,
+                    "Molecular Formula": mol_formula,
                 },
                 label_colors=["yellow", "blue", "green", "red"],
             )
@@ -140,7 +138,6 @@ def generate_molecule(name, smiles):
     Mol
 
     """
-    LIGAND_NAME = name
     m = Chem.MolFromSmiles(smiles)  # type: ignore
 
     try:
@@ -152,7 +149,7 @@ def generate_molecule(name, smiles):
     # Embeed the geometry
     AllChem.EmbedMolecule(m_h, AllChem.ETKDG())  # type: ignore
     # Setting name of molecule
-    m_h.SetProp("_Name", LIGAND_NAME)
+    m_h.SetProp("_Name", name)
     return m_h
 
 
@@ -273,36 +270,36 @@ class SmallMoleculeParamsGenerator:
         None
         """
         # Convert each ligand's SMILES format to its canonical SMILES format
-        c_smiles = {}
-        for i, ds in ligands.items():
-            c = SmallMoleculeParamsGenerator.smile2canon(i, ds)
-            if c is not None:
-                c_smiles.update({i: c})
+        canon_smiles = {}
+        for i, smiles_string in ligands.items():
+            canon_smiles_string = SmallMoleculeParamsGenerator.smile2canon(i, smiles_string)
+            if canon_smiles_string is not None:
+                canon_smiles.update({i: canon_smiles_string})
 
-        print(c_smiles)
+        print(canon_smiles)
 
         # Create a list of molecules
-        ms = {i: Chem.MolFromSmiles(v) for i, v in c_smiles.items()}  # type: ignore
+        mols = {k: Chem.MolFromSmiles(v) for k, v in canon_smiles.items()}
 
         # Generate fingerprints for each molecule
-        fps = {i: FingerprintMols.FingerprintMol(x) for i, x in ms.items()}
+        fingerprints = {k: FingerprintMols.FingerprintMol(v) for k, v in mols.items()}
 
         # Prepare lists for the DataFrame
         qu, ta, sim = [], [], []
 
         # Compare all fingerprints pairwise without duplicates
-        c_smiles_v = list(c_smiles.values())
-        fpsv = list(fps.values())
+        c_smiles_v = list(canon_smiles.values())
+        fpsv = list(fingerprints.values())
 
-        for i, (n, fp) in enumerate(fps.items()):
+        for i, (lig_name, fingerprint) in enumerate(fingerprints.items()):
             try:
-                s = DataStructs.BulkTanimotoSimilarity(fp, fpsv[i + 1:])
+                s = DataStructs.BulkTanimotoSimilarity(fingerprint, fpsv[i + 1:])
             except ValueError as e:
-                print(f"Ignore molecule `{n}` for fingerprints pairwise due to: {e}")
+                print(f"Ignore molecule `{lig_name}` for fingerprints pairwise due to: {e}")
                 continue
-            print(c_smiles[n], c_smiles_v[i + 1:])
+            print(canon_smiles[lig_name], c_smiles_v[i + 1:])
             for j, _s in enumerate(s):
-                qu.append(c_smiles[n])
+                qu.append(canon_smiles[lig_name])
                 ta.append(c_smiles_v[i + 1:][j])
                 sim.append(_s)
 

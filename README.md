@@ -1,6 +1,6 @@
 # RosettaPy
 
-A Python utility for wrapping Rosetta command line tools.
+A Python Utility for Wrapping Rosetta Macromolecural Modeling Suite.
 
 > [!NOTE]
 > _Before running `RosettaPy`, please **DO** make sure that you have abtained the correct license from Rosetta Commons._
@@ -58,25 +58,18 @@ A Python utility for wrapping Rosetta command line tools.
 
 `RosettaPy` is a Python module designed to locate Rosetta biomolecular modeling suite binaries that follow a specific naming pattern and execute Rosetta in command line. The module includes:
 
-### Building Blocks Provided by `RosettaPy`
-
-- A `RosettaFinder` class to search for binaries.
-- A `RosettaBinary` dataclass to represent the binary and its attributes.
-- A `RosettaCmdTask` dataclass to represent a single Rosetta run task.
-- A `RosettaContainer` dataclass to wrap runs into Rosetta Containers and handle file system mounts.
-- A `MpiNode` dataclass to manage MPI resourses. _Not Seriously Tested_
-- A `RosettaRepoManager` dataclass to fetch necessary directories and files, and setup as an environment variable, together with shortcut method `partial_clone` to handle repository clonings and setups.
-- A command-line wrapper dataclass `Rosetta` for handling Rosetta runs.
-- A `RosettaScriptsVariableGroup` dataclass to represent Rosetta scripts variables.
-- A general and simplified result analyzer `RosettaEnergyUnitAnalyser` to read and interpret Rosetta output score files.
-- A series of example applications that follow the design elements and patterns described above.
-  - PROSS
-  - FastRelax
-  - RosettaLigand
-  - Supercharge
-  - MutateRelax
-  - Cartesian ddG (Analyser: `RosettaCartesianddGAnalyser`)
-- Unit tests to ensure reliability and correctness.
+| Class/Component                 | Description                                                                                                                                                                                                                   |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **RosettaFinder**               | A class designed to search for binary files within specified directories.                                                                                                                                                     |
+| **RosettaBinary**               | Represents a binary file and its associated attributes, such as path and version.                                                                                                                                             |
+| **RosettaCmdTask**              | Encapsulates a single task for running Rosetta, including command-line arguments and input files.                                                                                                                             |
+| **RosettaContainer**            | Wraps multiple Rosetta tasks into a container, managing file system mounts and resource allocation.                                                                                                                           |
+| **MpiNode**                     | Manages MPI resources for parallel computing tasks; note that it is not thoroughly tested.                                                                                                                                    |
+| **RosettaRepoManager**          | Fetches necessary directories and files, sets up environment variables, and provides a `partial_clone` method for cloning and setting up repositories.                                                                        |
+| **Rosetta**                     | A command-line wrapper for executing Rosetta runs, simplifying the process of setting up and running commands.                                                                                                                |
+| **RosettaScriptsVariableGroup** | Represents variables used in Rosetta scripts, facilitating their management and use.                                                                                                                                          |
+| **RosettaEnergyUnitAnalyser**   | Analyzes and interprets Rosetta output score files, providing a simplified interface for result analysis.                                                                                                                     |
+| **Example Applications**        | Demonstrates the use of the above components through specific Rosetta applications like PROSS, FastRelax, RosettaLigand, Supercharge, MutateRelax, and Cartesian ddG, each tailored to different computational biology tasks. |
 
 ## Features
 
@@ -112,7 +105,7 @@ Examples of valid binary filenames:
 
 ## Installation
 
-Ensure you have Python 3.8 or higher installed.
+Ensure Python 3.8 or higher installed.
 
 ### Install via PyPI
 
@@ -124,40 +117,98 @@ pip install RosettaPy -U
 
 ## Usage
 
-### Building Your Own Rosetta Workflow
+### Build Your Own Rosetta Workflow
+
+**Import necessary modules**
 
 ```python
-# Imports
 from RosettaPy import Rosetta, RosettaScriptsVariableGroup, RosettaEnergyUnitAnalyser
-from RosettaPy.node import RosettaContainer
+from RosettaPy.node import RosettaContainer, MpiNode
+```
 
-# Create a Rosetta object with the desired parameters
+**Create a Rosetta proxy with parameters**
+
+```python
 rosetta = Rosetta(
+    # a binary name for locating the real binary path
     bin="rosetta_scripts",
+
+    # flag file paths (please do not use `@` prefix here)
     flags=[...],
+
+    # command-line options
     opts=[
         "-in:file:s", os.path.abspath(pdb),
         "-parser:protocol", "/path/to/my_rosetta_scripts.xml",
     ],
+
+    # output directory
     output_dir=...,
+
+    # save pdb and scorefile together
     save_all_together=True,
+
+    # a job identifier
     job_id=...,
 
-    # Some Rosetta Apps (Superchange, Cartesian ddG, etc.) may produce files in the working directory,
-    # and this may not threadsafe if one runs multiple jobs in parallel in the same directory.
-    # In this case, the `isolation` flag can be used to create a temporary directory for each run.
-    # isolation=True,
-
-    # Optionally, if one wishes to use the Rosetta container.
-    # The image name can be found at https://hub.docker.com/r/rosettacommons/rosetta
-    # run_node=RosettaContainer(image="rosettacommons/rosetta:latest")
-
-    # If you wish to run with Rosetta installed on local and built with `extra=mpi` flag via MPI,
-    # consider using `MpiNode` instance as `run_node`. This enables native parallelism feature with OpenMPI.
-    # run_node=MpiNode(nproc=10),
+    # silent the rosetta logs from stdout
+    verbose = False,
 )
+```
 
-# Compose your Rosetta tasks matrix
+**Isolation Mode**
+
+Some Rosetta Apps (Superchange, Cartesian ddG, etc.) may produce files at their working directory, and this may not threadsafe if one runs multiple jobs in parallel in the same directory. In this case, the `isolation` flag can be used to create a temporary directory for each run.
+```diff
+Rosetta(
+    ...
++   isolation=True,
+)
+```
+
+**Run rosetta tasks with Rosetta Container**
+
+If one wishes to use the Rosetta container as the task worker, (WSL + Docker Desktop, for example)
+setting a `run_node` option as `RosettaContainer` class would tell the proxy to use it.
+This image names can be found at https://hub.docker.com/r/rosettacommons/rosetta
+Note that the paths of each task will be mounted into the container and rewritten to the container's path.
+This rewriting feature may fail if the path is mixed with complicated expressions as options.
+
+```diff
+Rosetta(
+    ...
++   run_node=RosettaContainer(image="rosettacommons/rosetta:latest"),
+)
+```
+
+**Run rosetta tasks with MPI**
+
+If one wish to run with Rosetta that was installed on local and built with `extra=mpi` flag via MPI,
+consider using `MpiNode` instance as `run_node` instead. This enables native parallelism feature with MPI.
+
+```diff
+Rosetta(
+    ...
++   run_node=MpiNode(nproc=10),
+)
+```
+
+Also, if one wishes to use MpiNode with Slurm task manager, specifying `run_node` to `MpiNode.from_slurm()` may help
+with fetching the node info from the environment.
+
+_This is an experimental feature that has not been seriously tested in production._
+
+```diff
+Rosetta(
+    ...
++   run_node=MpiNode.from_slurm(),
+)
+```
+
+
+**Compose rosetta tasks matrix as inputs**
+
+```python
 tasks = [ # Create tasks for each variant
     {
         "rsv": RosettaScriptsVariableGroup.from_dict(
@@ -173,18 +224,22 @@ tasks = [ # Create tasks for each variant
     for variant in variants
 ]
 
-# Run Rosetta against these tasks
+# pass task matrix to rosetta.run as `inputs`
 rosetta.run(inputs=tasks)
+```
 
-# Or create a distributed runs with structure labels (-nstruct)
-# For local run without MPI and dockerized runs, `RosettaPy` implemented this feature by
-# ignoring the build-in job distributer of Rosetta, canceling the default output structure
-# label, then attaching external structural label as unique job identifier and run the task
-# only once. This enables massive parallalism.
+**Using structure labels (-nstruct)**
+
+Create distributed runs with structure labels (-nstruct) is feasible. For local runs without MPI or container, `RosettaPy` implemented this feature by ignoring the build-in job distributer of Rosetta, canceling the default output structure label, attaching external structural label as unique job identifier to each other, then run these tasks only once for each. This enables massive parallalism.
+
+```python
 options=[...] # Passing an optional list of options that will be used to all structure models
 rosetta.run(nstruct=nstruct, inputs=options) # input options will be passed to all runs equally
+```
 
-# Use Analyzer to check the results
+**Call Analyzer to check the results**
+
+```python
 analyser = RosettaEnergyUnitAnalyser(score_file=rosetta.output_scorefile_dir)
 best_hit = analyser.best_decoy
 pdb_path = os.path.join(rosetta.output_pdb_dir, f'{best_hit["decoy"]}.pdb')
@@ -202,16 +257,16 @@ print(f'Best Hit on this run: {best_hit["decoy"]} - {best_hit["score"]}: {pdb_pa
 ### Fetching additional scripts/database files from the Rosetta GitHub repository.
 
 > [!WARNING]
-> _AGAIN, before run this method, please **DO** make sure that you have licensed by Rosetta Commons._
-> _For more details of licensing, please see this [page](https://rosettacommons.org/software/download/)._
+> _AGAIN, before using this tool, please **DO** make sure that you have licensed by Rosetta Commons._
+> _For more details of licensing, please check this [page](https://rosettacommons.org/software/download/)._
 
-This tool is helpful for fetching additional scripts/database files from the Rosetta GitHub repository.
+This tool is helpful for fetching additional scripts/database files/directories from the Rosetta GitHub repository.
 
-For example, if your local machine does not have Rosetta built and installed, and you wich check some files from `$ROSETTA3_DB` or `$ROSETTA_PYTHON_SCRIPTS` before run Rosetta tasks within Rosetta Container, you may quickly use this tool to fetch them into your local machine.
+For example, if one's local machine does not have Rosetta built and installed, and wishes to check some files from `$ROSETTA3_DB` or use some helper scripts at `$ROSETTA_PYTHON_SCRIPTS` before run Rosetta tasks within Rosetta Container, one can use this tool to fetch them into the local harddrive by doing a minimum cloning.
 
 The `partial_clone` function do will do the following steps:
 
-1. Check if the Git binary is feasible and the git version `>=2.34.1`. If not, then raise an error to notify the user to upgrade git.
+1. Check if Git is installed and versioned with `>=2.34.1`. If not satisfied, raise an error to notify the user to upgrade git.
 2. Check if the target directory is empty or not and the repository is not cloned yet.
 3. Setup partial clone and sparse checkout stuffs.
 4. Clone the repository and subdirectory to the target directory.
@@ -274,10 +329,15 @@ The project includes unit tests using Python's `pytest` framework.
 
    ```bash
    # quick test cases
-   python -m pytest ./tests -m 'not integration'
+   pytest ./tests -m 'not integration'
 
    # test integration cases
-   python -m pytest ./tests -m 'integration'
+   pytest ./tests -m 'integration'
+
+   # run integration tests with both docker and local
+   export GITHUB_CONTAINER_ROSETTA_TEST=YES
+   pytest ./tests -m 'integration'
+
    ```
 
 ## Contributing
@@ -287,7 +347,8 @@ Contributions are welcome! Please submit a pull request or open an issue for bug
 ## Acknowledgements
 
 - **Rosetta Commons**: The Rosetta software suite for the computational modeling and analysis of protein structures.
-- **CIs, formatters, checkers and Hooks** that save my life and make this tool improved.
+- **CIs, formatters, checkers and hooks** that save my life and make this tool improved.
+- **ChatGPT, Tongyi Lingma and DeepSource Autofix™ AI** for the documentation, code improvements, test cases and code revisions.
 
 ## Contact
 

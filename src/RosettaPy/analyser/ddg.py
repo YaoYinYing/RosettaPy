@@ -197,7 +197,7 @@ class RosettaCartesianddGAnalyser:
         :param path_and_file_name: The path and filename of the JSON file.
         :return: A pandas DataFrame containing the data from the JSON file.
         """
-        with open(path_and_file_name) as jr:
+        with open(path_and_file_name, encoding="utf-8") as jr:
             ddg_json: List[Dict[Literal["mutations", "scores"], Any]] = json.load(jr)
 
         mutant_ddg_records = []

@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 
-from .conftest import github_rosetta_test
+from ..conftest import github_rosetta_test
 
 
 @pytest.mark.integration

@@ -87,7 +87,6 @@ class FastRelax:
         save_dir (str, optional): The directory to save the results. Defaults to "tests/outputs".
         job_id (str, optional): The job identifier. Defaults to "fastrelax".
         relax_script (str, optional): The relaxation script to use. Defaults to "MonomerRelax2019".
-        default_repeats (int, optional): The default number of repeats for relaxation. Defaults to 15.
         dualspace (bool, optional): Whether to use dualspace mode. Defaults to False.
     """
 
@@ -95,7 +94,6 @@ class FastRelax:
     save_dir: str = "tests/outputs"
     job_id: str = "fastrelax"
     relax_script: str = "MonomerRelax2019"
-    default_repeats: int = 15
     dualspace: bool = False
     node: Optional[Union[RosettaContainer, MpiNode]] = None
 
@@ -123,12 +121,13 @@ class FastRelax:
 
         self.relax_script = get_relax_scripts_from_db(self.relax_script)
 
-    def run(self, nstruct: int = 8) -> RosettaEnergyUnitAnalyser:
+    def run(self, nstruct: int = 8, default_repeats: int = 15) -> RosettaEnergyUnitAnalyser:
         """
         Runs the fast relaxation process using the specified parameters.
 
         Args:
             nstruct (int, optional): The number of structures to generate. Defaults to 8.
+            default_repeats (int, optional): The default number of repeats for relaxation. Defaults to 15.
 
         Returns:
             RosettaEnergyUnitAnalyser: An object for analyzing the energy units of the generated structures.
@@ -142,7 +141,7 @@ class FastRelax:
                 "-relax:script",
                 self.relax_script,
                 "-relax:default_repeats",
-                str(self.default_repeats),
+                str(default_repeats),
                 "-out:prefix",
                 f"{self.instance}_fastrelax_",
                 "-out:file:scorefile",
@@ -174,18 +173,19 @@ def main(dualspace: bool = False, use_docker=False):
             pdb="tests/data/3fap_hf3_A.pdb",
             dualspace=True,
             job_id="fastrelax_dualspace" + docker_label,
-            default_repeats=3,
             node=RosettaContainer(image="rosettacommons/rosetta:mpi") if use_docker else None,
         )
     else:
         scorer = FastRelax(
             pdb="tests/data/3fap_hf3_A.pdb",
-            default_repeats=3,
             node=RosettaContainer(image="rosettacommons/rosetta:mpi") if use_docker else None,
             job_id="fast_relax" + docker_label,
         )
 
-    analyser = scorer.run(4)
+    analyser = scorer.run(
+        nstruct=4,
+        default_repeats=3,
+    )
     best_hit = analyser.best_decoy
 
     print("Analysis of the best decoy:")
