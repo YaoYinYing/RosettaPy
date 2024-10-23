@@ -5,6 +5,7 @@ MPI module for run Rosetta (extra=mpi) on local machine.
 import contextlib
 import copy
 import os
+import platform
 import random
 import shutil
 import subprocess
@@ -33,7 +34,7 @@ class MpiNode:
     node_matrix: Optional[Dict[str, int]] = None  # Node ID: nproc
     node_file = f"nodefile_{random.randint(1, 9_999_999_999)}.txt"
 
-    user = os.getuid()
+    user = os.getuid() if platform.system() != "Windows" else None
 
     def __post_init__(self):
         """

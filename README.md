@@ -298,6 +298,19 @@ def clone_db_relax_script():
 
 ```
 
+## Windows? Yes.
+Thanks to the official container image, it is possible to run RosettaPy on Windows.
+Here's the steps one should follow:
+
+1. Enable `Windows Subsystem for Linux`, and switch to `WSL2`(https://aka.ms/wsl2kernel)
+2. Install `Docker Desktop` and enable `WSL2 docker engine`.
+3. Search for the Image `rosettacommons/rosetta:<label>` where `<label>` is the version of Rosetta build you want to use.
+4. Use `RosettaContainer` class as the run node, with the image name you just pulled.
+5. Make sure all your input files are using `LF` ending instead of `CRLF`. This is fatal for Rosetta to parse input files.
+6. Build you Rosetta workflow with `RosettaPy` and run it.
+
+During the workflow processing, you will see some active containers at `Containers` tab of `Docker Desktop`.
+
 ## Environment Variables
 
 The `RosettaFinder` searches the following directories by default:

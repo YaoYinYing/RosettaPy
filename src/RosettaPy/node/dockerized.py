@@ -7,10 +7,11 @@ Container module for run Rosetta via docker.
 
 
 import os
+import platform
 import signal
 import warnings
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import docker
 from docker import types
@@ -119,7 +120,7 @@ class RosettaPyMount:
         mount = cls(
             name=mount_name,
             source=str(source_path),
-            target=str(target_path),
+            target=str(target_path).replace("\\", "/"),
             mounted=str(mounted_path),
             readonly=read_only,
         )
@@ -154,7 +155,7 @@ class RosettaPyMount:
         else:
             dirname = path
 
-        return dirname.replace("/", "-").strip("-")
+        return dirname.replace("/", "-").replace("\\", "-").replace(":", "-").strip("-")
 
     @classmethod
     def squeeze(cls, mounts: List[types.Mount]) -> List[types.Mount]:
@@ -233,7 +234,7 @@ class RosettaContainer:
 
     image: str = "rosettacommons/rosetta:mpi"
     mpi_available: bool = False
-    user: str = f"{os.geteuid()}:{os.getegid()}"
+    user: Optional[str] = f"{os.geteuid()}:{os.getegid()}" if platform.system() != "Windows" else None
     nproc: int = 0
     prohibit_mpi: bool = False  # to overide the mpi_available flag
 
