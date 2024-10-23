@@ -6,7 +6,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from RosettaPy.node import RosettaContainer
-from RosettaPy.node.dockerized import RosettaPyMount, get_quoted
+from RosettaPy.node.dockerized import RosettaPyMount
+from RosettaPy.node.utils import get_quoted, mount
 from RosettaPy.utils import RosettaCmdTask
 
 
@@ -98,7 +99,7 @@ def test_rosetta_container_recompose():
 
 def test_rosetta_container_run_single_task(mock_task):
     with patch("docker.from_env") as mock_docker, patch(
-        "RosettaPy.node.dockerized.RosettaContainer.mount", return_value=(mock_task, [])
+        "RosettaPy.node.utils.mount", return_value=(mock_task, [])
     ) as mock_mount, patch("signal.signal") as mock_signal:
 
         mock_client = mock_docker.return_value
@@ -106,6 +107,7 @@ def test_rosetta_container_run_single_task(mock_task):
         mock_container.logs.return_value = [b"Log line 1\n", b"Log line 2\n"]
 
         container = RosettaContainer()
+        mounted_task, mounts = mount(mock_task, mounter=RosettaPyMount)
         result_task = container.run_single_task(mock_task)
 
         mock_client.containers.run.assert_called_once_with(
@@ -113,11 +115,11 @@ def test_rosetta_container_run_single_task(mock_task):
             command=mock_task.cmd,
             remove=True,
             detach=True,
-            mounts=[],
+            mounts=mounts,
             user=container.user,
             stdout=True,
             stderr=True,
-            working_dir=mock_task.runtime_dir,
+            working_dir=mounted_task.runtime_dir,
             platform="linux/amd64",
         )
         mock_signal.assert_called_once()
@@ -279,7 +281,8 @@ def test_mount_with_command(file_paths, dir_paths, cmd, expected_cmd, expected_m
     ):
         task = RosettaCmdTask(cmd=cmd, base_dir=temp_dir)
 
-        mounted_task, mounts = RosettaContainer.mount(task)
+        mounted_task, mounts = mount(task, RosettaPyMount)
+        assert mounts is not None
         assert mounted_task.cmd == expected_cmd
         assert len(mounts) == expected_mounts_count
 
@@ -323,6 +326,7 @@ def test_mount_with_relative_paths(cmd, file_paths, expected_cmd, expected_mount
             mounted_path = os.path.join("/tmp", mn, "input.pdb")
             expected_cmd = ["-in:file:s", mounted_path]
 
-        mounted_task, mounts = RosettaContainer.mount(task)
+        mounted_task, mounts = mount(task, RosettaPyMount)
+        assert mounts is not None
         assert mounted_task.cmd == expected_cmd
         assert len(mounts) == expected_mounts_count

@@ -11,17 +11,19 @@ import platform
 import signal
 import warnings
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import docker
 from docker import types
+
+from RosettaPy.node.utils import Mounter, mount
 
 from ..utils.escape import print_diff, render
 from ..utils.task import RosettaCmdTask
 
 
 @dataclass
-class RosettaPyMount:
+class RosettaPyMount(Mounter):
     """
     Mount point for docker container.
     """
@@ -117,15 +119,13 @@ class RosettaPyMount:
 
         # Create and return the mount object and mounted path
 
-        mount = cls(
+        return cls(
             name=mount_name,
             source=str(source_path),
             target=str(target_path).replace("\\", "/"),
             mounted=str(mounted_path).replace("\\", "/"),
             readonly=read_only,
         )
-
-        return mount
 
     @staticmethod
     def get_mounted_name(path: str) -> str:
@@ -175,13 +175,13 @@ class RosettaPyMount:
         # Initialize an empty list to store unique `Mount` objects
         mount_set = []
         # will not use Set here bcs `types.Mount` is not hashable
-        for mount in mounts:
+        for mount_obj in mounts:
             # Check if the current `Mount` object is already in `mount_set`
-            if mount in mount_set:
+            if mount_obj in mount_set:
                 # If so, skip it to remove duplicates
                 continue
             # If not, add it to `mount_set`
-            mount_set.append(mount)
+            mount_set.append(mount_obj)
 
         # Get the length of the list before and after duplicate removal
         # If the lengths are different, it means duplicates were removed
@@ -199,31 +199,6 @@ class RosettaPyMount:
 
         # Return the list of `Mount` objects with duplicates removed
         return mount_set
-
-
-def get_quoted(text: str) -> str:
-    """
-    Ensures the input string is enclosed in single quotes.
-
-    If the input string does not start with a single quote, one is added at the beginning.
-    If the input string does not end with a single quote, one is added at the end.
-
-    Parameters:
-    text (str): The string to be processed.
-
-    Returns:
-    str: The string enclosed in single quotes.
-    """
-
-    text = text.replace("\n", "")
-    # Ensure the result starts and ends with single quotes
-    if not text.startswith("'"):
-        text = "'" + text
-
-    if not text.endswith("'"):
-        text += "'"
-
-    return text
 
 
 @dataclass
@@ -249,175 +224,6 @@ class RosettaContainer:
         # Respect the MPI prohibition flag
         if self.prohibit_mpi:
             self.mpi_available = False
-
-    @staticmethod
-    def _process_xml_fragment(script_vars_v: str) -> Tuple[str, List[RosettaPyMount]]:
-        """
-        Process an XML fragment to handle file and directory paths.
-
-        This function takes a string containing paths potentially mixed with other text,
-        identifies the paths, and creates RosettaPyMount objects for them. It also
-        reconstructs the input string with the mounted paths, preserving the original
-        structure as much as possible.
-
-        Parameters:
-        - script_vars_v (str): A string containing paths mixed with other text.
-
-        Returns:
-        - Tuple[str, List[RosettaPyMount]]: A tuple containing the reconstructed string
-        and a list of RosettaPyMount objects created from the paths.
-        """
-
-        # Initialize lists to store processed paths and RosettaPyMount objects
-        vf_list = []
-        mounts = []
-
-        # Split the input string by double quotes and process each segment
-        vf_split = script_vars_v.split('"')
-        for _, vf in enumerate(vf_split):
-            # Check if the segment is a valid file or directory path
-            if os.path.isfile(vf) or os.path.isdir(vf):
-                # Create a RosettaPyMount object from the path and add it to the mounts list
-                mount = RosettaPyMount.from_path(vf)
-                mounts.append(mount)
-                # Add the mounted path representation to vf_list
-                vf_list.append(mount.mounted)
-                continue
-            # Add the unmodified segment to vf_list
-            vf_list.append(vf)
-
-        # Join the processed segments back together
-        joined_vf = get_quoted('"'.join(vf_list))
-
-        # Print a comparison between the original and processed strings
-        print_diff(
-            title="Mounted",
-            labels={"Original": script_vars_v, "Rewrited": joined_vf},
-            label_colors=["blue", "purple"],
-            title_color="light_purple",
-        )
-
-        # Return the reconstructed string and the list of mounts
-        return joined_vf, mounts
-
-    @staticmethod
-    def _mount_from_xml_variable(_cmd: str) -> Tuple[str, List[RosettaPyMount]]:
-        """
-        Processes XML variable commands, parsing and mounting file paths or XML fragments.
-
-        This function is designed to handle strings that may represent direct file paths or XML fragments containing
-        file paths. It identifies the type of command and processes it accordingly, either by mounting the file path
-        or parsing the XML fragment.
-
-        Parameters:
-        - _cmd (str): The command string to be processed, typically containing a variable assignment or an XML fragment.
-
-        Returns:
-        - Tuple[str, List[RosettaPyMount]]: A tuple containing the processed command string and a list of mounted
-        objects.
-        """
-        # Split the command by the '=' to separate the variable name from its value
-        script_vars = _cmd.split("=")
-        # Rejoin any parts that follow the first '=' as they constitute the variable's value
-        script_vars_v = "=".join(script_vars[1:])
-
-        # Print the parsing information for debugging purposes
-        print(
-            f"{render('Parsing:', 'purple-negative-bold')} "
-            f"{render(script_vars[0], 'blue-negative')}="
-            f"{render(script_vars_v, 'red-negative')}"
-        )
-
-        # Normal file input handling
-        if os.path.isfile(script_vars_v) or os.path.isdir(script_vars_v):
-            # If the value is a valid file or directory path, create a RosettaPyMount object from it
-            mount = RosettaPyMount.from_path(script_vars_v)
-            # Return the variable assignment with the mounted path and a list containing the mount object
-            return f"{script_vars[0]}={mount.mounted}", [mount]
-
-        # Handling of XML file blocks with file inputs
-        # Example: '<AddOrRemoveMatchCsts name="cstadd" cstfile="/my/example.cst" cst_instruction="add_new"/>'
-        if " " in script_vars_v and "<" in script_vars_v:  # Indicates an XML fragment
-            # If the value appears to be an XML fragment, process it using the _process_xml_fragment method
-            joined_vf, mounts = RosettaContainer._process_xml_fragment(script_vars_v)
-            # Return the variable assignment with the processed XML fragment and the list of mount objects
-            return f"{script_vars[0]}={joined_vf}", mounts
-
-        # If the value does not match any of the above conditions, return the original command and an empty list
-        return _cmd, []
-
-    @staticmethod
-    def mount(input_task: RosettaCmdTask) -> Tuple[RosettaCmdTask, List[types.Mount]]:
-        """
-        Prepares the mounting environment for a single task.
-
-        This function is responsible for mounting files and directories required by the given task.
-
-        Parameters:
-            input_task (RosettaCmdTask): The task object containing the command and runtime directory information.
-
-        Returns:
-            Tuple[RosettaCmdTask, List[types.Mount]]: A tuple containing the updated task object
-            with mounted paths and a list of mounts.
-        """
-
-        all_mounts: List[RosettaPyMount] = []
-        updated_cmd_with_mounts = []
-
-        for i, cmd_segment in enumerate(input_task.cmd):
-            try:
-                # Handle general options
-                if cmd_segment.startswith("-"):
-                    updated_cmd_with_mounts.append(cmd_segment)
-                    continue
-
-                # Handle option input
-                if os.path.isfile(cmd_segment) or os.path.isdir(cmd_segment):
-                    mount = RosettaPyMount.from_path(cmd_segment)
-                    all_mounts.append(mount)
-                    updated_cmd_with_mounts.append(mount.mounted)
-                    continue
-
-                # Handle Rosetta flag files
-                if cmd_segment.startswith("@"):
-                    mount = RosettaPyMount.from_path(cmd_segment[1:])
-                    all_mounts.append(mount)
-                    updated_cmd_with_mounts.append(f"@{mount.mounted}")
-                    continue
-
-                # Handle Rosetta Scripts variables
-                if "=" in cmd_segment and input_task.cmd[i - 1] == "-parser:script_vars":
-                    updated_cmd_segment, partial_mounts = RosettaContainer._mount_from_xml_variable(cmd_segment)
-                    all_mounts.extend(partial_mounts)
-                    updated_cmd_with_mounts.append(updated_cmd_segment)
-                    continue
-
-                updated_cmd_with_mounts.append(cmd_segment)
-
-            except Exception as e:
-                # handle exceptions without breaking the loop
-                print(f"Error processing command '{cmd_segment}': {e}")
-                updated_cmd_with_mounts.append(cmd_segment)
-        try:
-            if not os.path.exists(input_task.runtime_dir):
-                os.makedirs(input_task.runtime_dir)
-        except FileExistsError:
-            warnings.warn(
-                RuntimeWarning(
-                    f"{input_task.runtime_dir} already exists. This might be a leftover from a previous run. "
-                    "If you are sure that this is not the case, please delete the directory and try again."
-                )
-            )
-
-        mounted_runtime_dir = RosettaPyMount.from_path(input_task.runtime_dir)
-        all_mounts.append(mounted_runtime_dir)
-
-        mounted_task = RosettaCmdTask(
-            cmd=updated_cmd_with_mounts,
-            base_dir=mounted_runtime_dir.mounted,
-        )
-
-        return mounted_task, RosettaPyMount.squeeze([mount.mount for mount in all_mounts])
 
     def recompose(self, cmd: List[str]) -> List[str]:
         """
@@ -458,7 +264,7 @@ class RosettaContainer:
         """
 
         # Mount the necessary files and directories, then run the task
-        mounted_task, mounts = RosettaContainer.mount(input_task=task)
+        mounted_task, mounts = mount(input_task=task, mounter=RosettaPyMount)
         client = docker.from_env()
 
         print(f"{render('Mounted with: ', 'green-bold-negative')} " f"{render(mounted_task.cmd, 'bold-green')}")
