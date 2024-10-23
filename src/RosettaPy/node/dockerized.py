@@ -121,7 +121,7 @@ class RosettaPyMount:
             name=mount_name,
             source=str(source_path),
             target=str(target_path).replace("\\", "/"),
-            mounted=str(mounted_path),
+            mounted=str(mounted_path).replace("\\", "/"),
             readonly=read_only,
         )
 
