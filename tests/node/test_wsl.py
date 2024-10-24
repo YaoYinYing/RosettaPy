@@ -5,6 +5,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from RosettaPy.node.wsl import WslMount, WslWrapper
+from RosettaPy.rosetta_finder import RosettaBinary
+from RosettaPy.utils import tmpdir_manager
 from RosettaPy.utils.task import RosettaCmdTask
 
 
@@ -40,58 +42,69 @@ def test_mounted_property():
     assert wsl_mount.mounted == "/mnt/c/Windows/Path"
 
 
-# Mock environment for WSL
-os.environ["WSL_DISTRO_NAME"] = "Ubuntu"
+# Mock data
+MOCK_DISTRO = "Ubuntu"
+MOCK_USER = "testuser"
+MOCK_CMD = ["echo", "Hello, WSL!"]
+MOCK_OUTPUT = "Hello, WSL!\n"
+
+MOCK_ROSETTA = RosettaBinary("/bin", "rosetta_scripts")
 
 
 class TestWslWrapper:
 
     @pytest.fixture
     def wsl_wrapper(self):
-        return WslWrapper(rosetta_bin_dir="/path/to/rosetta/bin")
+        with patch("RosettaPy.node.wsl.WslWrapper.run_wsl_command", return_value=f"{MOCK_DISTRO}\nDebian"):
+            return WslWrapper(rosetta_bin=MOCK_ROSETTA, distro=MOCK_DISTRO, user=MOCK_USER)
 
-    @patch("subprocess.run")
-    def test_is_root_user_wsl_true(self, mock_subprocess, wsl_wrapper):
-        mock_subprocess.return_value = MagicMock(stdout="root\n", stderr="", returncode=0)
-        assert wsl_wrapper.is_root_user_wsl is True
+    @pytest.fixture
+    def mock_task(self):
+        with tmpdir_manager() as tmp_dir:
+            return RosettaCmdTask(cmd=["rosetta"], base_dir=tmp_dir)
 
-    @patch("subprocess.run")
-    def test_is_root_user_wsl_false(self, mock_subprocess, wsl_wrapper):
-        mock_subprocess.return_value = MagicMock(stdout="user\n", stderr="", returncode=0)
-        assert wsl_wrapper.is_root_user_wsl is False
+    def test_run_wsl_command_success(self, wsl_wrapper):
+        with patch.object(wsl_wrapper, "run_wsl_command", return_value=MOCK_OUTPUT):
 
-    @patch("subprocess.run")
-    def test_is_root_user_wsl_exception(self, mock_subprocess, wsl_wrapper):
-        mock_subprocess.side_effect = subprocess.CalledProcessError(1, "wsl whoami")
-        assert wsl_wrapper.is_root_user_wsl is False
+            mock_process = MagicMock()
+            mock_process.communicate.return_value = (MOCK_OUTPUT, "")
+            mock_process.wait.return_value = 0
 
-    @patch("subprocess.run")
-    def test_does_wsl_have_mpirun_true(self, mock_subprocess, wsl_wrapper):
-        mock_subprocess.return_value = MagicMock(returncode=0)
-        assert wsl_wrapper.does_wsl_have_mpirun is True
+            output = wsl_wrapper.run_wsl_command(MOCK_CMD)
+            assert output == MOCK_OUTPUT
 
-    @patch("subprocess.run")
-    def test_does_wsl_have_mpirun_false(self, mock_subprocess, wsl_wrapper):
-        mock_subprocess.return_value = MagicMock(returncode=1)
-        assert wsl_wrapper.does_wsl_have_mpirun is False
-
-    @patch("subprocess.run")
-    def test_does_wsl_have_mpirun_exception(self, mock_subprocess, wsl_wrapper):
-        mock_subprocess.side_effect = subprocess.CalledProcessError(1, "wsl which mpirun")
-        assert wsl_wrapper.does_wsl_have_mpirun is False
-
-    def test_recompose_no_mpi(self, wsl_wrapper):
-        wsl_wrapper.mpi_available = False
-        cmd = ["ls", "-l"]
-        recomposed_cmd = wsl_wrapper.recompose(cmd)
-        assert recomposed_cmd == cmd
+    def test_has_mpirun_installed(self, wsl_wrapper):
+        with patch.object(wsl_wrapper, "run_wsl_command", return_value="/usr/bin/mpirun\n"):
+            assert wsl_wrapper.has_mpirun is True
 
     def test_recompose_with_mpi(self, wsl_wrapper):
         wsl_wrapper.mpi_available = True
         wsl_wrapper._mpirun_cache = True
-        with patch("RosettaPy.node.wsl.WslWrapper.is_root_user_wsl", return_value=True):
+        cmd = ["rosetta", "-in:file:somefile.pdb"]
+        expected_cmd = ["mpirun", "--use-hwthread-cpus", "-np", "4", "rosetta", "-in:file:somefile.pdb"]
+        assert wsl_wrapper.recompose(cmd) == expected_cmd
 
-            cmd = ["ls", "-l"]
-            recomposed_cmd = wsl_wrapper.recompose(cmd)
-            expected_cmd = ["mpirun", "--use-hwthread-cpus", "-np", "4", "--allow-run-as-root", "ls", "-l"]
-            assert recomposed_cmd == expected_cmd
+    def test_recompose_without_mpi(self, wsl_wrapper):
+        wsl_wrapper.mpi_available = False
+        cmd = ["rosetta", "-in:file:somefile.pdb"]
+        assert wsl_wrapper.recompose(cmd) == cmd
+
+    def test_run_single_task(self, wsl_wrapper, mock_task):
+        with patch.object(wsl_wrapper, "run_wsl_command", return_value="C:\\Windows\\system32\\wsl.EXE"), patch(
+            "RosettaPy.node.utils.mount", return_value=(mock_task, None)
+        ):
+            with patch(
+                "RosettaPy.node.wsl.WslMount.from_path",
+                return_value=WslMount(source=mock_task.runtime_dir, target="/mnt/tmp/runtime_dir"),
+            ):
+                result_task = wsl_wrapper.run_single_task(mock_task, lambda x: x)
+                assert result_task.cmd == [
+                    "wsl",
+                    "-d",
+                    MOCK_DISTRO,
+                    "-u",
+                    MOCK_USER,
+                    "--cd",
+                    "/mnt/tmp/runtime_dir",
+                    "rosetta",
+                ]

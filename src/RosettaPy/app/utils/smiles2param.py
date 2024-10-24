@@ -21,7 +21,7 @@ import os
 import sys
 import warnings
 from dataclasses import dataclass
-from typing import Dict
+from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 from joblib import Parallel, delayed
@@ -175,6 +175,152 @@ def get_conformers(mol, nr=500, rmsthreshold=0.1):
 
 
 @dataclass
+class SmallMoleculeSimilarityChecker:
+    """
+    A class for comparing the similarity of small molecules.
+
+    This class provides functionality to convert SMILES strings into canonical form, calculate molecular fingerprints,
+    and compare the similarity between molecules using the Tanimoto coefficient.
+    """
+
+    ligands: Dict[str, str]
+
+    @staticmethod
+    def smile2canon(name: str, ds: str) -> Optional[str]:
+        """
+        Converts a SMILES string to its canonical form.
+
+        If successful, it returns the canonical SMILES string; otherwise, if the conversion fails
+        (e.g., ds is not a valid SMILES string),
+        it prints an error message and returns None.
+
+        Parameters:
+        name (str): The name of the compound, used for identifying the compound in error messages.
+        ds (str): The SMILES string to be converted to canonical form.
+
+        Returns:
+        str | None: The canonical SMILES string if successful, or None if the conversion fails.
+        """
+        try:
+            return Chem.CanonSmiles(ds)
+        except Exception as e:
+            print(f"Drop Invalid SMILES:{name} {ds}: {e}")
+            return None
+
+    def get_canon_smiles(self) -> Dict[str, str]:
+        """
+        Converts the ligands dictionary from SMILES format to canonical SMILES format.
+
+        The purpose of this function is to standardize the representation of ligands, ensuring that
+        regardless of the form in which the SMILES string is provided, it is converted to a unique,
+        canonical form for subsequent processing and comparison.
+
+        Returns:
+        Dict[str, str]: A dictionary similar to the input, but with values converted to canonical SMILES strings.
+        """
+        # Initialize an empty dictionary to store the canonical SMILES format of ligands
+        canon_smiles = {}
+
+        # Iterate through the ligands dictionary, converting each ligand's SMILES format
+        for i, smiles_string in self.ligands.items():
+            # Use the smile2canon method to convert to canonical SMILES format
+            canon_smiles_string = self.smile2canon(i, smiles_string)
+
+            # Check if the converted canonical SMILES string is not None, then add it to the canon_smiles dictionary
+            if canon_smiles_string is not None:
+                canon_smiles.update({i: canon_smiles_string})
+
+        # Return the dictionary containing the canonical SMILES strings of all ligands
+        return canon_smiles
+
+    @staticmethod
+    def get_fingerprints(canon_smiles: Dict[str, str]) -> Dict[str, Any]:
+        """
+        Converts canonical SMILES into molecular fingerprints.
+
+        Parameters:
+        canon_smiles (Dict[str, str]): A dictionary where the key is the molecule's identifier and the value
+        is the canonical SMILES string.
+
+        Returns:
+        Dict[str, Any]: A dictionary where the key is the molecule's identifier and the value is the molecular
+        fingerprint object.
+        """
+        # Create a list of molecules
+        mols = {k: Chem.MolFromSmiles(v) for k, v in canon_smiles.items()}
+
+        # Generate fingerprints for each molecule
+        return {k: FingerprintMols.FingerprintMol(v) for k, v in mols.items()}
+
+    @staticmethod
+    def prepare_dataframe_lists(canon_smiles: Dict[str, str], fingerprints: Dict[str, Any]) -> Tuple[List, List, List]:
+        """
+        Prepares lists for DataFrame construction.
+
+        This function takes two dictionaries, one with canonicalized SMILES and another with molecular fingerprints,
+        and calculates the Tanimoto similarity between each pair of molecules. It prepares three lists:
+        query molecules, target molecules, and their corresponding similarity scores, for subsequent DataFrame
+        construction.
+
+        Parameters:
+        - canon_smiles: Dictionary where keys are molecule identifiers and values are canonicalized SMILES strings.
+        - fingerprints: Dictionary where keys are molecule identifiers and values are molecular fingerprint objects.
+
+        Returns:
+        - Tuple containing three lists: query molecule SMILES list, target molecule SMILES list, and similarity
+        score list.
+        """
+        # Prepare lists for the DataFrame
+        qu, ta, sim = [], [], []
+
+        # Convert dictionaries to value lists for easier access during pairwise comparison
+        c_smiles_v = list(canon_smiles.values())
+        fpsv = list(fingerprints.values())
+
+        # Iterate through each fingerprint, calculating pairwise Tanimoto similarities
+        for i, (lig_name, fingerprint) in enumerate(fingerprints.items()):
+            try:
+                # Calculate the Tanimoto similarity between the current fingerprint and all subsequent ones
+                s = DataStructs.BulkTanimotoSimilarity(fingerprint, fpsv[i + 1:])
+            except ValueError as e:
+                # If an error occurs, print a message and skip to the next iteration
+                print(f"Ignore molecule `{lig_name}` for fingerprints pairwise due to: {e}")
+                continue
+
+            # Print the comparison information for debugging purposes
+            print(canon_smiles[lig_name], c_smiles_v[i + 1:])
+
+            # Append the query, target, and similarity score to their respective lists
+            for j, _s in enumerate(s):
+                qu.append(canon_smiles[lig_name])
+                ta.append(c_smiles_v[i + 1:][j])
+                sim.append(_s)
+
+        # Return the three lists
+        return qu, ta, sim
+
+    def compare_fingerprints(self):
+        """
+        Compare the similarity of molecular fingerprints of a given set of ligands.
+
+        Returns:
+        None
+        """
+        canon_smiles = self.get_canon_smiles()
+
+        print(canon_smiles)
+
+        fingerprints = self.get_fingerprints(canon_smiles)
+
+        qu, ta, sim = self.prepare_dataframe_lists(canon_smiles, fingerprints)
+
+        # Build the DataFrame and sort it
+        df_final = pd.DataFrame(data={"query": qu, "target": ta, "Similarity": sim})
+        df_final = df_final.sort_values("Similarity", ascending=False)
+        print(df_final)
+
+
+@dataclass
 class SmallMoleculeParamsGenerator:
     """
     A class for generating small molecule parameters.
@@ -233,81 +379,6 @@ class SmallMoleculeParamsGenerator:
         except RuntimeError as e:
             raise RuntimeError("Could not find or setup a proper directory for ROSETTA_PYTHON_SCRIPTS.") from e
 
-    @staticmethod
-    def smile2canon(name, ds):
-        """
-        Converts a SMILES string to its canonical form.
-
-        This method attempts to convert the provided SMILES string (ds) into its Canonical SMILES format.
-        If successful, it returns the canonical SMILES string; otherwise, if the conversion fails
-        (e.g., ds is not a valid SMILES string),
-        it prints an error message and returns None.
-
-        Parameters:
-        name (str): The name of the compound, used for identifying the compound in error messages.
-        ds (str): The SMILES string to be converted to canonical form.
-
-        Returns:
-        str | None: The canonical SMILES string if successful, or None if the conversion fails.
-        """
-        try:
-            return Chem.CanonSmiles(ds)
-
-        except Exception as e:
-            print(f"Drop Invalid SMILES:{name} {ds}: {e}")
-            return None
-
-    @staticmethod
-    def compare_fingerprints(ligands: Dict[str, str]):
-        """
-        Compare the similarity of molecular fingerprints of a given set of ligands.
-
-        Parameters:
-        ligands: Dict[str, str] A dictionary containing the ligand identifiers as keys and their
-        corresponding molecular structures (SMILES format) as values.
-
-        Returns:
-        None
-        """
-        # Convert each ligand's SMILES format to its canonical SMILES format
-        canon_smiles = {}
-        for i, smiles_string in ligands.items():
-            canon_smiles_string = SmallMoleculeParamsGenerator.smile2canon(i, smiles_string)
-            if canon_smiles_string is not None:
-                canon_smiles.update({i: canon_smiles_string})
-
-        print(canon_smiles)
-
-        # Create a list of molecules
-        mols = {k: Chem.MolFromSmiles(v) for k, v in canon_smiles.items()}
-
-        # Generate fingerprints for each molecule
-        fingerprints = {k: FingerprintMols.FingerprintMol(v) for k, v in mols.items()}
-
-        # Prepare lists for the DataFrame
-        qu, ta, sim = [], [], []
-
-        # Compare all fingerprints pairwise without duplicates
-        c_smiles_v = list(canon_smiles.values())
-        fpsv = list(fingerprints.values())
-
-        for i, (lig_name, fingerprint) in enumerate(fingerprints.items()):
-            try:
-                s = DataStructs.BulkTanimotoSimilarity(fingerprint, fpsv[i + 1:])
-            except ValueError as e:
-                print(f"Ignore molecule `{lig_name}` for fingerprints pairwise due to: {e}")
-                continue
-            print(canon_smiles[lig_name], c_smiles_v[i + 1:])
-            for j, _s in enumerate(s):
-                qu.append(canon_smiles[lig_name])
-                ta.append(c_smiles_v[i + 1:][j])
-                sim.append(_s)
-
-        # Build the DataFrame and sort it
-        df_final = pd.DataFrame(data={"query": qu, "target": ta, "Similarity": sim})
-        df_final = df_final.sort_values("Similarity", ascending=False)
-        print(df_final)
-
     def convert_single(self, ligand_name: str, smiles: str):
         """
         Process a single ligand, including deprotonation, generation of molecular structures, energy
@@ -350,7 +421,7 @@ class SmallMoleculeParamsGenerator:
             ligands (Dict[str, str]): A dictionary mapping names to SMILES strings.
         """
 
-        SmallMoleculeParamsGenerator.compare_fingerprints(ligands)
+        SmallMoleculeSimilarityChecker(ligands=ligands).compare_fingerprints()
 
         Parallel(n_jobs=n_jobs, verbose=101)(
             delayed(self.convert_single)(ligand_name=i, smiles=v) for i, v in ligands.items()

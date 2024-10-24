@@ -16,7 +16,7 @@ from typing import Callable, Dict, List, Optional, Union
 
 from joblib import Parallel, delayed
 
-from .node import MpiNode, RosettaContainer
+from .node import MpiNode, RosettaContainer, WslWrapper
 from .node.mpi import MpiIncompatibleInputWarning
 # internal imports
 from .rosetta_finder import RosettaBinary, RosettaFinder
@@ -44,7 +44,7 @@ class Rosetta:
     flags: Optional[List[str]] = field(default_factory=list)
     opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = field(default_factory=list)
     use_mpi: bool = False
-    run_node: Optional[Union[MpiNode, RosettaContainer]] = None
+    run_node: Optional[Union[MpiNode, RosettaContainer, WslWrapper]] = None
 
     job_id: str = "default"
     output_dir: str = ""
@@ -107,12 +107,14 @@ class Rosetta:
             self.opts = []
 
         if isinstance(self.bin, str):
-            if not isinstance(self.run_node, RosettaContainer):
-                # local direct runs
-                self.bin = RosettaFinder().find_binary(self.bin)
-            else:
+            if isinstance(self.run_node, RosettaContainer):
                 # to container
                 self.bin = RosettaBinary(dirname="/usr/local/bin/", binary_name=self.bin)
+            elif isinstance(self.run_node, WslWrapper):
+                self.bin = self.run_node.rosetta_bin
+            else:
+                # local direct runs
+                self.bin = RosettaFinder().find_binary(self.bin)
 
         if self.run_node is not None:
             if self.bin.mode != "mpi":
@@ -286,8 +288,8 @@ class Rosetta:
         :param nstruct: Number of structures to generate.
         :return: List of RosettaCmdTask
         """
-        if not isinstance(self.run_node, (MpiNode, RosettaContainer)):
-            raise RuntimeError("MPI node/RosettaContainer instance is not initialized.")
+        if not isinstance(self.run_node, (MpiNode, RosettaContainer, WslWrapper)):
+            raise RuntimeError("MPI node/RosettaContainer/WslWrapper instance is not initialized.")
 
         # make a copy command list
         base_cmd_copy = copy.copy(base_cmd)
@@ -301,7 +303,7 @@ class Rosetta:
             base_cmd_copy.extend(["-nstruct", str(nstruct)])
 
         # early return if container setup is done
-        if isinstance(self.run_node, RosettaContainer):
+        if isinstance(self.run_node, (RosettaContainer, WslWrapper)):
             # skip setups of MpiNode because we have already recomposed.
             return [RosettaCmdTask(cmd=base_cmd_copy)]
 
@@ -373,14 +375,20 @@ class Rosetta:
         Returns:
             List[RosettaCmdTask]: The results of the executed tasks.
         """
-        # Ensure that the run_node is an instance of RosettaContainer
-        if not isinstance(self.run_node, RosettaContainer):
+        # Ensure that the run_node is an instance of RosettaContainer/WslWrapper
+        if not isinstance(self.run_node, (RosettaContainer, WslWrapper)):
             raise RuntimeError(
-                "To run with local docker container, you need to initialize RosettaContainer instance as self.run_node"
+                "To run with local docker container or WSL wrapper, you need to initialize "
+                "RosettaContainer/WslWrapper instance as self.run_node"
             )
 
-        # Define a partial function to execute tasks using the run_node
-        run_func = functools.partial(Rosetta.execute, func=self.run_node.run_single_task)
+        if isinstance(self.run_node, RosettaContainer):
+            # Define a partial function to execute tasks using the run_node
+            run_func = functools.partial(Rosetta.execute, func=self.run_node.run_single_task)
+
+        else:
+            # wsl use local runs of command
+            run_func = functools.partial(self.run_node.run_single_task, runner=Rosetta.execute)
 
         # Execute tasks in parallel using multiple jobs
         ret = Parallel(n_jobs=self.nproc, verbose=100)(delayed(run_func)(cmd_job) for cmd_job in tasks)
@@ -411,13 +419,14 @@ class Rosetta:
             tasks = self.setup_tasks_mpi(base_cmd=cmd, inputs=inputs, nstruct=nstruct)
             return self.run_mpi(tasks)
 
-        if isinstance(self.run_node, RosettaContainer):
+        if isinstance(self.run_node, (RosettaContainer, WslWrapper)):
             recomposed_cmd = self.run_node.recompose(cmd)
             print(f"Recomposed Command: \n{recomposed_cmd}")
             if self.run_node.mpi_available:
                 # only one task is returned
                 tasks = self.setup_tasks_mpi(base_cmd=recomposed_cmd, inputs=inputs, nstruct=nstruct)
-                return [self.run_node.run_single_task(task=tasks[0])]
+
+                return [self.run_node.run_single_task(task=tasks[0], runner=Rosetta.execute)]
 
             tasks = self.setup_tasks_local(base_cmd=recomposed_cmd, inputs=inputs, nstruct=nstruct)
             return self.run_local_docker(tasks)
@@ -434,13 +443,14 @@ class Rosetta:
         if not isinstance(self.bin, RosettaBinary):
             raise RuntimeError("Rosetta binary must be a RosettaBinary object")
 
-        cmd = [
-            (
-                self.bin.full_path
-                if not isinstance(self.run_node, RosettaContainer)
-                else f"/usr/local/bin/{self.bin.binary_name}"  # hard-coded bin path for container
-            )
-        ]
+        if isinstance(self.run_node, RosettaContainer):
+            rosetta_bin = f"/usr/local/bin/{self.bin.binary_name}"
+        elif isinstance(self.run_node, WslWrapper):
+            rosetta_bin = self.bin.full_path
+        else:
+            rosetta_bin = self.bin.full_path
+
+        cmd = [rosetta_bin]
         if self.flags:
             for flag in self.flags:
                 if not os.path.isfile(flag):

@@ -66,6 +66,7 @@ A Python Utility for Wrapping Rosetta Macromolecural Modeling Suite.
 | **RosettaContainer**            | Wraps multiple Rosetta tasks into a container, managing file system mounts and resource allocation.                                                                                                                           |
 | **MpiNode**                     | Manages MPI resources for parallel computing tasks; note that it is not thoroughly tested.                                                                                                                                    |
 | **RosettaRepoManager**          | Fetches necessary directories and files, sets up environment variables, and provides a `partial_clone` method for cloning and setting up repositories.                                                                        |
+| **WslWrapper**                  | Wrapper for running Rosetta on Windows Subsystem for Linux (WSL). Requires Rosetta installed in WSL.                                                                                                                          |
 | **Rosetta**                     | A command-line wrapper for executing Rosetta runs, simplifying the process of setting up and running commands.                                                                                                                |
 | **RosettaScriptsVariableGroup** | Represents variables used in Rosetta scripts, facilitating their management and use.                                                                                                                                          |
 | **RosettaEnergyUnitAnalyser**   | Analyzes and interprets Rosetta output score files, providing a simplified interface for result analysis.                                                                                                                     |
@@ -306,7 +307,7 @@ Here's the steps one should follow:
 2. Install `Docker Desktop` and enable `WSL2 docker engine`.
 3. Search for the Image `rosettacommons/rosetta:<label>` where `<label>` is the version of Rosetta build you want to use.
 4. Use `RosettaContainer` class as the run node, with the image name you just pulled.
-5. Make sure all your input files are using `LF` ending instead of `CRLF`. This is fatal for Rosetta to parse input files.
+5. Make sure all your input files are using `LF` ending instead of `CRLF`. This is fatal for Rosetta to parse input files. For details on CRLF vs LF on git clone, please refer to this [page](https://stackoverflow.com/questions/2517190/how-do-i-force-git-to-use-lf-instead-of-crlf-under-windows)
 6. Build you Rosetta workflow with `RosettaPy` and run it.
 
 During the workflow processing, you will see some active containers at `Containers` tab of `Docker Desktop`.

@@ -2,6 +2,8 @@
 Example Application of PROSS Reimplemented with RosettaPy
 """
 
+# pylint: disable=too-many-instance-attributes
+
 import os
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Union

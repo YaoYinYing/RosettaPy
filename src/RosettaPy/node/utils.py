@@ -2,6 +2,8 @@
 Utility functions for creating mounts via filesystems
 """
 
+# pylint: disable=too-few-public-methods
+
 import os
 import warnings
 from abc import ABC, abstractmethod

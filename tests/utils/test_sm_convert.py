@@ -6,6 +6,7 @@ import pytest
 from rdkit import Chem
 
 from RosettaPy.app.utils.smiles2param import (SmallMoleculeParamsGenerator,
+                                              SmallMoleculeSimilarityChecker,
                                               deprotonate_acids,
                                               generate_molecule,
                                               get_conformers,
@@ -88,14 +89,14 @@ def test_post_init(ROSETTA_PYTHON_SCRIPTS, ROSETTA, ROSETTA3, PYTHON_SCRIPTS_PAT
 # Test smile2canon method
 def test_smile2canon_valid():
     smile = "C1=CC=CC=C1"  # Benzene
-    canonical_smile = SmallMoleculeParamsGenerator.smile2canon("benzene", smile)
+    canonical_smile = SmallMoleculeSimilarityChecker.smile2canon("benzene", smile)
     assert canonical_smile == "c1ccccc1"
 
 
 def test_smile2canon_invalid():
     invalid_smile = "InvalidSMILES"
     with patch("builtins.print") as mock_print:
-        canonical_smile = SmallMoleculeParamsGenerator.smile2canon("invalid", invalid_smile)
+        canonical_smile = SmallMoleculeSimilarityChecker.smile2canon("invalid", invalid_smile)
         assert canonical_smile is None
 
 
@@ -104,7 +105,7 @@ def test_compare_fingerprints():
     ligands = {"LI1": "C1=CC=CC=C1", "LI2": "C1=CC(=CC=C1)O"}  # Benzene  # Phenol
 
     with patch("pandas.DataFrame") as mock_df:
-        SmallMoleculeParamsGenerator.compare_fingerprints(ligands)
+        SmallMoleculeSimilarityChecker(ligands=ligands).compare_fingerprints()
 
         assert mock_df.call_count == 1
 
@@ -141,14 +142,14 @@ def test_generate_rosetta_input(mock_writer, mock_rosetta, generator):
 
 
 # Test convert method
-@patch("RosettaPy.app.utils.smiles2param.SmallMoleculeParamsGenerator.compare_fingerprints")
+@patch("RosettaPy.app.utils.smiles2param.SmallMoleculeSimilarityChecker.compare_fingerprints")
 @patch.object(SmallMoleculeParamsGenerator, "convert_single")
 def test_convert(mock_convert_single, mock_compare_fingerprints, generator):
     ligands = {"LIG1": "C1=CC=CC=C1", "LIG2": "C1=CC(=CC=C1)O"}  # Benzene  # Phenol
 
     generator.convert(ligands)
 
-    mock_compare_fingerprints.assert_called_once_with(ligands)
+    mock_compare_fingerprints.assert_called_once()
     assert mock_convert_single.call_count == 2
 
 

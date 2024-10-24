@@ -3,6 +3,7 @@ Example Application of RosettaLigand
 """
 
 # pylint: disable=invalid-name
+# pylint: disable=too-many-instance-attributes
 
 import os
 import warnings
