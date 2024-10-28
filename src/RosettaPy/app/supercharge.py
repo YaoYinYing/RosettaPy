@@ -6,7 +6,7 @@ import os
 from typing import List, Optional
 
 from RosettaPy import Rosetta
-from RosettaPy.node import NodeClassType, NodeHintT, node_picker
+from RosettaPy.node import NodeHintT, node_picker
 from RosettaPy.rosetta import RosettaCmdTask
 
 
