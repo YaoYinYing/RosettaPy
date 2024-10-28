@@ -22,6 +22,48 @@ class MpiIncompatibleInputWarning(RuntimeWarning):
     """
 
 
+def which_scontrol() -> str:
+    """
+    Find the path to the scontrol executable.
+
+    Returns:
+    - str: The path to the scontrol executable.
+    """
+    scontrol_bin = shutil.which("scontrol")
+    if not scontrol_bin:
+        raise RuntimeError("scontrol not found")
+    return scontrol_bin
+
+
+def get_nodes() -> List[str]:
+    """
+    Retrieve the list of nodes allocated for a SLURM job.
+
+    This function obtains the node list by calling the `scontrol` command,
+    specifically using the `SLURM_JOB_NODELIST` environment variable to get the nodes.
+    It returns the names of the nodes as a string, with each node name separated by a newline.
+    """
+    # Determine the path of the scontrol command
+    this_scontrol = which_scontrol()
+
+    # Validate and sanitize the SLURM_JOB_NODELIST environment variable
+    slurm_job_nodelist = os.getenv("SLURM_JOB_NODELIST")
+    if not slurm_job_nodelist:
+        raise ValueError("SLURM_JOB_NODELIST environment variable is not set")
+
+    # Use shlex.split to safely split the command into a list of arguments
+    command = [this_scontrol, "show", "hostnames", slurm_job_nodelist]
+
+    try:
+        # Execute the command and get the list of node names
+        nodes = subprocess.check_output(command).decode().strip().split("\n")
+    except subprocess.CalledProcessError as e:
+        # If the command execution fails, raise a RuntimeError with the error message
+        raise RuntimeError(f"Failed to get nodes: {e}") from e
+
+    return nodes
+
+
 @dataclass
 class MpiNode:
     """
@@ -107,15 +149,7 @@ class MpiNode:
             MpiNode: Instance configured using Slurm environment variables.
         """
         try:
-            which_scontrol = shutil.which("scontrol")
-            if which_scontrol is None:
-                raise RuntimeError("scontrol not found")
-            nodes = (
-                subprocess.check_output([which_scontrol, "show", "hostnames", os.environ["SLURM_JOB_NODELIST"]])
-                .decode()
-                .strip()
-                .split("\n")
-            )
+            nodes = get_nodes()
         except RuntimeError as e:
             raise RuntimeError(f"Expected scontrol not found. {e}") from e
         except KeyError as e:
@@ -139,8 +173,8 @@ class MpiNode:
         total_nproc = sum(node_dict.values())
         return cls(total_nproc, node_dict)
 
+    @staticmethod
     def run(
-        self,
         tasks: List[RosettaCmdTask],
     ) -> List[RosettaCmdTask]:
         """

@@ -1,16 +1,25 @@
-import os
 import subprocess
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from RosettaPy.node.wsl import WslMount, WslWrapper
+from RosettaPy.node.wsl import WslMount, WslWrapper, which_wsl
 from RosettaPy.rosetta_finder import RosettaBinary
 from RosettaPy.utils import tmpdir_manager
 from RosettaPy.utils.task import RosettaCmdTask
 
+# Mock data
+MOCK_DISTRO = "Ubuntu"
+MOCK_USER = "testuser"
+MOCK_CMD = ["echo", "Hello, WSL!"]
+MOCK_OUTPUT = "Hello, WSL!\n"
 
-def test_from_path_success():
+MOCK_ROSETTA = RosettaBinary("/bin", "rosetta_scripts")
+MOCK_WSL_BIN = "C:\\Windows\\system32\\wsl.EXE"
+
+
+@patch("RosettaPy.node.wsl.which_wsl", return_value=MOCK_WSL_BIN)
+def test_from_path_success(mock_wsl_exe):
     # Test successful conversion of Windows path to WSL path
     windows_path = "C:\\Windows\\Path"
     expected_wsl_path = "/mnt/c/Windows/Path"
@@ -21,10 +30,11 @@ def test_from_path_success():
 
         assert mount.source == windows_path
         assert mount.target == expected_wsl_path
-        mock_check_output.assert_called_once_with(["wsl", "wslpath", "-a", windows_path])
+        mock_check_output.assert_called_once_with([mock_wsl_exe.return_value, "wslpath", "-a", windows_path])
 
 
-def test_from_path_failure():
+@patch("RosettaPy.node.wsl.which_wsl", return_value=MOCK_WSL_BIN)
+def test_from_path_failure(mock_wsl_exe):
     # Test failure of conversion from Windows path to WSL path
     windows_path = "C:\\Invalid\\Path"
 
@@ -40,15 +50,6 @@ def test_mounted_property():
     # Test the mounted property returns the correct value
     wsl_mount = WslMount(source="C:\\Windows\\Path", target="/mnt/c/Windows/Path")
     assert wsl_mount.mounted == "/mnt/c/Windows/Path"
-
-
-# Mock data
-MOCK_DISTRO = "Ubuntu"
-MOCK_USER = "testuser"
-MOCK_CMD = ["echo", "Hello, WSL!"]
-MOCK_OUTPUT = "Hello, WSL!\n"
-
-MOCK_ROSETTA = RosettaBinary("/bin", "rosetta_scripts")
 
 
 class TestWslWrapper:
@@ -90,21 +91,60 @@ class TestWslWrapper:
         assert wsl_wrapper.recompose(cmd) == cmd
 
     def test_run_single_task(self, wsl_wrapper, mock_task):
-        with patch.object(wsl_wrapper, "run_wsl_command", return_value="C:\\Windows\\system32\\wsl.EXE"), patch(
-            "RosettaPy.node.utils.mount", return_value=(mock_task, None)
+        with patch("RosettaPy.node.wsl.which_wsl", return_value=MOCK_WSL_BIN), patch.object(
+            wsl_wrapper, "run_wsl_command", return_value=MOCK_WSL_BIN
+        ), patch("RosettaPy.node.utils.mount", return_value=(mock_task, None)), patch(
+            "RosettaPy.node.wsl.WslMount.from_path",
+            return_value=WslMount(source=mock_task.runtime_dir, target="/mnt/tmp/runtime_dir"),
         ):
-            with patch(
-                "RosettaPy.node.wsl.WslMount.from_path",
-                return_value=WslMount(source=mock_task.runtime_dir, target="/mnt/tmp/runtime_dir"),
-            ):
-                result_task = wsl_wrapper.run_single_task(mock_task, lambda x: x)
-                assert result_task.cmd == [
-                    "wsl",
-                    "-d",
-                    MOCK_DISTRO,
-                    "-u",
-                    MOCK_USER,
-                    "--cd",
-                    "/mnt/tmp/runtime_dir",
-                    "rosetta",
-                ]
+            result_task = wsl_wrapper.run_single_task(mock_task, lambda x: x)
+            assert result_task.cmd == [
+                MOCK_WSL_BIN,
+                "-d",
+                MOCK_DISTRO,
+                "-u",
+                MOCK_USER,
+                "--cd",
+                "/mnt/tmp/runtime_dir",
+                "rosetta",
+            ]
+
+
+# Mock the platform.system function to simulate different operating systems
+@patch("platform.system")
+def test_which_wsl_on_windows_with_wsl(mock_platform_system):
+    # Arrange
+    mock_platform_system.return_value = "Windows"
+    mock_shutil_which = MagicMock(return_value="/path/to/wsl")
+
+    with patch("shutil.which", mock_shutil_which):
+        # Act
+        result = which_wsl()
+
+        # Assert
+        assert result == "/path/to/wsl"
+        mock_shutil_which.assert_called_once_with("wsl")
+
+
+# Test when WSL is not available
+@patch("platform.system")
+def test_which_wsl_on_windows_without_wsl(mock_platform_system):
+    # Arrange
+    mock_platform_system.return_value = "Windows"
+    mock_shutil_which = MagicMock(return_value=None)
+
+    with patch("shutil.which", mock_shutil_which):
+        # Act & Assert
+        with pytest.raises(RuntimeError, match="WSL is not available."):
+            which_wsl()
+
+
+# Test on non-Windows system
+@patch("platform.system")
+def test_which_wsl_on_non_windows(mock_platform_system):
+    # Arrange
+    mock_platform_system.return_value = "Linux"
+
+    # Act & Assert
+    with pytest.raises(RuntimeError, match="WslWrapper is only available on Windows."):
+        which_wsl()

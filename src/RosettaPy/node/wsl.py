@@ -3,6 +3,8 @@ Wsl Mounter
 """
 
 import functools
+import platform
+import shutil
 import subprocess
 import warnings
 from dataclasses import dataclass
@@ -15,6 +17,24 @@ from RosettaPy.utils.escape import print_diff
 from RosettaPy.utils.task import RosettaCmdTask, execute
 
 from .utils import Mounter, mount
+
+
+def which_wsl() -> str:
+    """
+    Find the path to the wsl executable.
+
+    Returns:
+    - str: The path to the wsl executable.
+    """
+
+    if platform.system() != "Windows":
+        raise RuntimeError("WslWrapper is only available on Windows.")
+
+    wsl_bin = shutil.which("wsl")
+    if not wsl_bin:
+        raise RuntimeError("WSL is not available.")
+
+    return wsl_bin
 
 
 @dataclass
@@ -48,9 +68,10 @@ class WslMount(Mounter):
         Returns:
         - str: The converted WSL path.
         """
+        wsl_path = which_wsl()
         # Use wslpath to convert the path
         try:
-            wsl_path = subprocess.check_output(["wsl", "wslpath", "-a", path_to_mount]).decode().strip()
+            wsl_path = subprocess.check_output([wsl_path, "wslpath", "-a", path_to_mount]).decode().strip()
             # Print mount information
             print_diff(
                 title="Mount:",
@@ -94,8 +115,7 @@ class WslWrapper:
                 f"Failed to get default WSL distribution: {self.distro}\nAll distributions: \n{all_installed_distro}"
             )
 
-    @staticmethod
-    def run_wsl_command(cmd: List[str]) -> str:
+    def run_wsl_command(self, cmd: List[str]) -> str:
         """
         Execute a WSL command and return the output.
 
@@ -116,7 +136,11 @@ class WslWrapper:
 
         # Execute the 'wsl' command
         with subprocess.Popen(
-            ["wsl"] + cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, encoding="utf-8"
+            [which_wsl()] + cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+            encoding="utf-8",
         ) as proc:
             stdout, stderr = proc.communicate()
             retcode = proc.wait()
@@ -181,7 +205,7 @@ class WslWrapper:
 
         # Insert WSL specific run parameters to the task command list
         mounted_task.cmd = [
-            "wsl",
+            which_wsl(),
             "-d",
             self.distro,
             "-u",

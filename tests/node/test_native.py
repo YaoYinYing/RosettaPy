@@ -2,7 +2,7 @@
 from unittest.mock import MagicMock, patch
 
 from RosettaPy.node.native import Native
-from RosettaPy.utils.task import RosettaCmdTask, _non_isolated_execute, execute
+from RosettaPy.utils.task import RosettaCmdTask, _non_isolated_execute
 
 
 def test_native_initialization():

@@ -11,6 +11,7 @@ In VSCode, Code Coverage is recorded in config.xml. Delete this file to reset re
 from __future__ import annotations
 
 import os
+import platform
 import shutil
 import warnings
 
@@ -56,6 +57,8 @@ has_docker = shutil.which("docker") is not None
 
 # Github Actions, Ubuntu-latest with Rosetta Docker container enabled
 GITHUB_CONTAINER_ROSETTA_TEST = os.environ.get("GITHUB_CONTAINER_ROSETTA_TEST", "NO") == "YES"
+
+WINDOWS_WITH_WSL = platform.system() == "Windows" and shutil.which("wsl") is not None
 
 
 @pytest.fixture(
