@@ -203,7 +203,6 @@ def _isolated_execute(task: RosettaCmdTask, func: Callable[[RosettaCmdTask], Ros
         return func(task)
 
 
-@staticmethod
 def execute(task: RosettaCmdTask, func: Optional[Callable[[RosettaCmdTask], RosettaCmdTask]] = None) -> RosettaCmdTask:
     """
     Executes the given task with support for both non-isolated and isolated execution modes,
