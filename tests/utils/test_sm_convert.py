@@ -110,35 +110,40 @@ def test_compare_fingerprints():
         assert mock_df.call_count == 1
 
 
-# Test generate_rosetta_input method
-@patch("RosettaPy.Rosetta.execute")
 @patch("rdkit.Chem.SDWriter.write")
-def test_generate_rosetta_input(mock_writer, mock_rosetta, generator):
+def test_generate_rosetta_input(mock_writer, generator):
     mol_mock = MagicMock()
     mol_mock.GetConformers.return_value = [MagicMock()]
     generator._rosetta_python_script_dir = "/mock/scripts"
 
-    generator.generate_rosetta_input(mol_mock, "test_ligand", charge=0)
-    save_dir = os.path.abspath(os.path.join(".", "test_ligands"))
+    with patch("subprocess.Popen", return_value=("", "")) as mock_popen:
+        mock_process = MagicMock()
+        mock_process.communicate.return_value = ("Output", "")
+        mock_process.wait.return_value = 0
+        mock_popen.return_value = mock_process
 
-    expected_task = RosettaCmdTask(
-        cmd=[
-            sys.executable,
-            "/mock/scripts/molfile_to_params.py",
-            os.path.join(save_dir, "test_ligand.sdf"),
-            "-n",
-            "test_ligand",
-            "--conformers-in-one-file",
-            "--recharge=0",
-            "-c",
-            "--clobber",
-        ],
-        base_dir=save_dir,
-        task_label="test_ligand",
-    )
+        actural_task = generator.generate_rosetta_input(mol_mock, "test_ligand", charge=0)
+        save_dir = os.path.abspath(os.path.join(".", "test_ligands"))
 
-    mock_writer.assert_called_once_with(mol_mock, confId=mol_mock.GetConformers()[0].GetId())
-    mock_rosetta.assert_called_once_with(expected_task)
+        expected_task = RosettaCmdTask(
+            cmd=[
+                sys.executable,
+                "/mock/scripts/molfile_to_params.py",
+                os.path.join(save_dir, "test_ligand.sdf"),
+                "-n",
+                "test_ligand",
+                "--conformers-in-one-file",
+                "--recharge=0",
+                "-c",
+                "--clobber",
+            ],
+            base_dir=save_dir,
+            task_label="test_ligand",
+        )
+
+        assert actural_task == expected_task
+
+        mock_writer.assert_called_once_with(mol_mock, confId=mol_mock.GetConformers()[0].GetId())
 
 
 # Test convert method

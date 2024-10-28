@@ -2,14 +2,17 @@
 Wsl Mounter
 """
 
+import functools
 import subprocess
 import warnings
 from dataclasses import dataclass
 from typing import Callable, List
 
+from joblib import Parallel, delayed
+
 from RosettaPy.rosetta_finder import RosettaBinary
 from RosettaPy.utils.escape import print_diff
-from RosettaPy.utils.task import RosettaCmdTask
+from RosettaPy.utils.task import RosettaCmdTask, execute
 
 from .utils import Mounter, mount
 
@@ -188,3 +191,17 @@ class WslWrapper:
         ] + mounted_task.cmd
 
         return runner(mounted_task)
+
+    def run(self, tasks: List[RosettaCmdTask]) -> List[RosettaCmdTask]:
+        """
+        Execute multiple tasks in parallel within Docker containers.
+        """
+
+        # wsl use local runs of command
+        run_func = functools.partial(self.run_single_task, runner=execute)
+
+        # Execute tasks in parallel using multiple jobs
+        ret = Parallel(n_jobs=self.nproc, verbose=100)(delayed(run_func)(cmd_job) for cmd_job in tasks)
+
+        # Convert the result to a list and return
+        return list(ret)  # type: ignore

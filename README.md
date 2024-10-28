@@ -167,6 +167,18 @@ Rosetta(
 )
 ```
 
+**Native as Run Node**
+
+By default, `RosettaPy` uses `Native` node, representing the local machine with Rosetta installed.
+To specify the number of cores, use the `nproc` parameter.
+
+```diff
+Rosetta(
+    ...
++   run_node=Native(nproc=8)
+)
+```
+
 **Run rosetta tasks with Rosetta Container**
 
 If one wishes to use the Rosetta container as the task worker, (WSL + Docker Desktop, for example)
@@ -205,6 +217,23 @@ Rosetta(
 +   run_node=MpiNode.from_slurm(),
 )
 ```
+
+**Pick Your Node**
+
+One can still pick the desire node quickly by calling `node_picker` method.
+
+```diff
+from RosettaPy.node import node_picker, NodeHintT
+
+node_hint: NodeHintT = 'docker_mpi'
+
+Rosetta(
+    ...
++   run_node=node_picker(node_type=node_hint)
+)
+```
+
+Where `node_hint` is one of `["docker", "docker_mpi", "mpi", "wsl", "wsl_mpi", "native"]`
 
 
 **Compose rosetta tasks matrix as inputs**

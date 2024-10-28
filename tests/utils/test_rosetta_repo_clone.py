@@ -146,6 +146,7 @@ def test_clone_subdirectory_already_cloned(mock_repo, mock_makedirs, repo_manage
     mock_repo.init.assert_not_called()
 
 
+@pytest.mark.integration
 def test_clone_subdirectory_no_submodule(repo_manager):
     """
     Test the full flow of clone_subdirectory when the repository is not yet cloned and submodules are skipped.

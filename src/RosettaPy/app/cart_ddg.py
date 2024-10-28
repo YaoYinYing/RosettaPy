@@ -3,16 +3,16 @@ Example Application of Cartesian ddG
 """
 
 import os
-from dataclasses import dataclass
-from typing import List, Optional, Tuple, Union
+from dataclasses import dataclass, field
+from typing import List, Optional, Tuple
 
 import pandas as pd
 
 from RosettaPy import (Rosetta, RosettaCartesianddGAnalyser,
                        RosettaEnergyUnitAnalyser)
 from RosettaPy.common.mutation import Mutant, mutants2mutfile
-from RosettaPy.node.dockerized import RosettaContainer
-from RosettaPy.node.mpi import MpiNode
+from RosettaPy.node import NodeClassType, NodeHintT, node_picker
+from RosettaPy.node.native import Native
 from RosettaPy.utils import timing
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -33,6 +33,7 @@ class CartesianDDG:
         ddg_iteration (int, optional): The number of iterations for the ddG calculation. Defaults to 3.
 
         mutant_pdb_dir (str): The directory containing the mutant PDB files.
+        node (NodeClassType): The node configuration for running the relaxation. Defaults to Native(nproc=4).
     """
 
     pdb: str
@@ -43,7 +44,7 @@ class CartesianDDG:
     ddg_iteration: int = 3
 
     mutant_pdb_dir = "tests/data/designed/pross/"
-    node: Optional[Union[RosettaContainer, MpiNode]] = None
+    node: NodeClassType = field(default_factory=Native)
 
     def __post_init__(self):
         """
@@ -169,16 +170,20 @@ class CartesianDDG:
         return mutfiles, list(mutants_dict.values())
 
 
-def main(legacy: bool = False, use_docker=False):
+def main(
+    legacy: bool = False,
+    node_hint: Optional[NodeHintT] = None,
+):
     """
     Test
     """
-    docker_label = "_docker" if use_docker else ""
+
+    docker_label = f"_{node_hint}" if node_hint else ""
     cart_ddg = CartesianDDG(
         pdb="tests/data/3fap_hf3_A_short.pdb",
         use_legacy=legacy,
         job_id="cart_ddg" + docker_label if not legacy else "cart_ddg_legacy" + docker_label,
-        node=(RosettaContainer(image="rosettacommons/rosetta:mpi", prohibit_mpi=True) if use_docker else None),
+        node=node_picker(node_type=node_hint),
     )
 
     pdb_path = cart_ddg.relax(

@@ -8,12 +8,12 @@ Example Application of RosettaLigand
 import os
 import warnings
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 from RosettaPy import (Rosetta, RosettaEnergyUnitAnalyser,
                        RosettaScriptsVariableGroup)
-from RosettaPy.node.dockerized import RosettaContainer
-from RosettaPy.node.mpi import MpiNode
+from RosettaPy.node import NodeClassType, NodeHintT, node_picker
+from RosettaPy.node.native import Native
 from RosettaPy.rosetta import IgnoreMissingFileWarning
 from RosettaPy.utils import timing
 
@@ -37,6 +37,7 @@ class RosettaLigand:
         gridwidth (int): Width of the grid. Default is 45.
         chain_id_for_dock (str): Chain identifier for docking. Default is "B".
         start_from_xyz (Optional[Tuple[float, float, float]]): Starting coordinates for docking. Default is None.
+        node (NodeClassType): The node configuration for running the relaxation. Defaults to Native(nproc=4).
     """
 
     pdb: str = ""
@@ -50,7 +51,7 @@ class RosettaLigand:
     chain_id_for_dock = "B"
     start_from_xyz: Optional[Tuple[float, float, float]] = None
 
-    node: Optional[Union[RosettaContainer, MpiNode]] = None
+    node: NodeClassType = field(default_factory=Native)
 
     @property
     def has_startfrom(self) -> bool:
@@ -206,17 +207,23 @@ class RosettaLigand:
         return pdb_path
 
 
-def main(startfrom=None, use_docker=False):
+def main(
+    startfrom=None,
+    node_hint: Optional[NodeHintT] = None,
+):
     """
     Test
     """
-    docker_label = "_docker" if use_docker else ""
+    if node_hint == "docker":
+        node_hint = "docker_mpi"
+
+    docker_label = f"_{node_hint}" if node_hint else ""
     runner = RosettaLigand(
         pdb="tests/data/6zcy_lig.pdb",
         ligands=["tests/data/lig/lig.fa.params"],
         start_from_xyz=startfrom,
         job_id="rosettaligand" + docker_label if startfrom is None else "rosettaligand_startfrom" + docker_label,
-        node=RosettaContainer(image="rosettacommons/rosetta:mpi") if use_docker else None,
+        node=node_picker(node_type=node_hint),
     )
 
     runner.dock(

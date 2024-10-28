@@ -6,22 +6,20 @@ This module provides a class for running Rosetta command-line applications. It s
 # pylint: disable=too-many-instance-attributes
 
 import copy
-import functools
 import os
-import subprocess
 import warnings
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Callable, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
-from joblib import Parallel, delayed
+from RosettaPy.utils.task import execute
 
-from .node import MpiNode, RosettaContainer, WslWrapper
+from .node import MpiNode, Native, NodeClassType, RosettaContainer, WslWrapper
 from .node.mpi import MpiIncompatibleInputWarning
 # internal imports
 from .rosetta_finder import RosettaBinary, RosettaFinder
 from .utils import (IgnoreMissingFileWarning, RosettaCmdTask,
-                    RosettaScriptsVariableGroup, isolate)
+                    RosettaScriptsVariableGroup)
 
 
 @dataclass
@@ -31,7 +29,6 @@ class Rosetta:
 
     Attributes:
         bin (RosettaBinary): The Rosetta binary to execute.
-        nproc (int): Number of processors to use.
         flags (List[str]): List of flag files to include.
         opts (List[str]): List of command-line options.
         use_mpi (bool): Whether to use MPI for execution.
@@ -39,12 +36,11 @@ class Rosetta:
     """
 
     bin: Union[RosettaBinary, str]
-    nproc: Union[int, None] = field(default_factory=os.cpu_count)
 
     flags: Optional[List[str]] = field(default_factory=list)
     opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = field(default_factory=list)
     use_mpi: bool = False
-    run_node: Optional[Union[MpiNode, RosettaContainer, WslWrapper]] = None
+    run_node: NodeClassType = field(default_factory=Native)
 
     job_id: str = "default"
     output_dir: str = ""
@@ -116,7 +112,7 @@ class Rosetta:
                 # local direct runs
                 self.bin = RosettaFinder().find_binary(self.bin)
 
-        if self.run_node is not None:
+        if isinstance(self.run_node, MpiNode):
             if self.bin.mode != "mpi":
                 warnings.warn(
                     UserWarning("MPI nodes are given yet not supported. Maybe in Dockerized Rosetta container?")
@@ -127,91 +123,6 @@ class Rosetta:
 
         warnings.warn(UserWarning("Using MPI binary as static build."))
         self.use_mpi = False
-
-    @staticmethod
-    def _isolated_execute(task: RosettaCmdTask, func: Callable[[RosettaCmdTask], RosettaCmdTask]) -> RosettaCmdTask:
-        """
-        Executes a given task in an isolated environment.
-
-        This method is used to run a specific function within an isolated context,
-        ensuring that the execution of the task is separated from the global environment.
-        It is typically used for scenarios requiring a clean or restricted execution context.
-
-        Parameters:
-        - task (RosettaCmdTask): A task object containing necessary information.
-        - func (Callable[[RosettaCmdTask], RosettaCmdTask]): A function that takes and returns a RosettaCmdTask object,
-        which will be executed within the isolated environment.
-
-        Returns:
-        - RosettaCmdTask: The task object after execution.
-
-        Raises:
-        - ValueError: If the task label (task_label) or base directory (base_dir) is missing.
-        """
-        # Check if the task label exists; raise an exception if it does not
-        if not task.task_label:
-            raise ValueError("Task label is required when executing the command in isolated mode.")
-
-        # Check if the base directory exists; raise an exception if it does not
-        if not task.base_dir:
-            raise ValueError("Base directory is required when executing the command in isolated mode.")
-
-        with isolate(save_to=task.runtime_dir):
-            return func(task)
-
-    @staticmethod
-    def execute(
-        task: RosettaCmdTask, func: Optional[Callable[[RosettaCmdTask], RosettaCmdTask]] = None
-    ) -> RosettaCmdTask:
-        """
-        Executes the given task with support for both non-isolated and isolated execution modes,
-        which can be customized via the provided function argument.
-
-        :param task: The task object to be executed, encapsulating the specific content to run.
-        :param func: An optional parameter specifying the function to execute the task. If not provided,
-                     defaults to a non-isolated execution mode.
-        :return: The task object after execution.
-
-        Notes:
-        - If no task label (task_label) is specified, the task is executed directly using the specified function.
-        - Otherwise, the task is executed in an isolated mode.
-        - If the function argument func is not provided, a default non-isolated execution mode is used.
-        """
-        # Use the default non-isolated execution mode if no function is provided
-        if func is None:
-            func = Rosetta._non_isolated_execute
-        if not task.task_label:
-            return func(task)
-        return Rosetta._isolated_execute(task, func)
-
-    @staticmethod
-    def _non_isolated_execute(task: RosettaCmdTask) -> RosettaCmdTask:
-        """
-        Executes a command and handles its output and errors.
-
-        :param task: The command task to execute, containing the command and its configuration.
-        :return: Returns the command task object after execution, including the command execution results.
-        """
-        # Use subprocess.Popen to execute the command, redirecting output and setting encoding to UTF-8.
-        process = subprocess.Popen(
-            task.cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, encoding="utf-8"
-        )
-
-        # Print command execution information.
-        print(f'Launching command: `{" ".join(task.cmd)}`')
-        # Communicate to get the command's output and error.
-        stdout, stderr = process.communicate()
-        # Wait for the command to complete and get the return code.
-        retcode = process.wait()
-
-        if retcode:
-            # If the command fails, print the failure message and raise an exception.
-            print(f"Command failed with return code {retcode}")
-            print(stdout)
-            warnings.warn(RuntimeWarning(stderr))
-            raise RuntimeError(f"Command failed with return code {retcode}")
-
-        return task
 
     def setup_tasks_local(
         self,
@@ -313,89 +224,6 @@ class Rosetta:
                 warnings.warn(RuntimeWarning("Ignoring isolated mode for MPI run."))
             return [RosettaCmdTask(cmd=updated_cmd)]
 
-    @staticmethod
-    def run_mpi(
-        tasks: List[RosettaCmdTask],
-    ) -> List[RosettaCmdTask]:
-        """
-        Execute tasks using MPI.
-
-        This method is designed to execute a given list of tasks using MPI (Message Passing Interface),
-        which is a programming model for distributed memory systems that allows developers to write
-        highly scalable parallel applications.
-
-        Parameters:
-        - self: Instance reference, allowing access to other methods and attributes of the class.
-        - tasks: A list of RosettaCmdTask objects representing the tasks to be executed.
-
-        Returns:
-        - A list containing RosettaCmdTask objects representing the results of the executed tasks.
-
-        Note:
-        - This method is particularly suitable for tasks requiring execution in a parallel computing environment.
-        - The current implementation only executes the first task in the list, ignoring the rest.
-        """
-
-        # Execute the first task non-isolately
-        ret = Rosetta._non_isolated_execute(tasks[0])
-
-        # Return the result as a list
-        return [ret]
-
-    def run_local(
-        self,
-        tasks: List[RosettaCmdTask],
-    ) -> List[RosettaCmdTask]:
-        """
-        Execute a list of Rosetta command tasks locally in parallel.
-
-        This method runs the provided Rosetta command tasks concurrently using multiple processors
-        to improve efficiency and speed up the execution of large sets of tasks.
-
-        Parameters:
-        - self: The instance of the class.
-        - tasks (List[RosettaCmdTask]): A list of Rosetta command tasks to be executed.
-
-        Returns:
-        - List[RosettaCmdTask]: A list of executed Rosetta command tasks.
-        """
-        ret = Parallel(n_jobs=self.nproc, verbose=100)(delayed(Rosetta.execute)(cmd_job) for cmd_job in tasks)
-        return list(ret)  # type: ignore
-
-    def run_local_docker(
-        self,
-        tasks: List[RosettaCmdTask],
-    ) -> List[RosettaCmdTask]:
-        """
-        Executes a list of Rosetta command tasks using a local Docker container.
-
-        Parameters:
-            tasks (List[RosettaCmdTask]): A list of Rosetta command tasks to be executed.
-
-        Returns:
-            List[RosettaCmdTask]: The results of the executed tasks.
-        """
-        # Ensure that the run_node is an instance of RosettaContainer/WslWrapper
-        if not isinstance(self.run_node, (RosettaContainer, WslWrapper)):
-            raise RuntimeError(
-                "To run with local docker container or WSL wrapper, you need to initialize "
-                "RosettaContainer/WslWrapper instance as self.run_node"
-            )
-
-        if isinstance(self.run_node, RosettaContainer):
-            # Define a partial function to execute tasks using the run_node
-            run_func = functools.partial(Rosetta.execute, func=self.run_node.run_single_task)
-
-        else:
-            # wsl use local runs of command
-            run_func = functools.partial(self.run_node.run_single_task, runner=Rosetta.execute)
-
-        # Execute tasks in parallel using multiple jobs
-        ret = Parallel(n_jobs=self.nproc, verbose=100)(delayed(run_func)(cmd_job) for cmd_job in tasks)
-
-        # Convert the result to a list and return
-        return list(ret)  # type: ignore
-
     def run(
         self,
         inputs: Optional[List[Dict[str, Union[str, RosettaScriptsVariableGroup]]]] = None,
@@ -417,7 +245,7 @@ class Rosetta:
                     )
                 )
             tasks = self.setup_tasks_mpi(base_cmd=cmd, inputs=inputs, nstruct=nstruct)
-            return self.run_mpi(tasks)
+            return self.run_node.run(tasks)
 
         if isinstance(self.run_node, (RosettaContainer, WslWrapper)):
             recomposed_cmd = self.run_node.recompose(cmd)
@@ -426,13 +254,38 @@ class Rosetta:
                 # only one task is returned
                 tasks = self.setup_tasks_mpi(base_cmd=recomposed_cmd, inputs=inputs, nstruct=nstruct)
 
-                return [self.run_node.run_single_task(task=tasks[0], runner=Rosetta.execute)]
+                return [self.run_node.run_single_task(task=tasks[0], runner=execute)]
 
             tasks = self.setup_tasks_local(base_cmd=recomposed_cmd, inputs=inputs, nstruct=nstruct)
-            return self.run_local_docker(tasks)
+            return self.run_node.run(tasks)
 
         tasks = self.setup_tasks_local(cmd, inputs, nstruct)
-        return self.run_local(tasks)
+        return self.run_node.run(tasks)
+
+    @property
+    def _rosetta_bin_path(self) -> str:
+        """
+        Selects the appropriate Rosetta binary path based on the current runtime environment.
+
+        This method first checks if `self.bin` is an instance of `RosettaBinary`. If not, it raises a runtime error.
+        Then, depending on the type of `self.run_node`, it determines the binary path to return:
+        - If `self.run_node` is an instance of `RosettaContainer`, it returns a fixed path within the container.
+        - If `self.run_node` is an instance of `WslWrapper` or any other case, it returns the full path of the binary.
+
+        :return: The path to the Rosetta binary.
+        :rtype: str
+        """
+        # Check if self.bin is an instance of RosettaBinary
+        if not isinstance(self.bin, RosettaBinary):
+            raise RuntimeError("Rosetta binary must be a RosettaBinary object")
+
+        # Determine the binary path based on the type of run_node
+        if isinstance(self.run_node, RosettaContainer):
+            return f"/usr/local/bin/{self.bin.binary_name}"
+        if isinstance(self.run_node, WslWrapper):
+            return self.bin.full_path
+
+        return self.bin.full_path
 
     def compose(self) -> List[str]:
         """
@@ -440,17 +293,8 @@ class Rosetta:
 
         :return: The composed command as a list of strings.
         """
-        if not isinstance(self.bin, RosettaBinary):
-            raise RuntimeError("Rosetta binary must be a RosettaBinary object")
 
-        if isinstance(self.run_node, RosettaContainer):
-            rosetta_bin = f"/usr/local/bin/{self.bin.binary_name}"
-        elif isinstance(self.run_node, WslWrapper):
-            rosetta_bin = self.bin.full_path
-        else:
-            rosetta_bin = self.bin.full_path
-
-        cmd = [rosetta_bin]
+        cmd = [self._rosetta_bin_path]
         if self.flags:
             for flag in self.flags:
                 if not os.path.isfile(flag):

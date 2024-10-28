@@ -2,11 +2,17 @@
 Task module for Rosetta
 """
 
+# Disable pylint for with-context manager for subprocss.Popen for unit test mocks.
+# pylint: disable=consider-using-with
+
 import copy
 import os
+import subprocess
 import warnings
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
+
+from RosettaPy.utils.tools import isolate
 
 
 class RosettaScriptVariableWarning(RuntimeWarning):
@@ -102,8 +108,7 @@ class RosettaScriptsVariableGroup:
         Raises:
             ValueError: If the created instance has no variables.
         """
-        variables = [RosettaScriptsVariable(
-            k=k, v=str(v)) for k, v in var_pair.items()]
+        variables = [RosettaScriptsVariable(k=k, v=str(v)) for k, v in var_pair.items()]
         instance = cls(variables)
         if instance.empty:
             raise ValueError()
@@ -125,8 +130,7 @@ class RosettaScriptsVariableGroup:
         xml_content_copy = copy.deepcopy(xml_content)
         for k, v in self.asdict.items():
             if f"%%{k}%%" not in xml_content_copy:
-                warnings.warn(RosettaScriptVariableNotExistWarning(
-                    f"Variable {k} not in Rosetta Script content."))
+                warnings.warn(RosettaScriptVariableNotExistWarning(f"Variable {k} not in Rosetta Script content."))
                 continue
             xml_content_copy = xml_content_copy.replace(f"%%{k}%%", v)
 
@@ -166,3 +170,87 @@ class RosettaCmdTask:
 
         # Return the runtime directory composed of base_dir and task_label
         return os.path.join(self.base_dir, self.task_label)
+
+
+def _isolated_execute(task: RosettaCmdTask, func: Callable[[RosettaCmdTask], RosettaCmdTask]) -> RosettaCmdTask:
+    """
+    Executes a given task in an isolated environment.
+
+    This method is used to run a specific function within an isolated context,
+    ensuring that the execution of the task is separated from the global environment.
+    It is typically used for scenarios requiring a clean or restricted execution context.
+
+    Parameters:
+    - task (RosettaCmdTask): A task object containing necessary information.
+    - func (Callable[[RosettaCmdTask], RosettaCmdTask]): A function that takes and returns a RosettaCmdTask object,
+    which will be executed within the isolated environment.
+
+    Returns:
+    - RosettaCmdTask: The task object after execution.
+
+    Raises:
+    - ValueError: If the task label (task_label) or base directory (base_dir) is missing.
+    """
+    # Check if the task label exists; raise an exception if it does not
+    if not task.task_label:
+        raise ValueError("Task label is required when executing the command in isolated mode.")
+
+    # Check if the base directory exists; raise an exception if it does not
+    if not task.base_dir:
+        raise ValueError("Base directory is required when executing the command in isolated mode.")
+
+    with isolate(save_to=task.runtime_dir):
+        return func(task)
+
+
+@staticmethod
+def execute(task: RosettaCmdTask, func: Optional[Callable[[RosettaCmdTask], RosettaCmdTask]] = None) -> RosettaCmdTask:
+    """
+    Executes the given task with support for both non-isolated and isolated execution modes,
+    which can be customized via the provided function argument.
+
+    :param task: The task object to be executed, encapsulating the specific content to run.
+    :param func: An optional parameter specifying the function to execute the task. If not provided,
+                    defaults to a non-isolated execution mode.
+    :return: The task object after execution.
+
+    Notes:
+    - If no task label (task_label) is specified, the task is executed directly using the specified function.
+    - Otherwise, the task is executed in an isolated mode.
+    - If the function argument func is not provided, a default non-isolated execution mode is used.
+    """
+    # Use the default non-isolated execution mode if no function is provided
+    if func is None:
+        func = _non_isolated_execute
+    if not task.task_label:
+        return func(task)
+    return _isolated_execute(task, func)
+
+
+def _non_isolated_execute(task: RosettaCmdTask) -> RosettaCmdTask:
+    """
+    Executes a command and handles its output and errors.
+
+    :param task: The command task to execute, containing the command and its configuration.
+    :return: Returns the command task object after execution, including the command execution results.
+    """
+    # Use subprocess.Popen to execute the command, redirecting output and setting encoding to UTF-8.
+    process = subprocess.Popen(
+        task.cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, encoding="utf-8"
+    )
+
+    # Print command execution information.
+    print(f'Launching command: `{" ".join(task.cmd)}`')
+    # Communicate to get the command's output and error.
+    stdout, stderr = process.communicate()
+    # Wait for the command to complete and get the return code.
+    retcode = process.wait()
+
+    if retcode:
+        # If the command fails, print the failure message and raise an exception.
+        print(f"Command failed with return code {retcode}")
+        print(stdout)
+        warnings.warn(RuntimeWarning(stderr))
+        raise RuntimeError(f"Command failed with return code {retcode}")
+
+    return task

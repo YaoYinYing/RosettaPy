@@ -32,6 +32,7 @@ from rdkit.Chem.Fingerprints import FingerprintMols  # type: ignore
 from RosettaPy import Rosetta
 from RosettaPy.utils import (RosettaCmdTask, partial_clone, print_diff, render,
                              zip_render)
+from RosettaPy.utils.task import execute
 
 
 # Functions
@@ -444,7 +445,7 @@ class SmallMoleculeParamsGenerator:
             w.write(mol, confId=i.GetId())
         w.close()
 
-        return Rosetta.execute(
+        return execute(
             RosettaCmdTask(
                 cmd=[
                     sys.executable,

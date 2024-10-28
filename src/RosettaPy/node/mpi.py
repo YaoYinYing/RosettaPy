@@ -13,6 +13,8 @@ import warnings
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
+from RosettaPy.utils.task import RosettaCmdTask, _non_isolated_execute
+
 
 class MpiIncompatibleInputWarning(RuntimeWarning):
     """
@@ -136,3 +138,32 @@ class MpiNode:
 
         total_nproc = sum(node_dict.values())
         return cls(total_nproc, node_dict)
+
+    def run(
+        self,
+        tasks: List[RosettaCmdTask],
+    ) -> List[RosettaCmdTask]:
+        """
+        Execute tasks using MPI.
+
+        This method is designed to execute a given list of tasks using MPI (Message Passing Interface),
+        which is a programming model for distributed memory systems that allows developers to write
+        highly scalable parallel applications.
+
+        Parameters:
+        - self: Instance reference, allowing access to other methods and attributes of the class.
+        - tasks: A list of RosettaCmdTask objects representing the tasks to be executed.
+
+        Returns:
+        - A list containing RosettaCmdTask objects representing the results of the executed tasks.
+
+        Note:
+        - This method is particularly suitable for tasks requiring execution in a parallel computing environment.
+        - The current implementation only executes the first task in the list, ignoring the rest.
+        """
+
+        # Execute the first task non-isolately
+        ret = _non_isolated_execute(tasks[0])
+
+        # Return the result as a list
+        return [ret]

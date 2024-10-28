@@ -5,13 +5,14 @@ Example Application of PROSS Reimplemented with RosettaPy
 # pylint: disable=too-many-instance-attributes
 
 import os
-from dataclasses import dataclass
-from typing import List, Optional, Tuple, Union
+from dataclasses import dataclass, field
+from typing import List, Optional, Tuple
 
 from RosettaPy import (Rosetta, RosettaEnergyUnitAnalyser,
                        RosettaScriptsVariableGroup)
 from RosettaPy.app.utils import PDBProcessor
-from RosettaPy.node import MpiNode, RosettaContainer
+from RosettaPy.node import NodeClassType, NodeHintT, node_picker
+from RosettaPy.node.native import Native
 from RosettaPy.utils import timing
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -36,7 +37,7 @@ class PROSS:
     seq_len: int = 0
     instance: str = ""
 
-    node: Optional[Union[RosettaContainer, MpiNode]] = None
+    node: NodeClassType = field(default_factory=Native)
 
     def __post_init__(self):
         """
@@ -330,16 +331,21 @@ def merge_resfiles(filterscan_res_dir: str, seq_length: int) -> List[str]:
     return resfiles
 
 
-def main(use_docker=False):
+def main(
+    node_hint: Optional[NodeHintT] = None,
+):
     """
     Test
     """
-    docker_label = "_docker" if use_docker else ""
+    if node_hint == "docker":
+        node_hint = "docker_mpi"
+
+    docker_label = f"_{node_hint}" if node_hint else ""
     pross = PROSS(
         pdb="tests/data/3fap_hf3_A_short.pdb",
         pssm="tests/data/3fap_hf3_A_ascii_mtx_file_short",
         job_id="pross_reduce" + docker_label,
-        node=(RosettaContainer(image="rosettacommons/rosetta:mpi", prohibit_mpi=True) if use_docker else None),
+        node=node_picker(node_type=node_hint),
     )
     best_refined = pross.refine(4)
 

@@ -4,11 +4,11 @@ Example Application of FastRelax.
 
 import os
 import warnings
-from dataclasses import dataclass
-from typing import Optional, Union
+from dataclasses import dataclass, field
+from typing import Optional
 
 from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser
-from RosettaPy.node import MpiNode, RosettaContainer
+from RosettaPy.node import Native, NodeClassType, NodeHintT, node_picker
 from RosettaPy.utils import timing
 from RosettaPy.utils.repository import partial_clone
 
@@ -88,6 +88,7 @@ class FastRelax:
         job_id (str, optional): The job identifier. Defaults to "fastrelax".
         relax_script (str, optional): The relaxation script to use. Defaults to "MonomerRelax2019".
         dualspace (bool, optional): Whether to use dualspace mode. Defaults to False.
+        node (NodeClassType): The node configuration for running the relaxation. Defaults to Native(nproc=4).
     """
 
     pdb: str
@@ -95,7 +96,7 @@ class FastRelax:
     job_id: str = "fastrelax"
     relax_script: str = "MonomerRelax2019"
     dualspace: bool = False
-    node: Optional[Union[RosettaContainer, MpiNode]] = None
+    node: NodeClassType = field(default_factory=Native)
 
     def __post_init__(self):
         """
@@ -163,22 +164,25 @@ class FastRelax:
         return RosettaEnergyUnitAnalyser(rosetta.output_scorefile_dir)
 
 
-def main(dualspace: bool = False, use_docker=False):
+def main(
+    dualspace: bool = False,
+    node_hint: Optional[NodeHintT] = None,
+):
     """
     Test
     """
-    docker_label = "_docker" if use_docker else ""
+    docker_label = f"_{node_hint}" if node_hint else ""
     if dualspace:
         scorer = FastRelax(
             pdb="tests/data/3fap_hf3_A.pdb",
             dualspace=True,
             job_id="fastrelax_dualspace" + docker_label,
-            node=RosettaContainer(image="rosettacommons/rosetta:mpi") if use_docker else None,
+            node=node_picker(node_type=node_hint),
         )
     else:
         scorer = FastRelax(
             pdb="tests/data/3fap_hf3_A.pdb",
-            node=RosettaContainer(image="rosettacommons/rosetta:mpi") if use_docker else None,
+            node=node_picker(node_type=node_hint),
             job_id="fast_relax" + docker_label,
         )
 

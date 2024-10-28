@@ -6,6 +6,7 @@ Container module for run Rosetta via docker.
 # pylint: disable=no-member
 
 
+import functools
 import os
 import platform
 import signal
@@ -15,11 +16,12 @@ from typing import List, Optional
 
 import docker
 from docker import types
+from joblib import Parallel, delayed
 
 from RosettaPy.node.utils import Mounter, mount
 
 from ..utils.escape import print_diff, render
-from ..utils.task import RosettaCmdTask
+from ..utils.task import RosettaCmdTask, execute
 
 
 @dataclass
@@ -290,3 +292,16 @@ class RosettaContainer:
             print(line.strip().decode("utf-8"))
 
         return task
+
+    def run(self, tasks: List[RosettaCmdTask]) -> List[RosettaCmdTask]:
+        """
+        Execute multiple tasks in parallel within Docker containers.
+        """
+
+        run_func = functools.partial(execute, func=self.run_single_task)
+
+        # Execute tasks in parallel using multiple jobs
+        ret = Parallel(n_jobs=self.nproc, verbose=100)(delayed(run_func)(cmd_job) for cmd_job in tasks)
+
+        # Convert the result to a list and return
+        return list(ret)  # type: ignore

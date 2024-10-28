@@ -6,15 +6,12 @@ import os
 from typing import List, Optional
 
 from RosettaPy import Rosetta
-from RosettaPy.node import RosettaContainer
+from RosettaPy.node import NodeClassType, NodeHintT, node_picker
 from RosettaPy.rosetta import RosettaCmdTask
 
 
 def supercharge(
-    pdb: str,
-    abs_target_charge=20,
-    nproc: Optional[int] = 4,
-    use_docker=False,
+    pdb: str, abs_target_charge=20, node_hint: Optional[NodeHintT] = "native", **node_config
 ) -> List[RosettaCmdTask]:
     """
     Applies the Rosetta Supercharge protocol to a given PDB file to perform charge mutation scanning.
@@ -33,12 +30,12 @@ def supercharge(
     """
 
     # Initialize the Rosetta object with configuration parameters for the Supercharge protocol
-    docker_label = "_docker" if use_docker else ""
+    docker_label = f"_{node_hint}" if node_hint else ""
+    node = node_picker(node_type=node_hint, **node_config)
     rosetta = Rosetta(
         "supercharge",
         job_id="test_supercharge" + docker_label,
         output_dir=os.path.abspath("tests/outputs/"),
-        nproc=nproc,
         opts=[
             "-in:file:s",  # Input PDB file
             os.path.abspath(pdb),
@@ -74,7 +71,7 @@ def supercharge(
         ],
         save_all_together=True,  # Save all results together
         isolation=True,  # Run in isolation to prevent contamination of other tasks
-        run_node=(RosettaContainer(image="rosettacommons/rosetta:mpi", prohibit_mpi=True) if use_docker else None),
+        run_node=node,
     )
 
     # Generate instance name based on the PDB file name
@@ -89,12 +86,15 @@ def supercharge(
     )
 
 
-def main(use_docker=False):
+def main(
+    node_hint: Optional[NodeHintT] = None,
+):
     """
     Test
     """
+
     pdb = "tests/data/3fap_hf3_A.pdb"
-    supercharge(pdb, nproc=os.cpu_count(), use_docker=use_docker)
+    supercharge(pdb, node_hint=node_hint)
 
 
 if __name__ == "__main__":

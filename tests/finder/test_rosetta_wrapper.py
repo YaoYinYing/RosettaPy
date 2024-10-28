@@ -8,9 +8,11 @@ import pytest
 
 from RosettaPy import RosettaBinary, RosettaFinder
 # Import the classes from your module
+from RosettaPy.node.native import Native
 from RosettaPy.rosetta import MpiIncompatibleInputWarning, MpiNode, Rosetta
 from RosettaPy.utils import (RosettaCmdTask, RosettaScriptsVariable,
                              RosettaScriptsVariableGroup, timing)
+from RosettaPy.utils.task import execute
 from tests.conftest import github_rosetta_test
 
 
@@ -142,7 +144,15 @@ def test_rosetta_run_local(mock_popen, mock_isfile, mock_which, temp_dir):
     mock_process = MagicMock()
     mock_popen.return_value = mock_process
 
-    rosetta = Rosetta(bin=rosetta_binary, nproc=2, flags=["flags.txt"], opts=["-in:file:s", "input.pdb"], verbose=True)
+    rosetta = Rosetta(
+        bin=rosetta_binary,
+        run_node=Native(
+            nproc=2,
+        ),
+        flags=["flags.txt"],
+        opts=["-in:file:s", "input.pdb"],
+        verbose=True,
+    )
     cmd = rosetta.compose()
 
     assert cmd == [rosetta_binary.full_path, f"@{os.path.abspath('flags.txt')}", "-in:file:s", "input.pdb"]
@@ -193,7 +203,7 @@ def test_rosetta_run_mpi(mock_popen, mock_isfile, temp_dir, user, uid, userstrin
 
     else:
         tasks = rosetta.setup_tasks_mpi(base_cmd=base_cmd, nstruct=2)
-    rosetta.run_mpi(tasks=tasks)
+    mpi_node.run(tasks=tasks)
 
     # Verify that the execute method was called once
     mock_popen.assert_called_once()
@@ -281,7 +291,7 @@ def test_rosetta_execute_failure(mock_popen, mock_which, temp_dir):
 
     with pytest.raises(RuntimeError):
         invalid_task = RosettaCmdTask(cmd=["invalid_command"])
-        rosetta.execute(invalid_task)
+        execute(invalid_task)
 
     # Verify that the command was attempted
     mock_popen.assert_called_once()

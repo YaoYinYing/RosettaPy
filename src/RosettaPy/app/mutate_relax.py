@@ -3,16 +3,16 @@ Example Application of Mutate and Relax Protocol against Clustered Sequences.
 """
 
 import os
-from dataclasses import dataclass
-from typing import List, Optional, Union
+from dataclasses import dataclass, field
+from typing import List, Optional
 
 from Bio.Data import IUPACData
 from Bio.SeqIO import parse
 
 from RosettaPy import (Rosetta, RosettaEnergyUnitAnalyser,
                        RosettaScriptsVariableGroup)
-from RosettaPy.node.dockerized import RosettaContainer
-from RosettaPy.node.mpi import MpiNode
+from RosettaPy.node import NodeClassType, NodeHintT, node_picker
+from RosettaPy.node.native import Native
 from RosettaPy.utils import timing
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -28,6 +28,7 @@ class ScoreClusters:
     chain_id (str): Identifier of the protein chain.
     save_dir (str): Directory to save the scoring results, default is "tests/outputs".
     job_id (str): Identifier for the job, default is "score_clusters".
+    node (NodeClassType): The node configuration for running the relaxation. Defaults to Native(nproc=4).
     """
 
     pdb: str
@@ -36,7 +37,7 @@ class ScoreClusters:
     save_dir: str = "tests/outputs"
     job_id: str = "score_clusters"
 
-    node: Optional[Union[RosettaContainer, MpiNode]] = None
+    node: NodeClassType = field(default_factory=Native)
 
     def __post_init__(self):
         """
@@ -209,15 +210,21 @@ class ScoreClusters:
         return mut_protocol
 
 
-def main(num_mut: int = 1, use_docker=False):
+def main(
+    num_mut: int = 1,
+    node_hint: Optional[NodeHintT] = None,
+):
     """
     Test
     """
-    docker_label = "_docker" if use_docker else ""
+    if node_hint == "docker":
+        node_hint = "docker_mpi"
+
+    docker_label = f"_{node_hint}" if node_hint else ""
     scorer = ScoreClusters(
         pdb="tests/data/1SUO.pdb",
         chain_id="A",
-        node=(RosettaContainer(image="rosettacommons/rosetta:mpi", prohibit_mpi=True) if use_docker else None),
+        node=node_picker(node_type=node_hint),
         job_id=f"score_cluster_{docker_label}_{str(num_mut)}",
     )
 
