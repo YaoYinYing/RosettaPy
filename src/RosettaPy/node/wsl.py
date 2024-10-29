@@ -188,9 +188,7 @@ class WslWrapper:
         user = ["--allow-run-as-root"] if self.user == "root" else []
         return ["mpirun", "--use-hwthread-cpus", "-np", str(self.nproc)] + user + cmd
 
-    def run_single_task(
-        self, task: RosettaCmdTask, runner: Callable[[RosettaCmdTask], RosettaCmdTask]
-    ) -> RosettaCmdTask:
+    def run_single_task(self, task: RosettaCmdTask) -> RosettaCmdTask:
         """
         Run the RosettaCmdTask in the WSL environment.
 
@@ -214,7 +212,7 @@ class WslWrapper:
             mounted_task.runtime_dir,
         ] + mounted_task.cmd
 
-        return runner(mounted_task)
+        return execute(mounted_task)
 
     def run(self, tasks: List[RosettaCmdTask]) -> List[RosettaCmdTask]:
         """

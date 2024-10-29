@@ -254,7 +254,7 @@ class Rosetta:
                 # only one task is returned
                 tasks = self.setup_tasks_mpi(base_cmd=recomposed_cmd, inputs=inputs, nstruct=nstruct)
 
-                return [self.run_node.run_single_task(task=tasks[0], runner=execute)]
+                return [self.run_node.run_single_task(task=tasks[0])]
 
             tasks = self.setup_tasks_local(base_cmd=recomposed_cmd, inputs=inputs, nstruct=nstruct)
             return self.run_node.run(tasks)

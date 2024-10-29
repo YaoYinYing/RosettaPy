@@ -248,7 +248,7 @@ class RosettaContainer:
         # Recompose and return the new command list including MPI parameters
         return ["mpirun", "--use-hwthread-cpus", "-np", str(self.nproc), "--allow-run-as-root"] + cmd
 
-    def run_single_task(self, task: RosettaCmdTask) -> RosettaCmdTask:
+    def run_single_task(self, task: RosettaCmdTask, **kwargs) -> RosettaCmdTask:
         """
         Runs a task within a Docker container.
 
