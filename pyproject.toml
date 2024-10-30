@@ -61,7 +61,7 @@ test = [
     "pytest-github-actions-annotate-failures",
     "shellcheck-py==0.10.0.1",
     "pre-commit",
-    "virtualenv<=20.26.6"
+    "virtualenv<=20.27.1"
 ]
 
 [project.urls]
