@@ -115,7 +115,8 @@ class WslWrapper:
                 f"Failed to get default WSL distribution: {self.distro}\nAll distributions: \n{all_installed_distro}"
             )
 
-    def run_wsl_command(self, cmd: List[str]) -> str:
+    @staticmethod
+    def run_wsl_command(cmd: List[str]) -> str:
         """
         Execute a WSL command and return the output.
 
@@ -220,7 +221,7 @@ class WslWrapper:
         """
 
         # wsl use local runs of command
-        run_func = functools.partial(self.run_single_task, runner=execute)
+        run_func = functools.partial(self.run_single_task)
 
         # Execute tasks in parallel using multiple jobs
         ret = Parallel(n_jobs=self.nproc, verbose=100)(delayed(run_func)(cmd_job) for cmd_job in tasks)

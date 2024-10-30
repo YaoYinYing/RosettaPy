@@ -12,8 +12,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, List, Optional, Union
 
-from RosettaPy.utils.task import execute
-
 from .node import MpiNode, Native, NodeClassType, RosettaContainer, WslWrapper
 from .node.mpi import MpiIncompatibleInputWarning
 # internal imports
