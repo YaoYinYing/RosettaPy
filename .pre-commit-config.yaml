@@ -78,3 +78,9 @@ repos:
         - --indent-size=4
         - --ignore=F401,F841,E266,W503,W504
 
+  - repo: https://github.com/PyCQA/autoflake
+    rev: v2.3.1
+    hooks:
+      - id: autoflake
+
+

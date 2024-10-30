@@ -34,10 +34,11 @@ A Python Utility for Wrapping Rosetta Macromolecural Modeling Suite.
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/pylint-dev/pylint)
-[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
-[![Syntax Upgrade: pyupgrade](https://img.shields.io/badge/pyupgrade-white?style=plastic&logo=python&logoColor=ebedf0&label=Syntax&labelColor=da394b&color=white&link=https%3A%2F%2Fgithub.com%2Fasottile%2Fpyupgrade)](https://github.com/asottile/pyupgrade)
-[![Pycln](https://img.shields.io/badge/pycln-white?style=plastic&logo=python&logoColor=35475c&label=Imports%20Clean&labelColor=c4fcfd&color=c6fdbc&link=https%3A%2F%2Fgithub.com%2Fhadialqattan%2Fpycln)](https://github.com/hadialqattan/pycln)
-[![Flake8](https://img.shields.io/badge/Flake8-white?style=plastic&logo=python&logoColor=silver&label=Style&link=https%3A%2F%2Fgithub.com%2FPyCQA%2Fflake8)](https://github.com/PyCQA/flake8)
+[![imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
+[![syntax upgrade: pyupgrade](https://img.shields.io/badge/pyupgrade-white?style=plastic&logo=python&logoColor=ebedf0&label=syntax&labelColor=da394b&color=white&link=https%3A%2F%2Fgithub.com%2Fasottile%2Fpyupgrade)](https://github.com/asottile/pyupgrade)
+[![pycln](https://img.shields.io/badge/pycln-white?style=plastic&logo=python&logoColor=35475c&label=imports&labelColor=c4fcfd&color=c6fdbc&link=https%3A%2F%2Fgithub.com%2Fhadialqattan%2Fpycln)](https://github.com/hadialqattan/pycln)
+[![Flake8](https://img.shields.io/badge/flake8-white?style=plastic&logo=python&logoColor=silver&label=style&link=https%3A%2F%2Fgithub.com%2FPyCQA%2Fflake8)](https://github.com/PyCQA/flake8)
+[![autoflake](https://img.shields.io/badge/autoflake-yellow?style=plastic&logo=python&logoColor=cyan&label=style&link=https%3A%2F%2Fgithub.com%2FPyCQA%2Fautoflake)](https://github.com/PyCQA/autoflake)
 
 ## Release
 

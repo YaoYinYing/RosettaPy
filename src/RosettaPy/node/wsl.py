@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import warnings
 from dataclasses import dataclass
-from typing import Callable, List
+from typing import List
 
 from joblib import Parallel, delayed
 
