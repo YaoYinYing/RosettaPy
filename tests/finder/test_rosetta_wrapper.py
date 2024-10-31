@@ -152,12 +152,12 @@ def test_rosetta_run_mpi(mock_popen, mock_isfile, temp_dir, user, uid, userstrin
 
     if user == "root":
         with pytest.warns(UserWarning) as record:
-            tasks = rosetta.setup_tasks_mpi(base_cmd=base_cmd, nstruct=2)
+            tasks = rosetta.setup_tasks_with_node(base_cmd=base_cmd, nstruct=2)
 
             assert any("Running Rosetta with MPI as Root User" in str(warning.message) for warning in record)
 
     else:
-        tasks = rosetta.setup_tasks_mpi(base_cmd=base_cmd, nstruct=2)
+        tasks = rosetta.setup_tasks_with_node(base_cmd=base_cmd, nstruct=2)
     mpi_node.run(tasks=tasks)
 
     # Verify that the execute method was called once

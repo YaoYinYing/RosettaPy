@@ -2,6 +2,7 @@
 Wsl Mounter
 """
 
+import contextlib
 import functools
 import platform
 import shutil
@@ -171,9 +172,10 @@ class WslWrapper:
 
         return self._mpirun_cache
 
-    def recompose(self, cmd: List[str]) -> List[str]:
+    @contextlib.contextmanager
+    def apply(self, cmd: List[str]):
         """
-        Recompose the command for MPI execution if available.
+        Context manager to apply MPI configurations to a command.
 
         Parameters:
         - cmd: The command list.
@@ -183,11 +185,12 @@ class WslWrapper:
         """
         if not self.mpi_available or not self.has_mpirun:
             warnings.warn(RuntimeWarning("MPI is not available for this task."))
-            return cmd
+            yield cmd
+        else:
 
-        # Recompose the command for MPI execution
-        user = ["--allow-run-as-root"] if self.user == "root" else []
-        return ["mpirun", "--use-hwthread-cpus", "-np", str(self.nproc)] + user + cmd
+            # Recompose the command for MPI execution
+            user = ["--allow-run-as-root"] if self.user == "root" else []
+            yield ["mpirun", "--use-hwthread-cpus", "-np", str(self.nproc)] + user + cmd
 
     def run_single_task(self, task: RosettaCmdTask) -> RosettaCmdTask:
         """

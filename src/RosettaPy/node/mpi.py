@@ -80,6 +80,8 @@ class MpiNode:
 
     user = os.getuid() if platform.system() != "Windows" else None
 
+    mpi_available = True
+
     def __post_init__(self):
         """
         Post-initialization method to configure MPI executable and node file.

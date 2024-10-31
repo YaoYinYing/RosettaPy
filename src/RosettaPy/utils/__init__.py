@@ -7,7 +7,7 @@ from .repository import RosettaRepoManager, partial_clone
 from .task import (IgnoreMissingFileWarning, RosettaCmdTask,
                    RosettaScriptsVariable, RosettaScriptsVariableGroup,
                    RosettaScriptVariableNotExistWarning,
-                   RosettaScriptVariableWarning)
+                   RosettaScriptVariableWarning, expand_input_dict)
 from .tools import isolate, timing, tmpdir_manager
 
 __all__ = [
@@ -26,4 +26,5 @@ __all__ = [
     "zip_render",
     "partial_clone",
     "RosettaRepoManager",
+    "expand_input_dict",
 ]

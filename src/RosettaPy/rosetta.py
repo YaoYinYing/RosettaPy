@@ -12,12 +12,14 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, List, Optional, Union
 
+import tree
+
 from .node import MpiNode, Native, NodeClassType, RosettaContainer, WslWrapper
 from .node.mpi import MpiIncompatibleInputWarning
 # internal imports
 from .rosetta_finder import RosettaBinary, RosettaFinder
 from .utils import (IgnoreMissingFileWarning, RosettaCmdTask,
-                    RosettaScriptsVariableGroup)
+                    RosettaScriptsVariableGroup, expand_input_dict)
 
 
 @dataclass
@@ -46,23 +48,6 @@ class Rosetta:
 
     isolation: bool = False
     verbose: bool = False
-
-    @staticmethod
-    def expand_input_dict(d: Dict[str, Union[str, RosettaScriptsVariableGroup]]) -> List[str]:
-        """
-        Expands a dictionary containing strings and variable groups into a flat list.
-
-        :param d: Dictionary with keys and values that can be either strings or variable groups.
-        :return: A list of expanded key-value pairs.
-        """
-
-        opt_list = []
-        for k, v in d.items():
-            if not isinstance(v, RosettaScriptsVariableGroup):
-                opt_list.extend([k, v])
-            else:
-                opt_list.extend(v.aslonglist)
-        return opt_list
 
     @property
     def output_pdb_dir(self) -> str:
@@ -122,7 +107,7 @@ class Rosetta:
         warnings.warn(UserWarning("Using MPI binary as static build."))
         self.use_mpi = False
 
-    def setup_tasks_local(
+    def setup_tasks_native(
         self,
         base_cmd: List[str],
         inputs: Optional[List[Dict[str, Union[str, RosettaScriptsVariableGroup]]]] = None,
@@ -143,10 +128,7 @@ class Rosetta:
         if nstruct and nstruct > 0:
             # if inputs are given and nstruct is specified, flatten and pass inputs to all tasks
             if inputs:
-                for _, input_dict in enumerate(inputs):
-                    expanded_input_string = self.expand_input_dict(input_dict)
-                    base_cmd_copy.extend(expanded_input_string)
-                    print(f"Additional input args is passed: {expanded_input_string}")
+                base_cmd_copy.extend(tree.flatten([expand_input_dict(input_dict) for input_dict in inputs]))
 
             cmd_jobs = [
                 RosettaCmdTask(
@@ -169,7 +151,7 @@ class Rosetta:
             # if nstruct is not given and inputs are given, expand input and distribute them as task payload
             cmd_jobs = [
                 RosettaCmdTask(
-                    cmd=base_cmd_copy + self.expand_input_dict(input_arg),
+                    cmd=base_cmd_copy + expand_input_dict(input_arg),
                     task_label=f"task-{self.job_id}-no-{i}" if self.isolation else None,
                     base_dir=os.path.join(self.output_dir, f"{now}-{self.job_id}-runtimes"),
                 )
@@ -183,14 +165,14 @@ class Rosetta:
         warnings.warn(UserWarning("No inputs are given. Running single job."))
         return cmd_jobs
 
-    def setup_tasks_mpi(
+    def setup_tasks_with_node(
         self,
         base_cmd: List[str],
         inputs: Optional[List[Dict[str, Union[str, RosettaScriptsVariableGroup]]]] = None,
         nstruct: Optional[int] = None,
     ) -> List[RosettaCmdTask]:
         """
-        Setup a command using MPI.
+        Setup a command with run node.
 
         :param cmd: Base command to be executed.
         :param inputs: List of input dictionaries.
@@ -205,18 +187,12 @@ class Rosetta:
         # if inputs are given, flatten and attach them to the command
         if inputs:
             for _, input_dict in enumerate(inputs):
-                base_cmd_copy.extend(self.expand_input_dict(input_dict))
+                base_cmd_copy.extend(expand_input_dict(input_dict))
 
         # if nstruct is given, attach it to the command
         if nstruct:
             base_cmd_copy.extend(["-nstruct", str(nstruct)])
 
-        # early return if container setup is done
-        if isinstance(self.run_node, (RosettaContainer, WslWrapper)):
-            # skip setups of MpiNode because we have already recomposed.
-            return [RosettaCmdTask(cmd=base_cmd_copy)]
-
-        # else: this must be a MpiNode instance, continue to configure it
         with self.run_node.apply(base_cmd_copy) as updated_cmd:
             if self.isolation:
                 warnings.warn(RuntimeWarning("Ignoring isolated mode for MPI run."))
@@ -235,29 +211,19 @@ class Rosetta:
         :return: List of RosettaCmdTask.
         """
         cmd = self.compose()
-        if self.use_mpi and isinstance(self.run_node, MpiNode):
-            if inputs is not None:
+
+        if self.use_mpi and isinstance(self.run_node, (RosettaContainer, WslWrapper, MpiNode)):
+            if inputs:
                 warnings.warn(
                     MpiIncompatibleInputWarning(
                         "Customized Inputs for MPI nodes will be flattened and passed to master node"
                     )
                 )
-            tasks = self.setup_tasks_mpi(base_cmd=cmd, inputs=inputs, nstruct=nstruct)
+
+            tasks = self.setup_tasks_with_node(base_cmd=cmd, inputs=inputs, nstruct=nstruct)
             return self.run_node.run(tasks)
 
-        if isinstance(self.run_node, (RosettaContainer, WslWrapper)):
-            recomposed_cmd = self.run_node.recompose(cmd)
-            print(f"Recomposed Command: \n{recomposed_cmd}")
-            if self.run_node.mpi_available:
-                # only one task is returned
-                tasks = self.setup_tasks_mpi(base_cmd=recomposed_cmd, inputs=inputs, nstruct=nstruct)
-
-                return [self.run_node.run_single_task(task=tasks[0])]
-
-            tasks = self.setup_tasks_local(base_cmd=recomposed_cmd, inputs=inputs, nstruct=nstruct)
-            return self.run_node.run(tasks)
-
-        tasks = self.setup_tasks_local(cmd, inputs, nstruct)
+        tasks = self.setup_tasks_native(cmd, inputs, nstruct)
         return self.run_node.run(tasks)
 
     @property

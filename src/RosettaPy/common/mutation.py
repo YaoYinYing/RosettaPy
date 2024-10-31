@@ -5,7 +5,7 @@ Module for processing protein chain, sequence, mutant and mutation.
 import os
 import warnings
 from dataclasses import dataclass, field
-from typing import Dict, List, Union, ValuesView
+from typing import Dict, List, Tuple, Union, ValuesView
 
 import Bio
 from Bio.PDB import PDBParser, PPBuilder  # type: ignore
@@ -408,6 +408,43 @@ def mutants2mutfile(mutants: Union[List[Mutant], ValuesView[Mutant]], file_path:
         file.write(mutfile_content)
 
     return mutfile_content
+
+
+def mutpdb2mutfile(wt_pdb: str, mutant_pdb_dir: str, mutfile_save_dir: str) -> Tuple[List[str], List[Mutant]]:
+    """
+    Method to generate mutation files for Cartesian ddG calculation based on the specified mutant PDB files.
+
+    Parameters:
+        wt_pdb (str): Path to the wild-type PDB file.
+        mutant_pdb_dir (str): Directory path containing the mutant PDB files.
+        mutfile_save_dir (str): Directory path where the mutation files will be saved.
+
+    Returns:
+        Tuple[List[str], List[Mutant]]: A tuple containing a list of mutation files and a list of Mutant objects.
+    """
+    # Collect paths to all PDB files in the mutant PDB directory
+    pdbs = [os.path.join(mutant_pdb_dir, f) for f in os.listdir(mutant_pdb_dir)]
+
+    # Generate Mutant objects from the wild-type PDB and mutant PDB files
+    mutants = Mutant.from_pdb(wt_pdb, pdbs)
+
+    # Ensure the directory for saving mutation files exists
+    os.makedirs(mutfile_save_dir, exist_ok=True)
+
+    # Create a dictionary mapping mutant IDs to Mutant objects
+    mutants_dict = {m.raw_mutant_id: m for m in mutants}
+
+    mutfiles = []
+
+    # Generate mutation files for each mutant
+    for _, m in enumerate(mutants_dict.values()):
+        m_id = m.raw_mutant_id
+        mutfile = os.path.join(mutfile_save_dir, f"{m_id}.mutfile")
+        mutants2mutfile([m], mutfile)
+        mutfiles.append(mutfile)
+
+    # Return the list of mutation files and the list of Mutant objects
+    return mutfiles, list(mutants_dict.values())
 
 
 def main():

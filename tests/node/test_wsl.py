@@ -86,13 +86,15 @@ def test_recompose_with_mpi(wsl_wrapper):
     wsl_wrapper._mpirun_cache = True
     cmd = ["rosetta", "-in:file:somefile.pdb"]
     expected_cmd = ["mpirun", "--use-hwthread-cpus", "-np", "4", "rosetta", "-in:file:somefile.pdb"]
-    assert wsl_wrapper.recompose(cmd) == expected_cmd
+    with wsl_wrapper.apply(cmd) as recomposed_cmd:
+        assert recomposed_cmd == expected_cmd
 
 
 def test_recompose_without_mpi(wsl_wrapper):
     wsl_wrapper.mpi_available = False
     cmd = ["rosetta", "-in:file:somefile.pdb"]
-    assert wsl_wrapper.recompose(cmd) == cmd
+    with wsl_wrapper.apply(cmd) as recomposed_cmd:
+        assert recomposed_cmd == cmd
 
 
 def test_run_single_task(wsl_wrapper, mock_task):

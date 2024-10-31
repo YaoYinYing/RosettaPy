@@ -4,13 +4,13 @@ Example Application of Cartesian ddG
 
 import os
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import pandas as pd
 
 from RosettaPy import (Rosetta, RosettaCartesianddGAnalyser,
                        RosettaEnergyUnitAnalyser)
-from RosettaPy.common.mutation import Mutant, mutants2mutfile
+from RosettaPy.common.mutation import Mutant, mutpdb2mutfile
 from RosettaPy.node import NodeClassType, NodeHintT, node_picker
 from RosettaPy.node.native import Native
 from RosettaPy.utils import timing
@@ -28,11 +28,6 @@ class CartesianDDG:
         save_dir (str, optional): The directory to save the output results. Defaults to "tests/outputs".
         job_id (str, optional): The job identifier. Defaults to "cart_ddg".
 
-        nstruct_relax (int, optional): The number of relaxed structures to generate. Defaults to 30.
-        use_legacy (bool, optional): Whether to use the legacy method for ddG calculation. Defaults to False.
-        ddg_iteration (int, optional): The number of iterations for the ddG calculation. Defaults to 3.
-
-        mutant_pdb_dir (str): The directory containing the mutant PDB files.
         node (NodeClassType): The node configuration for running the relaxation. Defaults to Native(nproc=4).
     """
 
@@ -40,10 +35,6 @@ class CartesianDDG:
     save_dir: str = "tests/outputs"
     job_id: str = "cart_ddg"
 
-    use_legacy: bool = False
-    ddg_iteration: int = 3
-
-    mutant_pdb_dir = "tests/data/designed/pross/"
     node: NodeClassType = field(default_factory=Native)
 
     def __post_init__(self):
@@ -64,6 +55,8 @@ class CartesianDDG:
     def relax(self, nstruct_relax: int = 30):
         """
         Method to perform structure relaxation using Rosetta.
+        Args:
+            nstruct_relax (int, optional): The number of relaxed structures to generate. Defaults to 30.
 
         Returns:
             str: The path to the best relaxed PDB file.
@@ -99,12 +92,17 @@ class CartesianDDG:
 
         return pdb_path
 
-    def cartesian_ddg(self, input_pdb):
+    def cartesian_ddg(
+        self, input_pdb, mutfiles: List[str], mutants: List[Mutant], use_legacy: bool = False, ddg_iteration: int = 3
+    ):
         """
         Method to perform Cartesian ddG calculation using Rosetta.
 
         Args:
             input_pdb (str): The path to the input PDB file for ddG calculation.
+            use_legacy (bool, optional): Whether to use the legacy method for ddG calculation. Defaults to False.
+            ddg_iteration (int, optional): The number of iterations for the ddG calculation. Defaults to 3.
+
 
         Returns:
             pd.DataFrame: A dataframe containing the ddG calculation results for each mutant.
@@ -122,9 +120,9 @@ class CartesianDDG:
                 "-ddg:json",
                 "true",
                 "-ddg::legacy",
-                "true" if self.use_legacy else "false",
+                "true" if use_legacy else "false",
                 "-ddg:iterations",
-                str(self.ddg_iteration),
+                str(ddg_iteration),
                 "-ddg:output_dir",
                 os.path.join(self.save_dir, self.job_id),
             ],
@@ -135,7 +133,6 @@ class CartesianDDG:
             run_node=self.node,
         )
 
-        mutfiles, mutants = self.mut2mutfile()
         tasks = [{"-ddg:mut_file": mf, "-ddg:out": f"{m.raw_mutant_id}.out"} for mf, m in zip(mutfiles, mutants)]
 
         with timing("Cartesian ddG: Evaluation"):
@@ -148,27 +145,6 @@ class CartesianDDG:
             ]
         )
 
-    def mut2mutfile(self) -> Tuple[List[str], List[Mutant]]:
-        """
-        Method to generate mutation files for Cartesian ddG calculation based on the specified mutant PDB files.
-
-        Returns:
-            Tuple[List[str], List[Mutant]]: A tuple containing a list of mutation files and a list of Mutant objects.
-        """
-        pdbs = [os.path.join(self.mutant_pdb_dir, f) for f in os.listdir(self.mutant_pdb_dir)]
-        mutants = Mutant.from_pdb(self.pdb, pdbs)
-
-        mutants_dict = {m.raw_mutant_id: m for m in mutants}
-
-        mutfiles = []
-
-        for _, m in enumerate(mutants_dict.values()):
-            m_id = m.raw_mutant_id
-            mutfile = os.path.join(self.save_dir, self.job_id, "mutfiles", f"{m_id}.mutfile")
-            mutants2mutfile([m], mutfile)
-            mutfiles.append(mutfile)
-        return mutfiles, list(mutants_dict.values())
-
 
 def main(
     legacy: bool = False,
@@ -179,17 +155,30 @@ def main(
     """
 
     docker_label = f"_{node_hint}" if node_hint else ""
+
+    mutant_pdb_dir = "tests/data/designed/pross/"
+
     cart_ddg = CartesianDDG(
         pdb="tests/data/3fap_hf3_A_short.pdb",
-        use_legacy=legacy,
         job_id="cart_ddg" + docker_label if not legacy else "cart_ddg_legacy" + docker_label,
         node=node_picker(node_type=node_hint),
+    )
+
+    mutfiles, mutants = mutpdb2mutfile(
+        wt_pdb=cart_ddg.pdb,
+        mutant_pdb_dir=mutant_pdb_dir,
+        mutfile_save_dir=os.path.join(cart_ddg.save_dir, cart_ddg.job_id, "mutfiles"),
     )
 
     pdb_path = cart_ddg.relax(
         nstruct_relax=4,
     )
-    df = cart_ddg.cartesian_ddg(input_pdb=pdb_path)
+    df = cart_ddg.cartesian_ddg(
+        input_pdb=pdb_path,
+        mutfiles=mutfiles,
+        mutants=mutants,
+        use_legacy=legacy,
+    )
 
     print(df)
 

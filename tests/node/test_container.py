@@ -84,17 +84,17 @@ def test_rosetta_pymount_get_mounted_name():
 def test_rosetta_container_recompose():
     container = RosettaContainer(image="rosettacommons/rosetta:mpi", mpi_available=True, nproc=4)
     cmd = ["some_executable", "-flag"]
-    recomposed_cmd = container.recompose(cmd)
+    with container.apply(cmd) as recomposed_cmd:
 
-    assert recomposed_cmd == [
-        "mpirun",
-        "--use-hwthread-cpus",
-        "-np",
-        "4",
-        "--allow-run-as-root",
-        "some_executable",
-        "-flag",
-    ]
+        assert recomposed_cmd == [
+            "mpirun",
+            "--use-hwthread-cpus",
+            "-np",
+            "4",
+            "--allow-run-as-root",
+            "some_executable",
+            "-flag",
+        ]
 
 
 def test_rosetta_container_run_single_task(mock_task):
@@ -129,9 +129,9 @@ def test_rosetta_container_run_single_task(mock_task):
 def test_rosetta_container_recompose_no_mpi():
     container = RosettaContainer(image="rosettacommons/rosetta:static", mpi_available=False)
     cmd = ["some_executable", "-flag"]
-    recomposed_cmd = container.recompose(cmd)
+    with container.apply(cmd) as recomposed_cmd:
 
-    assert recomposed_cmd == cmd
+        assert recomposed_cmd == cmd
 
 
 def test_rosetta_pymount_squeeze():

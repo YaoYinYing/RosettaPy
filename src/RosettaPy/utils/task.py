@@ -10,7 +10,9 @@ import os
 import subprocess
 import warnings
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Union
+
+import tree
 
 from RosettaPy.utils.tools import isolate
 
@@ -135,6 +137,19 @@ class RosettaScriptsVariableGroup:
             xml_content_copy = xml_content_copy.replace(f"%%{k}%%", v)
 
         return xml_content_copy
+
+
+def expand_input_dict(d: Dict[str, Union[str, RosettaScriptsVariableGroup]]) -> List[str]:
+    """
+    Expands a dictionary containing strings and variable groups into a flat list.
+
+    :param d: Dictionary with keys and values that can be either strings or variable groups.
+    :return: A list of expanded key-value pairs.
+    """
+
+    opt_list = [[k, v] if not isinstance(v, RosettaScriptsVariableGroup) else v.aslonglist for k, v in d.items()]
+
+    return tree.flatten(opt_list)
 
 
 @dataclass

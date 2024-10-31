@@ -6,6 +6,7 @@ Container module for run Rosetta via docker.
 # pylint: disable=no-member
 
 
+import contextlib
 import functools
 import os
 import platform
@@ -227,9 +228,10 @@ class RosettaContainer:
         if self.prohibit_mpi:
             self.mpi_available = False
 
-    def recompose(self, cmd: List[str]) -> List[str]:
+    @contextlib.contextmanager
+    def apply(self, cmd: List[str]):
         """
-        If necessary, recompose the command for MPI runs.
+        Context manager to apply MPI configurations to a command.
 
         This function checks if MPI is available. If not, it issues a warning and returns the original command.
         If MPI is available, it recomposes the command to include MPI execution parameters.
@@ -243,10 +245,10 @@ class RosettaContainer:
         # Check if MPI is available, if not, issue a warning and return the original command
         if not self.mpi_available:
             warnings.warn(RuntimeWarning("This container has static build of Rosetta. Nothing has to be recomposed."))
-            return cmd
-
-        # Recompose and return the new command list including MPI parameters
-        return ["mpirun", "--use-hwthread-cpus", "-np", str(self.nproc), "--allow-run-as-root"] + cmd
+            yield cmd
+        else:
+            # Recompose and return the new command list including MPI parameters
+            yield ["mpirun", "--use-hwthread-cpus", "-np", str(self.nproc), "--allow-run-as-root"] + cmd
 
     def run_single_task(self, task: RosettaCmdTask) -> RosettaCmdTask:
         """
