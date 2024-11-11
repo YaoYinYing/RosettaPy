@@ -104,20 +104,17 @@ def isolate(save_to: str = "./save"):
 
 def squeeze(items: List[T]) -> List[T]:
     """
-    Squeezes a list of mutants by removing duplicates and sorting them based on their IDs.
+    Squeezes a list of unhashable dataclass objects by removing duplicates.
 
-    This function implements the operation of squeezing a list, which includes removing duplicate elements
-    and sorting them. The uniqueness of the elements is determined by their ID attribute, and the specific
-    implementation method needs to be determined according to the context. The purpose of this function is
-    to return a list that is more organized and without duplicates, making it more convenient for subsequent
-    processing and use.
+    This function iterates through a list of unhashable dataclass objects and removes any duplicates.
+    It uses a simple linear search algorithm to compare each item with the items already in the squeezed list.
+    If a duplicate is found, it is skipped; otherwise, it is added to the squeezed list.
 
     Parameters:
-    items: List[T]: A list containing multiple mutant elements, where T represents the type of the elements
-    in the list.
+    - items (List[T]): A list of unhashable dataclass objects to be squeezed.
 
     Returns:
-    List[T]: Returns a list containing the squeezed mutant elements, with duplicates removed and sorted by ID.
+    - List[T]: A list of squeezed dataclass objects, with duplicates removed.
     """
     # Initialize an empty list to store the squeezed mutant elements
     reduced_items: List[T] = []
