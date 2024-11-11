@@ -157,6 +157,24 @@ class RosettaPyProteinSequence:
             raise ValueError(f"Chain {chain_id} is not found in the Protein Sequence.") from e
 
     @classmethod
+    def from_dict(cls, chains: Dict[str, str]) -> "RosettaPyProteinSequence":
+        """
+        Create a ProteinSequence instance from a dictionary of chain IDs and sequences.
+
+        This class method initializes a new instance of the RosettaPyProteinSequence class
+        by creating a list of Chain objects from the provided dictionary. Each Chain object
+        is created with a chain ID and sequence extracted from the dictionary.
+
+        Parameters:
+        - chains (Dict[str, str]): A dictionary mapping chain IDs to their sequences.
+
+        Returns:
+        - RosettaPyProteinSequence: A new instance of the RosettaPyProteinSequence class,
+          populated with Chain objects created from the provided dictionary.
+        """
+        return cls(chains=[Chain(chain_id=chain_id, sequence=sequence) for chain_id, sequence in chains.items()])
+
+    @classmethod
     def from_pdb(cls, pdb_file: str) -> "RosettaPyProteinSequence":
         """
         Parse a PDB file and extract the amino acid sequence for each chain.

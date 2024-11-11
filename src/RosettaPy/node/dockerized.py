@@ -23,6 +23,7 @@ from RosettaPy.node.utils import Mounter, mount
 
 from ..utils.escape import print_diff, render
 from ..utils.task import RosettaCmdTask, execute
+from ..utils.tools import squeeze
 
 
 @dataclass
@@ -175,16 +176,8 @@ class RosettaPyMount(Mounter):
         Returns:
             List[types.Mount]: A list of `Mount` objects with duplicates removed.
         """
-        # Initialize an empty list to store unique `Mount` objects
-        mount_set = []
-        # will not use Set here bcs `types.Mount` is not hashable
-        for mount_obj in mounts:
-            # Check if the current `Mount` object is already in `mount_set`
-            if mount_obj in mount_set:
-                # If so, skip it to remove duplicates
-                continue
-            # If not, add it to `mount_set`
-            mount_set.append(mount_obj)
+        # Get squeezed mount list
+        mount_set = squeeze(mounts)
 
         # Get the length of the list before and after duplicate removal
         # If the lengths are different, it means duplicates were removed

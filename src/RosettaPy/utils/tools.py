@@ -7,7 +7,9 @@ import os
 import shutil
 import tempfile
 import time
-from typing import Optional
+from typing import List, Optional, TypeVar
+
+T = TypeVar("T")
 
 
 # from AlphaFold
@@ -98,3 +100,31 @@ def isolate(save_to: str = "./save"):
     finally:
         # Restore the previous current directory regardless of whether the context code executed successfully
         os.chdir(curdir)
+
+
+def squeeze(items: List[T]) -> List[T]:
+    """
+    Squeezes a list of unhashable dataclass objects by removing duplicates.
+
+    This function iterates through a list of unhashable dataclass objects and removes any duplicates.
+    It uses a simple linear search algorithm to compare each item with the items already in the squeezed list.
+    If a duplicate is found, it is skipped; otherwise, it is added to the squeezed list.
+
+    Parameters:
+    - items (List[T]): A list of unhashable dataclass objects to be squeezed.
+
+    Returns:
+    - List[T]: A list of squeezed dataclass objects, with duplicates removed.
+    """
+    # Initialize an empty list to store the squeezed mutant elements
+    reduced_items: List[T] = []
+    # Iterate through the list of mutants
+    for item in items:
+        # Check if the current mutant already exists in the squeezed list
+        if item in reduced_items:
+            # If it exists, skip the current mutant and continue to the next iteration
+            continue
+        # If it does not exist, add the current mutant to the squeezed list
+        reduced_items.append(item)
+    # Return the squeezed list of mutants
+    return reduced_items
