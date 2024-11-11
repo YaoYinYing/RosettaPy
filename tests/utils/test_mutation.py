@@ -183,6 +183,20 @@ def test_mutated_sequences(sample_mutants: Dict[str, Mutant]):
         assert mf.chains == m.mutated_sequence.chains, f"{f}"
 
 
+def test_protein_sequence_from_dict():
+    chains = {"A": "AAAAAAAAAAAAB", "B": "BBBBBBBBBBBBA"}
+    protein_sequence = RosettaPyProteinSequence.from_dict(chains)
+    expected_sequence = RosettaPyProteinSequence(
+        chains=[Chain(chain_id="A", sequence="AAAAAAAAAAAAB"), Chain(chain_id="B", sequence="BBBBBBBBBBBBA")]
+    )
+
+    assert protein_sequence == expected_sequence
+    assert len(protein_sequence.chains) == 2
+    assert protein_sequence.get_sequence_by_chain("A") == "AAAAAAAAAAAAB"
+    with pytest.raises(ValueError):
+        protein_sequence.get_sequence_by_chain("C")
+
+
 def test_mutants_to_mutfile(sample_mutants: Dict[str, Mutant]):
     mutfile = "tests/outputs/mutfile.mut"
     mutfile_content = mutants2mutfile(sample_mutants.values(), mutfile)

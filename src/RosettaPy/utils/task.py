@@ -265,6 +265,12 @@ def _non_isolated_execute(task: RosettaCmdTask) -> RosettaCmdTask:
         print(f"Command failed with return code {retcode}")
         print(stdout)
         warnings.warn(RuntimeWarning(stderr))
-        raise RuntimeError(f"Command failed with return code {retcode}")
+        raise RuntimeError(
+            f"Command failed with return code {retcode}.\n"
+            f"Command: `{' '.join(task.cmd)}`\n"
+            f"PWD: {os.getcwd()}\n"
+            f"Stdout: {stdout}"
+            f"Stderr: {stderr}"
+        )
 
     return task

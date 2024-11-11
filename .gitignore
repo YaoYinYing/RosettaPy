@@ -138,3 +138,4 @@ rosetta_db_clone/
 rosetta_python_script_dir/
 nodefile*
 output*
+.DS_Store

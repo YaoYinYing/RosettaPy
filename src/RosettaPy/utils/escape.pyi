@@ -29,6 +29,10 @@ class Colors:
     BLINK: str
     NEGATIVE: str
     CROSSED: str
+
+    CYAN_BG: str
+    RED_BG: str
+    MAGENTA_BG: str
     RESET: str
 
     all_colors: List[str]
@@ -79,6 +83,12 @@ class Colors:
     def negative(text: str) -> str: ...
     @staticmethod
     def crossed(text: str) -> str: ...
+    @staticmethod
+    def cyan_bg(text: str) -> str: ...
+    @staticmethod
+    def red_bg(text: str) -> str: ...
+    @staticmethod
+    def magenta_bg(text: str) -> str: ...
     @staticmethod
     def reset(text: str) -> str: ...
     @staticmethod

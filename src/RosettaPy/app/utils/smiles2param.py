@@ -343,6 +343,7 @@ class SmallMoleculeParamsGenerator:
         """
         Post-initialization method to set up the save directory and determine the Rosetta Python scripts directory.
         """
+        self.save_dir = os.path.abspath(self.save_dir)
         os.makedirs(self.save_dir, exist_ok=True)
 
         if os.environ.get("ROSETTA_PYTHON_SCRIPTS"):
@@ -436,8 +437,10 @@ class SmallMoleculeParamsGenerator:
             name (str): The name of the molecule.
             charge (int): The formal charge of the molecule.
         """
-        task_dir = os.path.abspath(self.save_dir)
+        task_dir = self.save_dir
         sdf_path = os.path.join(task_dir, f"{name}.sdf")
+
+        os.makedirs(os.path.dirname(sdf_path), exist_ok=True)
 
         w = Chem.SDWriter(sdf_path)  # type: ignore
         for i in mol.GetConformers():
@@ -476,6 +479,7 @@ def main(
     """
 
     # Remove Rosetta-related keys from the environment variables to avoid potential configuration conflicts
+    # for tests only
     for k in (
         "ROSETTA_PYTHON_SCRIPTS",
         "ROSETTA",
@@ -485,13 +489,16 @@ def main(
             os.environ.pop(k)
 
     # Initialize the SmallMoleculeParamsGenerator and convert the specified molecules
-    converter = SmallMoleculeParamsGenerator(save_dir="tests/outputs/ligands")
+    converter = SmallMoleculeParamsGenerator(save_dir=f"tests/outputs/ligands_{n_jobs}")
     converter.convert(
         {
             # O-Phospho-L-tyrosine
             "OPY": "C1=CC(=CC=C1C[C@@H](C(=O)O)N)OP(=O)(O)O",
             "ASA": "CC(=O)OC1=CC=CC=C1C(=O)O",  # Aspirin
             "CAF": "CN1C=NC2=C1C(=O)N(C(=O)N2C)C",  # Caffeine
+            "EGI": "C1CC1C(=O)NC2=CC=CC(=C2)NC3=NC=NC(=C3)NC4=CC=CC(=C4)C(F)(F)F",  # EGFR inhibitor (compound)
+            "MOR": "CN1CC[C@]23[C@@H]4[C@H]1CC5=C2C(=C(C=C5)O)O[C@H]3[C@H](C=C4)O",  # morphine
+            "GLU": "C(CC(=O)N)[C@@H](C(=O)O)N",  # L-glutamine
         },
         n_jobs=n_jobs,
     )

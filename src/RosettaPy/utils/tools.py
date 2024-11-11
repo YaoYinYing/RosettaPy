@@ -7,7 +7,9 @@ import os
 import shutil
 import tempfile
 import time
-from typing import Optional
+from typing import List, Optional, TypeVar
+
+T = TypeVar("T")
 
 
 # from AlphaFold
@@ -98,3 +100,34 @@ def isolate(save_to: str = "./save"):
     finally:
         # Restore the previous current directory regardless of whether the context code executed successfully
         os.chdir(curdir)
+
+
+def squeeze(items: List[T]) -> List[T]:
+    """
+    Squeezes a list of mutants by removing duplicates and sorting them based on their IDs.
+
+    This function implements the operation of squeezing a list, which includes removing duplicate elements
+    and sorting them. The uniqueness of the elements is determined by their ID attribute, and the specific
+    implementation method needs to be determined according to the context. The purpose of this function is
+    to return a list that is more organized and without duplicates, making it more convenient for subsequent
+    processing and use.
+
+    Parameters:
+    items: List[T]: A list containing multiple mutant elements, where T represents the type of the elements
+    in the list.
+
+    Returns:
+    List[T]: Returns a list containing the squeezed mutant elements, with duplicates removed and sorted by ID.
+    """
+    # Initialize an empty list to store the squeezed mutant elements
+    reduced_items: List[T] = []
+    # Iterate through the list of mutants
+    for item in items:
+        # Check if the current mutant already exists in the squeezed list
+        if item in reduced_items:
+            # If it exists, skip the current mutant and continue to the next iteration
+            continue
+        # If it does not exist, add the current mutant to the squeezed list
+        reduced_items.append(item)
+    # Return the squeezed list of mutants
+    return reduced_items
