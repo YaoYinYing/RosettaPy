@@ -13,6 +13,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Union
 
 import tree
+from joblib_progress import joblib_progress
 
 from .node import MpiNode, Native, NodeClassType, RosettaContainer, WslWrapper
 from .node.mpi import MpiIncompatibleInputWarning
@@ -224,7 +225,8 @@ class Rosetta:
             return self.run_node.run(tasks)
 
         tasks = self.setup_tasks_native(cmd, inputs, nstruct)
-        return self.run_node.run(tasks)
+        with joblib_progress(f"Processing {self.job_id} via {self.run_node.__class__.__name__}...", total=len(tasks)):
+            return self.run_node.run(tasks)
 
     @property
     def _rosetta_bin_path(self) -> str:

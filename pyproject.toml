@@ -35,7 +35,8 @@ dependencies = [
     "matplotlib",
     "docker>=7.1.0",
     "gitpython",
-    "dm-tree"
+    "dm-tree",
+    "joblib-progress"
 ]
 
 [project.optional-dependencies]
