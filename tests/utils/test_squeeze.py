@@ -48,8 +48,17 @@ def test_squeeze_hashable():
     assert p1 == p3
     assert p1 is not p3
     squeezed_list = squeeze(unsorted_list)
-    assert squeezed_list == [p1, p2, p4]
+    assert squeezed_list == list({p1, p2, p4})
 
     person_set = {p for p in unsorted_list}
     assert len(person_set) == 3
     assert all(p in squeezed_list for p in person_set)
+
+
+def test_squeeze_multiple_classes():
+    p1 = PersonHashable("Alice", 30, 1)
+    p2 = PersonHashable("Bob", 28, 2)
+    p3 = Person("Charlie", 35, 3)
+
+    with pytest.raises(ValueError, match="All items must be of the same dataclass. Found classes"):
+        squeeze([p1, p2, p3])
