@@ -35,9 +35,11 @@ def _make_rosetta_fixture(binary_suffix: str):
     Args:
         binary_suffix: Suffix for the Rosetta binary name
     """
+
     @pytest.fixture
     def _fixture(tmp_path):
         return create_mock_rosetta_bin(tmp_path, f"rosetta_scripts.{binary_suffix}")
+
     return _fixture
 
 
