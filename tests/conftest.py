@@ -31,7 +31,7 @@ def create_mock_rosetta_bin(tmp_path, binary_name):
 
 def _make_rosetta_fixture(binary_suffix: str):
     """Factory function to create Rosetta binary fixtures.
-    
+
     Args:
         binary_suffix: Suffix for the Rosetta binary name
     """
@@ -39,6 +39,7 @@ def _make_rosetta_fixture(binary_suffix: str):
     def _fixture(tmp_path):
         return create_mock_rosetta_bin(tmp_path, f"rosetta_scripts.{binary_suffix}")
     return _fixture
+
 
 # Create fixtures using the factory
 mock_rosetta_bin = _make_rosetta_fixture("linuxgccrelease")
