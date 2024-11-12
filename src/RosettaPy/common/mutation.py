@@ -11,10 +11,12 @@ import Bio
 from Bio.PDB import PDBParser, PPBuilder  # type: ignore
 from Bio.PDB.PDBExceptions import PDBConstructionWarning
 
+from RosettaPy.utils.tools import squeeze
+
 warnings.filterwarnings("ignore", category=PDBConstructionWarning)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Mutation:
     """
     Class representing a protein mutation.
@@ -40,7 +42,7 @@ class Mutation:
         return f"{self.wt_res} {jump_index} {self.mut_res}"
 
 
-@dataclass
+@dataclass(frozen=True)
 class Chain:
     """
     Class representing a protein chain.
@@ -174,6 +176,19 @@ class RosettaPyProteinSequence:
         """
         return cls(chains=[Chain(chain_id=chain_id, sequence=sequence) for chain_id, sequence in chains.items()])
 
+    @property
+    def as_dict(self) -> Dict[str, str]:
+        """
+        Returns a dictionary representation of the RosettaPyProteinSequence object.
+
+        This method iterates over each chain in the `self.chains` list and extracts the `chain_id`
+        and `sequence` attributes of each chain. It then creates a dictionary where the keys are
+        the chain IDs and the values are the corresponding chain sequences.
+
+        :return: A dictionary containing the chain IDs as keys and their corresponding sequences as values.
+        """
+        return {chain.chain_id: chain.sequence for chain in self.chains}
+
     @classmethod
     def from_pdb(cls, pdb_file: str) -> "RosettaPyProteinSequence":
         """
@@ -293,6 +308,7 @@ class Mutant:
         This method is automatically called after the initialization of the instance.
         It ensures the list of mutations is valid and the protein sequence is set.
         """
+        self.mutations = squeeze(self.mutations)
         self.validate_mutations()
 
     def validate_mutations(self):

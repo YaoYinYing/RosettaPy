@@ -82,14 +82,8 @@ def test_timing(capfd):
 @patch("shutil.which", return_value=None)
 @patch("os.path.isfile", return_value=True)
 @patch("subprocess.Popen")
-def test_rosetta_run_local(mock_popen, mock_isfile, mock_which, temp_dir):
-
-    file_path = os.path.join(temp_dir, "rosetta_scripts.linuxgccrelease")
-    os.environ["ROSETTA_BIN"] = temp_dir
-
-    with open(file_path, "w") as f:
-        f.write('#!/bin/bash\necho "Mock Rosetta binary"')
-    os.chmod(file_path, 0o755)
+def test_rosetta_run_local(mock_popen, mock_isfile, mock_which, mock_rosetta_bin):
+    os.environ["ROSETTA_BIN"] = os.path.dirname(mock_rosetta_bin)
 
     nstruct = 10
 
@@ -126,17 +120,13 @@ def test_rosetta_run_local(mock_popen, mock_isfile, mock_which, temp_dir):
 @patch("os.path.isfile", return_value=True)
 @patch("subprocess.Popen")
 @pytest.mark.skipif(github_rosetta_test(), reason="No need to run this test in Dockerized Rosetta.")
-def test_rosetta_run_mpi(mock_popen, mock_isfile, temp_dir, user, uid, userstring):
-
-    file_path = os.path.join(temp_dir, "rosetta_scripts.mpi.linuxgccrelease")
-    os.environ["ROSETTA_BIN"] = temp_dir
-
-    with open(file_path, "w") as f:
-        f.write("")  # Create an empty file
-    os.chmod(str(file_path), 0o755)
+def test_rosetta_run_mpi(mock_popen, mock_isfile, mock_rosetta_mpi_bin, user, uid, userstring):
+    os.environ["ROSETTA_BIN"] = os.path.dirname(mock_rosetta_mpi_bin)
 
     # Mock the Rosetta binary with MPI mode
-    rosetta_binary = RosettaBinary(temp_dir, "rosetta_scripts", "mpi", "linux", "gcc", "release")
+    rosetta_binary = RosettaBinary(
+        os.path.dirname(mock_rosetta_mpi_bin), "rosetta_scripts", "mpi", "linux", "gcc", "release"
+    )
     with patch("shutil.which", return_value="/usr/bin/mpirun") as mock_which_mpirun:
         mpi_node = MpiNode(nproc=4)
     mpi_node.user = uid
@@ -175,13 +165,8 @@ def test_rosetta_run_mpi(mock_popen, mock_isfile, temp_dir, user, uid, userstrin
 
 @patch("shutil.which", return_value=None)
 @pytest.mark.skipif(github_rosetta_test(), reason="No need to run this test in Dockerized Rosetta.")
-def test_rosetta_init_no_mpi_executable(mock_which, temp_dir):
-    file_path = os.path.join(temp_dir, "rosetta_scripts.static.linuxgccrelease")
-    os.environ["ROSETTA_BIN"] = temp_dir
-
-    with open(file_path, "w") as f:
-        f.write("")  # Create an empty file
-    os.chmod(str(file_path), 0o755)
+def test_rosetta_init_no_mpi_executable(mock_which, mock_rosetta_static_bin):
+    os.environ["ROSETTA_BIN"] = os.path.dirname(mock_rosetta_static_bin)
 
     rosetta_binary = RosettaFinder().find_binary("rosetta_scripts")
 
@@ -192,13 +177,9 @@ def test_rosetta_init_no_mpi_executable(mock_which, temp_dir):
 
 
 @patch("os.path.isfile", return_value=True)
-def test_rosetta_compose(mock_isfile, temp_dir):
-    file_path = os.path.join(temp_dir, "rosetta_scripts.mpi.linuxgccrelease")
-    os.environ["ROSETTA_BIN"] = temp_dir
+def test_rosetta_compose(mock_isfile, mock_rosetta_mpi_bin):
+    os.environ["ROSETTA_BIN"] = os.path.dirname(mock_rosetta_mpi_bin)
 
-    with open(file_path, "w") as f:
-        f.write("")  # Create an empty file
-    os.chmod(str(file_path), 0o755)
     rosetta_binary = RosettaFinder().find_binary("rosetta_scripts")
 
     rosetta = Rosetta(bin=rosetta_binary, flags=["flags.txt"], opts=["-in:file:s", "input.pdb"], verbose=True)
@@ -209,13 +190,9 @@ def test_rosetta_compose(mock_isfile, temp_dir):
 
 
 @patch("shutil.which", return_value="/usr/bin/mpirun")
-def test_rosetta_mpi_warning(mock_which, temp_dir):
-    file_path = os.path.join(temp_dir, "rosetta_scripts.mpi.linuxgccrelease")
-    os.environ["ROSETTA_BIN"] = temp_dir
+def test_rosetta_mpi_warning(mock_which, mock_rosetta_mpi_bin):
+    os.environ["ROSETTA_BIN"] = os.path.dirname(mock_rosetta_mpi_bin)
 
-    with open(file_path, "w") as f:
-        f.write("")  # Create an empty file
-    os.chmod(str(file_path), 0o755)
     rosetta_binary = RosettaFinder().find_binary("rosetta_scripts")
 
     with pytest.warns(UserWarning) as record:
@@ -227,13 +204,9 @@ def test_rosetta_mpi_warning(mock_which, temp_dir):
 
 @patch("shutil.which", return_value="/usr/bin/mpirun")
 @patch("subprocess.Popen")
-def test_rosetta_execute_failure(mock_popen, mock_which, temp_dir):
-    file_path = os.path.join(temp_dir, "rosetta_scripts.static.linuxgccrelease")
-    os.environ["ROSETTA_BIN"] = temp_dir
+def test_rosetta_execute_failure(mock_popen, mock_which, mock_rosetta_static_bin):
+    os.environ["ROSETTA_BIN"] = os.path.dirname(mock_rosetta_static_bin)
 
-    with open(file_path, "w") as f:
-        f.write("")  # Create an empty file
-    os.chmod(str(file_path), 0o755)
     rosetta_binary = RosettaFinder().find_binary("rosetta_scripts")
 
     rosetta = Rosetta(bin=rosetta_binary)
@@ -254,13 +227,8 @@ def test_rosetta_execute_failure(mock_popen, mock_which, temp_dir):
 
 @patch("subprocess.Popen")
 @patch("shutil.which", return_value="/usr/bin/mpirun")
-def test_rosetta_mpi_incompatible_input_warning(mock_which, mock_popen, temp_dir):
-    file_path = os.path.join(temp_dir, "rosetta_scripts.mpi.linuxgccrelease")
-    os.environ["ROSETTA_BIN"] = temp_dir
-
-    with open(file_path, "w") as f:
-        f.write("")  # Create an empty file
-    os.chmod(str(file_path), 0o755)
+def test_rosetta_mpi_incompatible_input_warning(mock_which, mock_popen, mock_rosetta_mpi_bin):
+    os.environ["ROSETTA_BIN"] = os.path.dirname(mock_rosetta_mpi_bin)
 
     rosetta_binary = RosettaFinder().find_binary("rosetta_scripts")
 

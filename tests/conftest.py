@@ -19,6 +19,36 @@ import pytest
 from _pytest.nodes import Item
 
 
+def create_mock_rosetta_bin(tmp_path, binary_name):
+    # Create a mock binary file in the temporary directory
+    binary_path = tmp_path / binary_name
+    binary_path.write_text('#!/bin/bash\necho "Mock Rosetta binary"')
+
+    # Make the mock binary executable
+    os.chmod(binary_path, 0o755)
+    return str(binary_path)
+
+
+def _make_rosetta_fixture(binary_suffix: str):
+    """Factory function to create Rosetta binary fixtures.
+
+    Args:
+        binary_suffix: Suffix for the Rosetta binary name
+    """
+
+    @pytest.fixture
+    def _fixture(tmp_path):
+        return create_mock_rosetta_bin(tmp_path, f"rosetta_scripts.{binary_suffix}")
+
+    return _fixture
+
+
+# Create fixtures using the factory
+mock_rosetta_bin = _make_rosetta_fixture("linuxgccrelease")
+mock_rosetta_mpi_bin = _make_rosetta_fixture("mpi.linuxgccrelease")
+mock_rosetta_static_bin = _make_rosetta_fixture("static.linuxgccrelease")
+
+
 def pytest_collection_modifyitems(items: list[Item]):
     for item in items:
         if "spark" in item.nodeid:

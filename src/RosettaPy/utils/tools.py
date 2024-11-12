@@ -104,7 +104,7 @@ def isolate(save_to: str = "./save"):
 
 def squeeze(items: List[T]) -> List[T]:
     """
-    Squeezes a list of unhashable dataclass objects by removing duplicates.
+    Squeezes a list of hashable/unhashable dataclass objects by removing duplicates.
 
     This function iterates through a list of unhashable dataclass objects and removes any duplicates.
     It uses a simple linear search algorithm to compare each item with the items already in the squeezed list.
@@ -116,7 +116,15 @@ def squeeze(items: List[T]) -> List[T]:
     Returns:
     - List[T]: A list of squeezed dataclass objects, with duplicates removed.
     """
-    # Initialize an empty list to store the squeezed mutant elements
+    # Pre-check: all items must be the same dataclass
+    if len(all_class := {item.__class__.__name__ for item in items}) != 1:
+        raise ValueError(f"All items must be of the same dataclass. Found classes: {all_class}")
+
+    # Ff hashable, use set to remove duplicates
+    if any(item.__hash__ is not None for item in items):
+        return list(set(items))
+
+    # Otherwise, initialize an empty list to store the squeezed mutant elements
     reduced_items: List[T] = []
     # Iterate through the list of mutants
     for item in items:

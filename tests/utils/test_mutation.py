@@ -197,6 +197,13 @@ def test_protein_sequence_from_dict():
         protein_sequence.get_sequence_by_chain("C")
 
 
+def test_protein_sequence_as_dict():
+    protein_sequence = RosettaPyProteinSequence(
+        chains=[Chain(chain_id="A", sequence="AAAAAAAAAAAAB"), Chain(chain_id="B", sequence="BBBBBBBBBBBBA")]
+    )
+    assert protein_sequence.as_dict == {"A": "AAAAAAAAAAAAB", "B": "BBBBBBBBBBBBA"}
+
+
 def test_mutants_to_mutfile(sample_mutants: Dict[str, Mutant]):
     mutfile = "tests/outputs/mutfile.mut"
     mutfile_content = mutants2mutfile(sample_mutants.values(), mutfile)
