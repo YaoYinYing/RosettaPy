@@ -137,13 +137,11 @@ def test_main(
     from RosettaPy.rosetta_finder import main
 
     if len(sys_argv) > 2:
-
         dir_name = os.path.dirname(mock_rosetta_bin)
         original_path = os.environ.get("PATH", "").split(os.pathsep)
 
         # drop rosetta related path from PATH
         for _p in original_path:
-
             if "rosetta" in _p:
                 warnings.warn(f"Removing Rosetta from PATH: {_p}")
                 original_path.remove(_p)

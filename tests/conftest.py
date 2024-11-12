@@ -29,19 +29,21 @@ def create_mock_rosetta_bin(tmp_path, binary_name):
     return str(binary_path)
 
 
-@pytest.fixture
-def mock_rosetta_bin(tmp_path):
-    return create_mock_rosetta_bin(tmp_path, "rosetta_scripts.linuxgccrelease")
+def _make_rosetta_fixture(binary_suffix: str):
+    """Factory function to create Rosetta binary fixtures.
+    
+    Args:
+        binary_suffix: Suffix for the Rosetta binary name
+    """
+    @pytest.fixture
+    def _fixture(tmp_path):
+        return create_mock_rosetta_bin(tmp_path, f"rosetta_scripts.{binary_suffix}")
+    return _fixture
 
-
-@pytest.fixture
-def mock_rosetta_mpi_bin(tmp_path):
-    return create_mock_rosetta_bin(tmp_path, "rosetta_scripts.mpi.linuxgccrelease")
-
-
-@pytest.fixture
-def mock_rosetta_static_bin(tmp_path):
-    return create_mock_rosetta_bin(tmp_path, "rosetta_scripts.static.linuxgccrelease")
+# Create fixtures using the factory
+mock_rosetta_bin = _make_rosetta_fixture("linuxgccrelease")
+mock_rosetta_mpi_bin = _make_rosetta_fixture("mpi.linuxgccrelease")
+mock_rosetta_static_bin = _make_rosetta_fixture("static.linuxgccrelease")
 
 
 def pytest_collection_modifyitems(items: list[Item]):

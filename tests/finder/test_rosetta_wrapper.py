@@ -83,7 +83,6 @@ def test_timing(capfd):
 @patch("os.path.isfile", return_value=True)
 @patch("subprocess.Popen")
 def test_rosetta_run_local(mock_popen, mock_isfile, mock_which, mock_rosetta_bin):
-
     os.environ["ROSETTA_BIN"] = os.path.dirname(mock_rosetta_bin)
 
     nstruct = 10
@@ -122,7 +121,6 @@ def test_rosetta_run_local(mock_popen, mock_isfile, mock_which, mock_rosetta_bin
 @patch("subprocess.Popen")
 @pytest.mark.skipif(github_rosetta_test(), reason="No need to run this test in Dockerized Rosetta.")
 def test_rosetta_run_mpi(mock_popen, mock_isfile, mock_rosetta_mpi_bin, user, uid, userstring):
-
     os.environ["ROSETTA_BIN"] = os.path.dirname(mock_rosetta_mpi_bin)
 
     # Mock the Rosetta binary with MPI mode
@@ -168,7 +166,6 @@ def test_rosetta_run_mpi(mock_popen, mock_isfile, mock_rosetta_mpi_bin, user, ui
 @patch("shutil.which", return_value=None)
 @pytest.mark.skipif(github_rosetta_test(), reason="No need to run this test in Dockerized Rosetta.")
 def test_rosetta_init_no_mpi_executable(mock_which, mock_rosetta_static_bin):
-
     os.environ["ROSETTA_BIN"] = os.path.dirname(mock_rosetta_static_bin)
 
     rosetta_binary = RosettaFinder().find_binary("rosetta_scripts")
@@ -181,7 +178,6 @@ def test_rosetta_init_no_mpi_executable(mock_which, mock_rosetta_static_bin):
 
 @patch("os.path.isfile", return_value=True)
 def test_rosetta_compose(mock_isfile, mock_rosetta_mpi_bin):
-
     os.environ["ROSETTA_BIN"] = os.path.dirname(mock_rosetta_mpi_bin)
 
     rosetta_binary = RosettaFinder().find_binary("rosetta_scripts")
@@ -195,7 +191,6 @@ def test_rosetta_compose(mock_isfile, mock_rosetta_mpi_bin):
 
 @patch("shutil.which", return_value="/usr/bin/mpirun")
 def test_rosetta_mpi_warning(mock_which, mock_rosetta_mpi_bin):
-
     os.environ["ROSETTA_BIN"] = os.path.dirname(mock_rosetta_mpi_bin)
 
     rosetta_binary = RosettaFinder().find_binary("rosetta_scripts")
@@ -210,7 +205,6 @@ def test_rosetta_mpi_warning(mock_which, mock_rosetta_mpi_bin):
 @patch("shutil.which", return_value="/usr/bin/mpirun")
 @patch("subprocess.Popen")
 def test_rosetta_execute_failure(mock_popen, mock_which, mock_rosetta_static_bin):
-
     os.environ["ROSETTA_BIN"] = os.path.dirname(mock_rosetta_static_bin)
 
     rosetta_binary = RosettaFinder().find_binary("rosetta_scripts")
@@ -234,7 +228,6 @@ def test_rosetta_execute_failure(mock_popen, mock_which, mock_rosetta_static_bin
 @patch("subprocess.Popen")
 @patch("shutil.which", return_value="/usr/bin/mpirun")
 def test_rosetta_mpi_incompatible_input_warning(mock_which, mock_popen, mock_rosetta_mpi_bin):
-
     os.environ["ROSETTA_BIN"] = os.path.dirname(mock_rosetta_mpi_bin)
 
     rosetta_binary = RosettaFinder().find_binary("rosetta_scripts")
