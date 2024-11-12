@@ -40,4 +40,4 @@ def test_whichrosetta_integration(mock_rosetta_bin, monkeypatch):
             text=True,
         )
         assert result_binary.returncode == 0
-        assert result_binary.stdout.strip() == ""
+        assert result_binary.stdout.strip() == "Mock Rosetta binary"
