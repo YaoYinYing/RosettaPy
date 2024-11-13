@@ -412,6 +412,56 @@ class Mutant:
 
         return mutants
 
+    @property
+    def non_xtal(self) -> "Mutant":
+        """
+        Returns a new Mutant instance with 'X's removed from sequences and mutation positions adjusted accordingly.
+        """
+        new_chains = []
+        position_mappings = {}  # Maps chain_id to position mapping dict
+
+        for chain in self.wt_protein_sequence.chains:
+            seq_with_xtal = chain.sequence
+            seq_without_xtal = "".join(residue for residue in seq_with_xtal if residue != "X")
+            old_to_new_pos = {}
+            new_position = 1
+
+            # Build position mapping
+            for old_position, residue in enumerate(seq_with_xtal, start=1):
+                if residue != "X":
+                    old_to_new_pos[old_position] = new_position
+                    new_position += 1
+
+            # Store the chain with the non-xtal sequence
+            new_chains.append(Chain(chain.chain_id, seq_without_xtal))
+            position_mappings[chain.chain_id] = old_to_new_pos
+
+        # Adjust mutations
+        new_mutations = []
+        for mutation in self.mutations:
+            chain_id = mutation.chain_id
+            old_position = mutation.position
+            position_map = position_mappings.get(chain_id, {})
+            new_position = position_map.get(old_position)
+
+            if new_position is not None:
+                new_mutations.append(
+                    Mutation(
+                        chain_id=mutation.chain_id,
+                        position=new_position,
+                        wt_res=mutation.wt_res,
+                        mut_res=mutation.mut_res,
+                    )
+                )
+            else:
+                # Mutation at an 'X' position, so it's ignored
+                pass
+
+        # Create new RosettaPyProteinSequence
+        new_protein_sequence = RosettaPyProteinSequence(chains=new_chains)
+
+        return Mutant(mutations=new_mutations, wt_protein_sequence=new_protein_sequence)
+
 
 def mutants2mutfile(mutants: Union[List[Mutant], ValuesView[Mutant]], file_path: str) -> str:
     """
