@@ -212,3 +212,146 @@ def test_mutants_to_mutfile(sample_mutants: Dict[str, Mutant]):
 
     for p, m in sample_mutants.items():
         assert m.as_mutfile in mutfile_content
+
+
+@pytest.mark.parametrize(
+    "chains_with_xtal, mutations, expected_chains_without_xtal, expected_mutations",
+    [
+        # Test case 1: Single chain with 'X's and a single mutation
+        (
+            [
+                Chain(
+                    "A",
+                    "XXXAAAAAAAAAAXXAA",
+                )
+            ],  # chains_with_xtal
+            [Mutation("A", 4, "A", "W")],  # mutations
+            [
+                Chain(
+                    "A",
+                    "AAAAAAAAAAAA",
+                )
+            ],  # expected_chains_without_xtal
+            [Mutation("A", 1, "A", "W")],  # expected_mutations
+        ),
+        # Test case 2: Single chain with alternating 'A's and 'X's, multiple mutations
+        (
+            [
+                Chain(
+                    "A",
+                    "AXAXAXAXAXAXAXAX",
+                )
+            ],
+            [Mutation("A", 3, "A", "Y"), Mutation("A", 5, "A", "G")],
+            [
+                Chain(
+                    "A",
+                    "AAAAAAAA",
+                )
+            ],
+            [Mutation("A", 2, "A", "Y"), Mutation("A", 3, "A", "G")],
+        ),
+        # Test case 3: Single chain with some 'X's, mutations should be adjusted
+        (
+            [
+                Chain(
+                    "A",
+                    "AAAAXXXXAAAA",
+                )
+            ],
+            [Mutation("A", 4, "A", "V"), Mutation("A", 8, "X", "L"), Mutation("A", 9, "A", "T")],
+            [
+                Chain(
+                    "A",
+                    "AAAAAAAA",
+                )
+            ],
+            [Mutation("A", 4, "A", "V"), Mutation("A", 5, "A", "T")],
+        ),
+        # Test case 4: Multiple chains, mutations on both chains
+        (
+            [
+                Chain(
+                    "A",
+                    "AXAXAXAX",
+                ),
+                Chain(
+                    "B",
+                    "XXXBBBBBB",
+                ),
+            ],
+            [
+                Mutation("A", 3, "A", "Y"),
+                Mutation("B", 6, "B", "G"),
+                Mutation("B", 1, "X", "L"),  # Mutation at 'X', should be ignored
+            ],
+            [
+                Chain(
+                    "A",
+                    "AAAA",
+                ),
+                Chain(
+                    "B",
+                    "BBBBBB",
+                ),
+            ],
+            [
+                Mutation("A", 2, "A", "Y"),
+                Mutation("B", 3, "B", "G"),
+            ],
+        ),
+        # Test case 5: Multiple chains with 'X's at specific positions
+        (
+            [
+                Chain(
+                    "A",
+                    "AAAAXXXXAAAA",
+                ),
+                Chain(
+                    "B",
+                    "CCCCXXXCCCCC",
+                ),
+            ],
+            [
+                Mutation("A", 4, "A", "V"),
+                Mutation("B", 5, "X", "L"),  # Mutation at 'X', should be ignored
+                Mutation("B", 8, "C", "T"),
+            ],
+            [
+                Chain(
+                    "A",
+                    "AAAAAAAA",
+                ),
+                Chain(
+                    "B",
+                    "CCCCCCCCC",
+                ),
+            ],
+            [
+                Mutation("A", 4, "A", "V"),
+                Mutation("B", 5, "C", "T"),
+            ],
+        ),
+    ],
+)
+def test_non_xtal(chains_with_xtal, mutations, expected_chains_without_xtal, expected_mutations):
+    """
+    Tests the non_xtal property of the Mutant class by comparing the sequences and mutations
+    before and after removing 'X's from the sequences.
+    """
+    # Create the initial Mutant instance
+    protein_sequence = RosettaPyProteinSequence(chains_with_xtal)
+    mutant = Mutant(mutations, protein_sequence)
+
+    # Get the non_xtal version
+    mutant_non_xtal = mutant.non_xtal
+
+    # Check the sequences
+    actual_chains_without_xtal = mutant_non_xtal.wt_protein_sequence.chains
+    assert (
+        actual_chains_without_xtal == expected_chains_without_xtal
+    ), f"Expected chains {expected_chains_without_xtal}, got {actual_chains_without_xtal}"
+
+    # Check the mutations
+    for m in mutant_non_xtal.mutations:
+        assert m in expected_mutations, f"Expected {m} in mutations {expected_mutations}"
