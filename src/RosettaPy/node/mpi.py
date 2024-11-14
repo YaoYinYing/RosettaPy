@@ -93,27 +93,27 @@ class MpiNode:
         executables in the system's PATH.
         If no supported MPI executable can be found, it raises a RuntimeError.
         """
-        if self.mpi_excutable and os.path.isfile(self.mpi_excutable):
+        if self.mpi_executable and os.path.isfile(self.mpi_executable):
             return
 
         # Try to get the MPI executable path from the MPIEXEC environment variable
         mpi_exec = os.environ.get("MPIEXEC")
         if mpi_exec and (which_mpi_exec := shutil.which(mpi_exec)):
-            # If the path exists, set the self.mpi_excutable attribute and print the path
-            self.mpi_excutable = which_mpi_exec
-            print(f"Using MPI executable from MPIEXEC: {self.mpi_excutable}")
+            # If the path exists, set the self.mpi_executable attribute and print the path
+            self.mpi_executable = which_mpi_exec
+            print(f"Using MPI executable from MPIEXEC: {self.mpi_executable}")
             return
 
         # Attempt to locate a supported MPI executable
         for mpi_exec in ["mpirun", "mpiexec", "mpiexec.hydra", "orterun", "prun"]:
-            # Set the found MPI executable path to the self.mpi_excutable attribute
+            # Set the found MPI executable path to the self.mpi_executable attribute
             if (mpi_excutable := shutil.which(mpi_exec)) is not None:
-                self.mpi_excutable = mpi_excutable
+                self.mpi_executable = mpi_excutable
                 # If a supported MPI executable is found, set the path and exit the loop
                 return
 
         # If no supported MPI executable is found, raise an exception
-        raise RuntimeError("No supported MPI executable found in PATH")
+        raise RuntimeError(f"No supported MPI executable found in PATH. Searched: {', '.join(['mpirun', 'mpiexec', 'mpiexec.hydra', 'orterun', 'prun'])}")
 
     def __post_init__(self):
         """
