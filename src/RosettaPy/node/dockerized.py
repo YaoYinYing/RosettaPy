@@ -204,10 +204,13 @@ class RosettaContainer:
     """
 
     image: str = "rosettacommons/rosetta:mpi"
-    mpi_available: bool = False
-    user: Optional[str] = f"{os.geteuid()}:{os.getegid()}" if platform.system() != "Windows" else None
-    nproc: int = 0
     prohibit_mpi: bool = False  # to overide the mpi_available flag
+    mpi_available: bool = False
+    nproc: int = 0
+
+    # internal variables
+
+    user: Optional[str] = f"{os.geteuid()}:{os.getegid()}" if platform.system() != "Windows" else None
 
     def __post_init__(self):
         # Automatically set MPI availability based on the image name

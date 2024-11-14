@@ -2,6 +2,7 @@
 Wrapper of Native Runs
 """
 
+import platform
 from dataclasses import dataclass
 from functools import partial
 from typing import Callable, List
@@ -25,6 +26,21 @@ class Native:
     nproc: int = 4
 
     run_func: Callable[[RosettaCmdTask], RosettaCmdTask] = _non_isolated_execute
+
+    # skipcq: PYL-R0201
+    def __post_init__(self):
+        """
+        Post-initialization processing function.
+
+        This function is called after the object has been initialized, to perform operations that depend on the
+        object being fully initialized. It checks the operating system and raises an error if the system is Windows,
+        as native runs are not supported on Windows.
+
+        Raises:
+            RuntimeError: If the operating system is Windows.
+        """
+        if platform.system() == "Windows":
+            raise RuntimeError("Windows is not supported for native runs.")
 
     def run(self, tasks: List[RosettaCmdTask]) -> List[RosettaCmdTask]:
         """

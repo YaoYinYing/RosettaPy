@@ -392,7 +392,7 @@ Contributions are welcome! Please submit a pull request or open an issue for bug
 
 - **Rosetta Commons**: The Rosetta software suite for the computational modeling and analysis of protein structures.
 - **CIs, formatters, checkers and hooks** that save my life and make this tool improved.
-- **ChatGPT, Tongyi Lingma and DeepSource Autofix™ AI** for the documentation, code improvements, test cases and code revisions.
+- **ChatGPT, Tongyi Lingma, DeepSource Autofix™ AI and CodeRabbit** for the documentation, code improvements, test cases generations and code revisions.
 
 ## Contact
 

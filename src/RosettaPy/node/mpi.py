@@ -76,28 +76,44 @@ class MpiNode:
 
     nproc: int = 0
     node_matrix: Optional[Dict[str, int]] = None  # Node ID: nproc
-    node_file = f"nodefile_{random.randint(1, 9_999_999_999)}.txt"
 
+    # internal variables
+    node_file = f"nodefile_{random.randint(1, 9_999_999_999)}.txt"
     user = os.getuid() if platform.system() != "Windows" else None
 
     mpi_available = True
 
     def __post_init__(self):
         """
-        Post-initialization method to configure MPI executable and node file.
+        Post-initialization method for additional setup after instance initialization.
+
+        This method performs several critical tasks:
+        1. Checks the operating system, and if it's Windows, raises an exception as Windows is not supported.
+        2. Attempts to locate a supported MPI executable in the system PATH.
+        3. If `node_matrix` is a dictionary, writes the node information to `node_file`.
+        4. Calculates and updates the `nproc` attribute based on `node_matrix`.
         """
+
+        # Check if the operating system is Windows, and if so, raise a runtime error
+        if platform.system() == "Windows":
+            raise RuntimeError("Windows is not supported for mpi runs.")
+
+        # Attempt to locate a supported MPI executable
         for mpi_exec in ["mpirun", ...]:
             self.mpi_excutable = shutil.which(mpi_exec)
             if self.mpi_excutable is not None:
                 break
 
+        # If `node_matrix` is not a dictionary, no further action is required
         if not isinstance(self.node_matrix, dict):
             return
 
+        # Write node information to `node_file`
         with open(self.node_file, "w", encoding="utf-8") as f:
             for node, nproc in self.node_matrix.items():
                 f.write(f"{node} slots={nproc}\n")
-        # fix nproc to real node matrix
+
+        # Update `nproc` attribute based on `node_matrix`
         self.nproc = sum(self.node_matrix.values())
 
     @property
