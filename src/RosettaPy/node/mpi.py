@@ -107,8 +107,8 @@ class MpiNode:
         # Attempt to locate a supported MPI executable
         for mpi_exec in ["mpirun", "mpiexec", "mpiexec.hydra", "orterun", "prun"]:
             # Set the found MPI executable path to the self.mpi_executable attribute
-            if (mpi_excutable := shutil.which(mpi_exec)) is not None:
-                self.mpi_executable = mpi_excutable
+            if (mpi_executable := shutil.which(mpi_exec)) is not None:
+                self.mpi_executable = mpi_executable
                 # If a supported MPI executable is found, set the path and exit the loop
                 return
 
