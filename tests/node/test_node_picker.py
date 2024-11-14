@@ -4,7 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from RosettaPy.node import MpiNode, Native, RosettaContainer, WslWrapper, node_picker
+from RosettaPy.node import (MpiNode, Native, RosettaContainer, WslWrapper,
+                            node_picker)
 from RosettaPy.rosetta_finder import RosettaBinary
 
 
