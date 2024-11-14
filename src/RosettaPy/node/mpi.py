@@ -75,7 +75,7 @@ class MpiNode:
     """
 
     nproc: int = 0
-    mpi_excutable: str = ""
+    mpi_executable: str = ""
     node_matrix: Optional[Dict[str, int]] = None  # Node ID: nproc
 
     # internal variables
