@@ -104,13 +104,19 @@ class Rosetta:
         if isinstance(self.run_node, MpiNode):
             if self.bin.mode != "mpi":
                 warnings.warn(
-                    UserWarning("MPI nodes are given yet not supported. Maybe in Dockerized Rosetta container?")
+                    UserWarning(
+                        "MPI nodes are configured but the binary doesn't support MPI mode. "
+                        "This might occur in Dockerized Rosetta container. The job will run in non-MPI mode."
+                    )
                 )
-
             self.use_mpi = True
             return
 
-        warnings.warn(UserWarning("Using MPI binary as static build."))
+        warnings.warn(
+            UserWarning(
+                "Using MPI binary in static build mode. This may impact performance compared to true MPI execution."
+            )
+        )
         self.use_mpi = False
 
     def setup_tasks_native(
@@ -186,7 +192,10 @@ class Rosetta:
         :return: List of RosettaCmdTask
         """
         if not isinstance(self.run_node, (MpiNode, RosettaContainer, WslWrapper)):
-            raise RuntimeError("MPI node/RosettaContainer/WslWrapper instance is not initialized.")
+            raise RuntimeError(
+                f"Invalid run_node type: {type(self.run_node)}. "
+                "Expected an initialized instance of MpiNode, RosettaContainer, or WslWrapper."
+            )
 
         # make a copy command list
         base_cmd_copy = copy.copy(base_cmd)
@@ -222,7 +231,9 @@ class Rosetta:
             if inputs:
                 warnings.warn(
                     MpiIncompatibleInputWarning(
-                        "Customized Inputs for MPI nodes will be flattened and passed to master node"
+                        "Customized inputs for MPI nodes will be flattened and passed to the master node. "
+                        "This may affect how inputs are distributed across worker nodes. "
+                        "Consider restructuring your inputs if node-specific customization is required."
                     )
                 )
 
@@ -248,7 +259,10 @@ class Rosetta:
         """
         # Check if self.bin is an instance of RosettaBinary
         if not isinstance(self.bin, RosettaBinary):
-            raise RuntimeError("Rosetta binary must be a RosettaBinary object")
+            raise RuntimeError(
+                f"Invalid binary type: {type(self.bin)}. Expected RosettaBinary object. "
+                "Ensure the binary is properly initialized through RosettaFinder or direct instantiation."
+            )
 
         # Determine the binary path based on the type of run_node
         if isinstance(self.run_node, RosettaContainer):
@@ -269,7 +283,7 @@ class Rosetta:
         if self.flags:
             for flag in self.flags:
                 if not os.path.isfile(flag):
-                    warnings.warn(IgnoreMissingFileWarning(f"Ignore Flag - {flag}"))
+                    warnings.warn(IgnoreMissingFileWarning(f"Ignoring missing flag file: {os.path.abspath(flag)}"))
                     continue
                 cmd.append(f"@{os.path.abspath(flag)}")
 

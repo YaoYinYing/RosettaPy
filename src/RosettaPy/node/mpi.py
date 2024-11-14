@@ -75,6 +75,7 @@ class MpiNode:
     """
 
     nproc: int = 0
+    mpi_excutable: str = ""
     node_matrix: Optional[Dict[str, int]] = None  # Node ID: nproc
 
     # internal variables
@@ -82,6 +83,37 @@ class MpiNode:
     user = os.getuid() if platform.system() != "Windows" else None
 
     mpi_available = True
+
+    def get_mpiexecutable(self):
+        """
+        Attempts to find and set the path to the MPI executable.
+
+        This method first tries to get the MPI executable path from the MPIEXEC environment variable.
+        If the environment variable is not set or the path is invalid, it will try to find common MPI
+        executables in the system's PATH.
+        If no supported MPI executable can be found, it raises a RuntimeError.
+        """
+        if self.mpi_excutable and os.path.isfile(self.mpi_excutable):
+            return
+
+        # Try to get the MPI executable path from the MPIEXEC environment variable
+        mpi_exec = os.environ.get("MPIEXEC")
+        if mpi_exec and (which_mpi_exec := shutil.which(mpi_exec)):
+            # If the path exists, set the self.mpi_excutable attribute and print the path
+            self.mpi_excutable = which_mpi_exec
+            print(f"Using MPI executable from MPIEXEC: {self.mpi_excutable}")
+            return
+
+        # Attempt to locate a supported MPI executable
+        for mpi_exec in ["mpirun", "mpiexec", "mpiexec.hydra", "orterun", "prun"]:
+            # Set the found MPI executable path to the self.mpi_excutable attribute
+            if (mpi_excutable := shutil.which(mpi_exec)) is not None:
+                self.mpi_excutable = mpi_excutable
+                # If a supported MPI executable is found, set the path and exit the loop
+                return
+
+        # If no supported MPI executable is found, raise an exception
+        raise RuntimeError("No supported MPI executable found in PATH")
 
     def __post_init__(self):
         """
@@ -98,20 +130,19 @@ class MpiNode:
         if platform.system() == "Windows":
             raise RuntimeError("Windows is not supported for mpi runs.")
 
-        # Attempt to locate a supported MPI executable
-        for mpi_exec in ["mpirun", "mpiexec", "mpiexec.hydra", "orterun", "prun"]:
-            self.mpi_excutable = shutil.which(mpi_exec)
-            if self.mpi_excutable is not None:
-                break
+        self.get_mpiexecutable()
 
         # If `node_matrix` is not a dictionary, no further action is required
         if not isinstance(self.node_matrix, dict):
             return
 
         # Write node information to `node_file`
-        with open(self.node_file, "w", encoding="utf-8") as f:
-            for node, nproc in self.node_matrix.items():
-                f.write(f"{node} slots={nproc}\n")
+        try:
+            with open(self.node_file, "w", encoding="utf-8") as f:
+                for node, nproc in self.node_matrix.items():
+                    f.write(f"{node} slots={nproc}\n")
+        except OSError as e:
+            raise RuntimeError(f"Failed to write node file: {e}") from e
 
         # Update `nproc` attribute based on `node_matrix`
         self.nproc = sum(self.node_matrix.values())
@@ -189,7 +220,7 @@ class MpiNode:
         node_dict = {i: int(slurm_ntasks_per_node) * int(slurm_cpus_per_task) for i in nodes}
 
         total_nproc = sum(node_dict.values())
-        return cls(total_nproc, node_dict)
+        return cls(nproc=total_nproc, node_matrix=node_dict)
 
     @staticmethod
     def run(

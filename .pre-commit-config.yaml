@@ -64,7 +64,7 @@ repos:
         - --aggressive
         - --aggressive
         - --ignore
-        - E231,E203,E501,E701
+        - E231,E203,E701
         - --max-line-length
         - '120'
         - -r
