@@ -99,7 +99,7 @@ class MpiNode:
             raise RuntimeError("Windows is not supported for mpi runs.")
 
         # Attempt to locate a supported MPI executable
-        for mpi_exec in ["mpirun", ...]:
+        for mpi_exec in ["mpirun", "mpiexec", "mpiexec.hydra", "orterun", "prun"]:
             self.mpi_excutable = shutil.which(mpi_exec)
             if self.mpi_excutable is not None:
                 break
