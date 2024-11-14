@@ -4,8 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from RosettaPy.node import (MpiNode, Native, RosettaContainer, WslWrapper,
-                            node_picker)
+from RosettaPy.node import MpiNode, Native, RosettaContainer, WslWrapper, node_picker
 from RosettaPy.rosetta_finder import RosettaBinary
 
 
@@ -124,7 +123,6 @@ def test_node_picker(node_type, kwargs, expected_class, expected_attributes, moc
             MagicMock(system=mock_system_as) if mock_system_as is not None else MagicMock(system=real_system)
         ),
     ):
-
         # Check if the mocked system works
         assert platform.system() == mock_system_as if mock_system_as is not None else real_system
 
