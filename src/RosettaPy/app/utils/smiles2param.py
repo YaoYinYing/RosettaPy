@@ -29,8 +29,13 @@ from rdkit import Chem, DataStructs
 from rdkit.Chem import AllChem
 from rdkit.Chem.Fingerprints import FingerprintMols  # type: ignore
 
-from RosettaPy.utils import (RosettaCmdTask, partial_clone, print_diff, render,
-                             zip_render)
+from RosettaPy.utils import (
+    RosettaCmdTask,
+    partial_clone,
+    print_diff,
+    render,
+    zip_render,
+)
 from RosettaPy.utils.task import execute
 
 

@@ -7,11 +7,16 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from RosettaPy import RosettaBinary, RosettaFinder
+
 # Import the classes from your module
 from RosettaPy.node.native import Native
 from RosettaPy.rosetta import MpiIncompatibleInputWarning, MpiNode, Rosetta
-from RosettaPy.utils import (RosettaCmdTask, RosettaScriptsVariable,
-                             RosettaScriptsVariableGroup, timing)
+from RosettaPy.utils import (
+    RosettaCmdTask,
+    RosettaScriptsVariable,
+    RosettaScriptsVariableGroup,
+    timing,
+)
 from RosettaPy.utils.task import execute
 from tests.conftest import github_rosetta_test
 

@@ -62,8 +62,7 @@ class RosettaEnergyUnitAnalyser:
             raise FileNotFoundError(f"Score file {self.score_file} not found.")
 
         if self.score_term not in self.df.columns:
-            raise ValueError(
-                f'Score term "{self.score_term}" not found in score file.')
+            raise ValueError(f'Score term "{self.score_term}" not found in score file.')
 
     @staticmethod
     def df2dict(dfs: pd.DataFrame, k: str = "total_score") -> Tuple[Dict[Literal["score", "decoy"], Union[str, float]]]:

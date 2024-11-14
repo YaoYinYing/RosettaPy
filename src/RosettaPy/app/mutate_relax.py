@@ -9,8 +9,7 @@ from typing import List, Optional
 from Bio.Data import IUPACData
 from Bio.SeqIO import parse
 
-from RosettaPy import (Rosetta, RosettaEnergyUnitAnalyser,
-                       RosettaScriptsVariableGroup)
+from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser, RosettaScriptsVariableGroup
 from RosettaPy.node import NodeClassType, NodeHintT, node_picker
 from RosettaPy.node.native import Native
 from RosettaPy.utils import timing

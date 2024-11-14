@@ -17,10 +17,15 @@ from joblib_progress import joblib_progress
 
 from .node import MpiNode, Native, NodeClassType, RosettaContainer, WslWrapper
 from .node.mpi import MpiIncompatibleInputWarning
+
 # internal imports
 from .rosetta_finder import RosettaBinary, RosettaFinder
-from .utils import (IgnoreMissingFileWarning, RosettaCmdTask,
-                    RosettaScriptsVariableGroup, expand_input_dict)
+from .utils import (
+    IgnoreMissingFileWarning,
+    RosettaCmdTask,
+    RosettaScriptsVariableGroup,
+    expand_input_dict,
+)
 
 
 @dataclass

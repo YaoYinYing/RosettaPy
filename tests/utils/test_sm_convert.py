@@ -5,12 +5,14 @@ from unittest.mock import MagicMock, patch
 import pytest
 from rdkit import Chem
 
-from RosettaPy.app.utils.smiles2param import (SmallMoleculeParamsGenerator,
-                                              SmallMoleculeSimilarityChecker,
-                                              deprotonate_acids,
-                                              generate_molecule,
-                                              get_conformers,
-                                              protonate_tertiary_amine)
+from RosettaPy.app.utils.smiles2param import (
+    SmallMoleculeParamsGenerator,
+    SmallMoleculeSimilarityChecker,
+    deprotonate_acids,
+    generate_molecule,
+    get_conformers,
+    protonate_tertiary_amine,
+)
 from RosettaPy.utils.task import RosettaCmdTask
 
 

@@ -332,3 +332,6 @@ overgeneral-exceptions= [
     "BaseException",
     "Exception"
 ]
+
+[tool.isort]
+profile = "black"

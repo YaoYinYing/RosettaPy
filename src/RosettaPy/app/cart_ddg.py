@@ -8,8 +8,7 @@ from typing import List, Optional
 
 import pandas as pd
 
-from RosettaPy import (Rosetta, RosettaCartesianddGAnalyser,
-                       RosettaEnergyUnitAnalyser)
+from RosettaPy import Rosetta, RosettaCartesianddGAnalyser, RosettaEnergyUnitAnalyser
 from RosettaPy.common.mutation import Mutant, mutpdb2mutfile
 from RosettaPy.node import NodeClassType, NodeHintT, node_picker
 from RosettaPy.node.native import Native

@@ -4,8 +4,13 @@ from typing import Dict
 
 import pytest
 
-from RosettaPy.common import (Chain, Mutant, Mutation,
-                              RosettaPyProteinSequence, mutants2mutfile)
+from RosettaPy.common import (
+    Chain,
+    Mutant,
+    Mutation,
+    RosettaPyProteinSequence,
+    mutants2mutfile,
+)
 
 # Test cases for the Mutation class
 
