@@ -113,7 +113,15 @@ class MpiNode:
                 return
 
         # If no supported MPI executable is found, raise an exception
-        raise RuntimeError(f"No supported MPI executable found in PATH. Searched: {', '.join(['mpirun', 'mpiexec', 'mpiexec.hydra', 'orterun', 'prun'])}")
+        raise RuntimeError(
+            f"No supported MPI executable found in PATH. Searched: {
+                ', '.join(
+                    [
+                        'mpirun',
+                        'mpiexec',
+                        'mpiexec.hydra',
+                        'orterun',
+                        'prun'])}")
 
     def __post_init__(self):
         """
