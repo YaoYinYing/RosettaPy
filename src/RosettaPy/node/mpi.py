@@ -114,7 +114,7 @@ class MpiNode:
 
         # If no supported MPI executable is found, raise an exception
         raise RuntimeError(
-            f"No supported MPI executable found in PATH. Searched: "
+            "No supported MPI executable found in PATH. Searched: "
             f"{', '.join(['mpirun', 'mpiexec', 'mpiexec.hydra', 'orterun', 'prun'])}"
         )
 
@@ -158,7 +158,7 @@ class MpiNode:
         Returns:
             List[str]: Arguments for local execution.
         """
-        return [self.mpi_excutable, "--use-hwthread-cpus", "-np", str(self.nproc)]
+        return [self.mpi_executable, "--use-hwthread-cpus", "-np", str(self.nproc)]
 
     @property
     def host_file(self) -> List[str]:
@@ -168,7 +168,7 @@ class MpiNode:
         Returns:
             List[str]: Arguments for host file execution.
         """
-        return [self.mpi_excutable, "--hostfile", self.node_file]
+        return [self.mpi_executable, "--hostfile", self.node_file]
 
     @contextlib.contextmanager
     def apply(self, cmd: List[str]):

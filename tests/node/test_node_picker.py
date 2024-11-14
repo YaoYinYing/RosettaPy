@@ -145,5 +145,6 @@ def test_node_picker(node_type, kwargs, expected_class, expected_attributes, moc
             check_exception(node_type, kwargs, RuntimeError, "Windows is not supported for")
             return
 
-        node = node_picker(node_type=node_type, **kwargs)
+        with patch("shutil.which", return_value="/usr/local/bin/mpirun"):
+            node = node_picker(node_type=node_type, **kwargs)
         assert_node_attributes(node, expected_class, expected_attributes)
