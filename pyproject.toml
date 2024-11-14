@@ -114,7 +114,9 @@ ignore = [
     "E722",
     "B001",
     "W503",
-    "E203"
+    "E203",
+    "E501",
+    "E701"
 ]
 
 [tool.pyright]
@@ -332,3 +334,6 @@ overgeneral-exceptions= [
     "BaseException",
     "Exception"
 ]
+
+[tool.isort]
+profile = "black"

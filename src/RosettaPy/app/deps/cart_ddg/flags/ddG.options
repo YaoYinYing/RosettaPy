@@ -1,5 +1,5 @@
 -ddg::cartesian
--ddg::dump_pdbs false
+-ddg::dump_pdbs true
 -fa_max_dis 9.0
 -score:weights ref2015_cart
 -unmute all

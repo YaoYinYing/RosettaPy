@@ -7,11 +7,16 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from RosettaPy import RosettaBinary, RosettaFinder
+
 # Import the classes from your module
 from RosettaPy.node.native import Native
 from RosettaPy.rosetta import MpiIncompatibleInputWarning, MpiNode, Rosetta
-from RosettaPy.utils import (RosettaCmdTask, RosettaScriptsVariable,
-                             RosettaScriptsVariableGroup, timing)
+from RosettaPy.utils import (
+    RosettaCmdTask,
+    RosettaScriptsVariable,
+    RosettaScriptsVariableGroup,
+    timing,
+)
 from RosettaPy.utils.task import execute
 from tests.conftest import github_rosetta_test
 
@@ -170,10 +175,8 @@ def test_rosetta_init_no_mpi_executable(mock_which, mock_rosetta_static_bin):
 
     rosetta_binary = RosettaFinder().find_binary("rosetta_scripts")
 
-    with pytest.warns(UserWarning) as record:
-        Rosetta(bin=rosetta_binary, run_node=MpiNode(0, {"node1": 1}))
-
-    assert any("MPI nodes are given yet not supported" in str(warning.message) for warning in record)
+    with pytest.raises(RuntimeError, match="No supported MPI executable found in PATH"):
+        Rosetta(bin=rosetta_binary, run_node=MpiNode(nproc=0, node_matrix={"node1": 1}))
 
 
 @patch("os.path.isfile", return_value=True)
@@ -195,11 +198,12 @@ def test_rosetta_mpi_warning(mock_which, mock_rosetta_mpi_bin):
 
     rosetta_binary = RosettaFinder().find_binary("rosetta_scripts")
 
-    with pytest.warns(UserWarning) as record:
+    with pytest.warns(
+        UserWarning,
+        match="Using MPI binary in static build mode. This may impact performance compared to true MPI execution.",
+    ):
         rosetta = Rosetta(bin=rosetta_binary)
-        assert rosetta.use_mpi is False
-
-    assert any("Using MPI binary as static build." in str(warning.message) for warning in record)
+        assert not rosetta.use_mpi
 
 
 @patch("shutil.which", return_value="/usr/bin/mpirun")
@@ -241,10 +245,8 @@ def test_rosetta_mpi_incompatible_input_warning(mock_which, mock_popen, mock_ros
     mock_process.wait.return_value = 0
     mock_popen.return_value = mock_process
 
-    with pytest.warns(MpiIncompatibleInputWarning) as record:
+    with pytest.warns(
+        MpiIncompatibleInputWarning,
+        match="Customized inputs for MPI nodes will be flattened and passed to the master node",
+    ):
         rosetta.run(inputs=[{"-in:file:s": "input1.pdb"}, {"-in:file:s": "input2.pdb"}])
-
-    assert any(
-        "Customized Inputs for MPI nodes will be flattened and passed to master node" in str(warning.message)
-        for warning in record
-    )

@@ -59,8 +59,8 @@ def test_mpi_node_initialization_without_node_matrix():
         mpi_node = MpiNode(nproc=4)
         assert mpi_node.nproc == 4
         assert mpi_node.node_matrix is None
-        assert mpi_node.mpi_excutable == "/usr/bin/mpirun"
-        assert mpi_node.local == [mpi_node.mpi_excutable, "--use-hwthread-cpus", "-np", "4"]
+        assert mpi_node.mpi_executable == "/usr/bin/mpirun"
+        assert mpi_node.local == [mpi_node.mpi_executable, "--use-hwthread-cpus", "-np", "4"]
 
 
 def test_mpi_node_initialization_with_node_matrix(tmp_path):
@@ -74,7 +74,7 @@ def test_mpi_node_initialization_with_node_matrix(tmp_path):
         # Simulate the creation of node file
         with open(node_file_path, "w") as f:
             f.write("node1 slots=2\nnode2 slots=2\n")
-        assert mpi_node.host_file == [mpi_node.mpi_excutable, "--hostfile", mpi_node.node_file]
+        assert mpi_node.host_file == [mpi_node.mpi_executable, "--hostfile", mpi_node.node_file]
 
 
 @pytest.mark.skipif(github_rosetta_test(), reason="No need to run this test in Dockerized Rosetta.")

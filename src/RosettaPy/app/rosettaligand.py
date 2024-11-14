@@ -10,8 +10,7 @@ import warnings
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
-from RosettaPy import (Rosetta, RosettaEnergyUnitAnalyser,
-                       RosettaScriptsVariableGroup)
+from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser, RosettaScriptsVariableGroup
 from RosettaPy.node import NodeClassType, NodeHintT, node_picker
 from RosettaPy.node.native import Native
 from RosettaPy.rosetta import IgnoreMissingFileWarning

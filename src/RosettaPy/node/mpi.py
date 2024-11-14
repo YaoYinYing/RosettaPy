@@ -75,29 +75,79 @@ class MpiNode:
     """
 
     nproc: int = 0
+    mpi_executable: str = ""
     node_matrix: Optional[Dict[str, int]] = None  # Node ID: nproc
-    node_file = f"nodefile_{random.randint(1, 9_999_999_999)}.txt"
 
+    # internal variables
+    node_file = f"nodefile_{random.randint(1, 9_999_999_999)}.txt"
     user = os.getuid() if platform.system() != "Windows" else None
 
     mpi_available = True
 
+    def get_mpiexecutable(self):
+        """
+        Attempts to find and set the path to the MPI executable.
+
+        This method first tries to get the MPI executable path from the MPIEXEC environment variable.
+        If the environment variable is not set or the path is invalid, it will try to find common MPI
+        executables in the system's PATH.
+        If no supported MPI executable can be found, it raises a RuntimeError.
+        """
+        if self.mpi_executable and os.path.isfile(self.mpi_executable):
+            return
+
+        # Try to get the MPI executable path from the MPIEXEC environment variable
+        mpi_exec = os.environ.get("MPIEXEC")
+        if mpi_exec and (which_mpi_exec := shutil.which(mpi_exec)):
+            # If the path exists, set the self.mpi_executable attribute and print the path
+            self.mpi_executable = which_mpi_exec
+            print(f"Using MPI executable from MPIEXEC: {self.mpi_executable}")
+            return
+
+        # Attempt to locate a supported MPI executable
+        for mpi_exec in ["mpirun", "mpiexec", "mpiexec.hydra", "orterun", "prun"]:
+            # Set the found MPI executable path to the self.mpi_executable attribute
+            if (mpi_executable := shutil.which(mpi_exec)) is not None:
+                self.mpi_executable = mpi_executable
+                # If a supported MPI executable is found, set the path and exit the loop
+                return
+
+        # If no supported MPI executable is found, raise an exception
+        raise RuntimeError(
+            "No supported MPI executable found in PATH. Searched: "
+            f"{', '.join(['mpirun', 'mpiexec', 'mpiexec.hydra', 'orterun', 'prun'])}"
+        )
+
     def __post_init__(self):
         """
-        Post-initialization method to configure MPI executable and node file.
-        """
-        for mpi_exec in ["mpirun", ...]:
-            self.mpi_excutable = shutil.which(mpi_exec)
-            if self.mpi_excutable is not None:
-                break
+        Post-initialization method for additional setup after instance initialization.
 
+        This method performs several critical tasks:
+        1. Checks the operating system, and if it's Windows, raises an exception as Windows is not supported.
+        2. Attempts to locate a supported MPI executable in the system PATH.
+        3. If `node_matrix` is a dictionary, writes the node information to `node_file`.
+        4. Calculates and updates the `nproc` attribute based on `node_matrix`.
+        """
+
+        # Check if the operating system is Windows, and if so, raise a runtime error
+        if platform.system() == "Windows":
+            raise RuntimeError("Windows is not supported for mpi runs.")
+
+        self.get_mpiexecutable()
+
+        # If `node_matrix` is not a dictionary, no further action is required
         if not isinstance(self.node_matrix, dict):
             return
 
-        with open(self.node_file, "w", encoding="utf-8") as f:
-            for node, nproc in self.node_matrix.items():
-                f.write(f"{node} slots={nproc}\n")
-        # fix nproc to real node matrix
+        # Write node information to `node_file`
+        try:
+            with open(self.node_file, "w", encoding="utf-8") as f:
+                for node, nproc in self.node_matrix.items():
+                    f.write(f"{node} slots={nproc}\n")
+        except OSError as e:
+            raise RuntimeError(f"Failed to write node file: {e}") from e
+
+        # Update `nproc` attribute based on `node_matrix`
         self.nproc = sum(self.node_matrix.values())
 
     @property
@@ -108,7 +158,7 @@ class MpiNode:
         Returns:
             List[str]: Arguments for local execution.
         """
-        return [self.mpi_excutable, "--use-hwthread-cpus", "-np", str(self.nproc)]
+        return [self.mpi_executable, "--use-hwthread-cpus", "-np", str(self.nproc)]
 
     @property
     def host_file(self) -> List[str]:
@@ -118,7 +168,7 @@ class MpiNode:
         Returns:
             List[str]: Arguments for host file execution.
         """
-        return [self.mpi_excutable, "--hostfile", self.node_file]
+        return [self.mpi_executable, "--hostfile", self.node_file]
 
     @contextlib.contextmanager
     def apply(self, cmd: List[str]):
@@ -173,7 +223,7 @@ class MpiNode:
         node_dict = {i: int(slurm_ntasks_per_node) * int(slurm_cpus_per_task) for i in nodes}
 
         total_nproc = sum(node_dict.values())
-        return cls(total_nproc, node_dict)
+        return cls(nproc=total_nproc, node_matrix=node_dict)
 
     @staticmethod
     def run(

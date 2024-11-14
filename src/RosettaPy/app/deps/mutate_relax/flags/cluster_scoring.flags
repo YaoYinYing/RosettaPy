@@ -9,6 +9,5 @@
 -no_nstruct_label true
 -preserve_header false
 -nstruct 1
--out:file:score_only
 
 -mute all

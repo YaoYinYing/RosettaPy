@@ -5,12 +5,14 @@ from unittest.mock import MagicMock, patch
 import pytest
 from rdkit import Chem
 
-from RosettaPy.app.utils.smiles2param import (SmallMoleculeParamsGenerator,
-                                              SmallMoleculeSimilarityChecker,
-                                              deprotonate_acids,
-                                              generate_molecule,
-                                              get_conformers,
-                                              protonate_tertiary_amine)
+from RosettaPy.app.utils.smiles2param import (
+    SmallMoleculeParamsGenerator,
+    SmallMoleculeSimilarityChecker,
+    deprotonate_acids,
+    generate_molecule,
+    get_conformers,
+    protonate_tertiary_amine,
+)
 from RosettaPy.utils.task import RosettaCmdTask
 
 
@@ -158,6 +160,7 @@ def test_convert(mock_convert_single, mock_compare_fingerprints, generator):
     assert mock_convert_single.call_count == 2
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize("n_jobs", [1, 3])
 def test_main_test(n_jobs):
     from RosettaPy.app.utils.smiles2param import main

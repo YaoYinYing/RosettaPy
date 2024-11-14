@@ -8,8 +8,7 @@ import os
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
-from RosettaPy import (Rosetta, RosettaEnergyUnitAnalyser,
-                       RosettaScriptsVariableGroup)
+from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser, RosettaScriptsVariableGroup
 from RosettaPy.app.utils import PDBProcessor
 from RosettaPy.node import NodeClassType, NodeHintT, node_picker
 from RosettaPy.node.native import Native

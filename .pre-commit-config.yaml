@@ -63,6 +63,8 @@ repos:
         - --in-place
         - --aggressive
         - --aggressive
+        - --ignore
+        - E231,E203,E701
         - --max-line-length
         - '120'
         - -r
@@ -76,7 +78,7 @@ repos:
         - --max-line-length=120
         - --max-doc-length=120
         - --indent-size=4
-        - --ignore=F401,F841,E266,W503,W504
+        - --ignore=F401,F841,E266,W503,W504,E203,E501,E701
 
   - repo: https://github.com/PyCQA/autoflake
     rev: v2.3.1

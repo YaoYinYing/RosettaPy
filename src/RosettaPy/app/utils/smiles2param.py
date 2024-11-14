@@ -29,8 +29,13 @@ from rdkit import Chem, DataStructs
 from rdkit.Chem import AllChem
 from rdkit.Chem.Fingerprints import FingerprintMols  # type: ignore
 
-from RosettaPy.utils import (RosettaCmdTask, partial_clone, print_diff, render,
-                             zip_render)
+from RosettaPy.utils import (
+    RosettaCmdTask,
+    partial_clone,
+    print_diff,
+    render,
+    zip_render,
+)
 from RosettaPy.utils.task import execute
 
 
@@ -281,19 +286,19 @@ class SmallMoleculeSimilarityChecker:
         for i, (lig_name, fingerprint) in enumerate(fingerprints.items()):
             try:
                 # Calculate the Tanimoto similarity between the current fingerprint and all subsequent ones
-                s = DataStructs.BulkTanimotoSimilarity(fingerprint, fpsv[i + 1:])
+                s = DataStructs.BulkTanimotoSimilarity(fingerprint, fpsv[i + 1 :])
             except ValueError as e:
                 # If an error occurs, print a message and skip to the next iteration
                 print(f"Ignore molecule `{lig_name}` for fingerprints pairwise due to: {e}")
                 continue
 
             # Print the comparison information for debugging purposes
-            print(canon_smiles[lig_name], c_smiles_v[i + 1:])
+            print(canon_smiles[lig_name], c_smiles_v[i + 1 :])
 
             # Append the query, target, and similarity score to their respective lists
             for j, _s in enumerate(s):
                 qu.append(canon_smiles[lig_name])
-                ta.append(c_smiles_v[i + 1:][j])
+                ta.append(c_smiles_v[i + 1 :][j])
                 sim.append(_s)
 
         # Return the three lists

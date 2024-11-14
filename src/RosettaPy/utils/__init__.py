@@ -4,10 +4,15 @@ Utility functions of RosettaPy
 
 from .escape import Colors, print_diff, render, zip_render
 from .repository import RosettaRepoManager, partial_clone
-from .task import (IgnoreMissingFileWarning, RosettaCmdTask,
-                   RosettaScriptsVariable, RosettaScriptsVariableGroup,
-                   RosettaScriptVariableNotExistWarning,
-                   RosettaScriptVariableWarning, expand_input_dict)
+from .task import (
+    IgnoreMissingFileWarning,
+    RosettaCmdTask,
+    RosettaScriptsVariable,
+    RosettaScriptsVariableGroup,
+    RosettaScriptVariableNotExistWarning,
+    RosettaScriptVariableWarning,
+    expand_input_dict,
+)
 from .tools import isolate, timing, tmpdir_manager
 
 __all__ = [

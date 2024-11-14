@@ -94,12 +94,10 @@ class WslWrapper:
     rosetta_bin: RosettaBinary
     distro: str
     user: str  # user in this distro
-
     nproc: int = 4
-
     prohibit_mpi: bool = False  # to overide the mpi_available flag
 
-    # internal
+    # internal variables
     mpi_available: bool = False
     _mpirun_cache = None
 
