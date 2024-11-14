@@ -19,8 +19,7 @@ def assert_node_attributes(node, expected_class, expected_attributes):
 # Helper function to handle common exception checks
 def check_exception(node_type, kwargs, expected_exception, match):
     with pytest.raises(expected_exception, match=match):
-        node = node_picker(node_type=node_type, **kwargs)
-        return
+        node_picker(node_type=node_type, **kwargs)
 
 
 # A good practice to mock `platform.uname()`
