@@ -336,7 +336,7 @@ def clone_db_relax_script():
 ## Windows? Yes
 
 Thanks to the official container image, it is possible to run RosettaPy on Windows.
-Here's the steps one should follow:
+Here are the steps one should follow:
 
 1. Enable `Windows Subsystem for Linux`, and switch to `WSL2`(<https://aka.ms/wsl2kernel>)
 2. Install `Docker Desktop` and enable `WSL2 docker engine`.
@@ -349,18 +349,19 @@ During the workflow processing, you will see some active containers at `Containe
 
 ## Full Operating System Compatibility Table
 
-| Node                 | Linux[x86_64, aarch64] | MacOS[Intel x86_64, Apple Silicon aarch64] | Windows[x86_84] |
-| -------------------- | ---------------------- | ------------------------------------------ | --------------- |
-| Native[^1]           | ✅                      | ✅                                          | ❌               |
-| MpiNode[^2]          | ✅                      | ✅                                          | ❌               |
-| RosettaContainer[^3] | ✅                      | ✅[^5]                                      | ✅               |
-| WslWrapper[^4]       | ❌                      | ❌                                          | ✅               |
+| Node                 | Linux[x86_64, aarch64] | macOS | Windows |
+| -------------------- | ---------------------- | ----- | ------- |
+| Native[^1]           | ✅                      | ✅     | ❌       |
+| MpiNode[^2]          | ✅                      | ✅     | ❌       |
+| RosettaContainer[^3] | ✅[^6]                  | ✅[^5] | ✅[^6]   |
+| WslWrapper[^4]       | ❌                      | ❌     | ✅       |
 
 [^1]: Rosetta built, installed on local machine.
 [^2]: Rosetta built with `extras=mpi` flag and installed on local machine.
-[^3]: Docker or Docker Desktop(Windows/MacOS) installed and launched.
-[^4]: Windows Subsystem for Linux(WSL) installed and switched to WSL2.
+[^3]: Docker or Docker Desktop(Windows/macOS) installed and launched.
+[^4]: Windows Subsystem for Linux(WSL) installed and switched to WSL2, with Rosetta built and installed on.
 [^5]: Translated with Rosetta2 framework if runs on Apple Silicon Mac, which may cause worthy slow performance.
+[^6]: The official Docker image provided by RosettaCommons exclusively supports machines with x86_64 architecture.
 
 ## Environment Variables
 
@@ -420,3 +421,5 @@ For questions or support, please contact:
 
 - **Name**: Yinying Yao
 - **Email**:yaoyy.hi(a)gmail.com
+
+---
