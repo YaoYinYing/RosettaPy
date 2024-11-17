@@ -2,12 +2,17 @@
 
 A Python Utility for Wrapping Rosetta Macromolecural Modeling Suite.
 
-> [!NOTE]
+> [!CAUTION]
 > _Before running `RosettaPy`, please **DO** make sure that you have abtained the correct license from Rosetta Commons._
 > _For more details, please see this [page](https://rosettacommons.org/software/download/)._
 
+> [!IMPORTANT]
+> **`RosettaPy`** is NOT [`PyRosetta`](http://www.pyrosetta.org/).
+> You probably don't need to install this package if you are looking for `PyRosetta`.
+> Please see this [page](http://www.pyrosetta.org/).
 
 ## License
+
 ![GitHub License](https://img.shields.io/github/license/YaoYinYing/RosettaPy)
 
 ## CI Status
@@ -18,7 +23,6 @@ A Python Utility for Wrapping Rosetta Macromolecural Modeling Suite.
 [![Pylint](https://github.com/YaoYinYing/RosettaPy/actions/workflows/lint_badge.yml/badge.svg)](https://github.com/YaoYinYing/RosettaPy/actions/workflows/lint_badge.yml)
 [![Bare Test with Rosetta Container Node](https://github.com/YaoYinYing/RosettaPy/actions/workflows/CI_Container.yml/badge.svg)](https://github.com/YaoYinYing/RosettaPy/actions/workflows/CI_Container.yml)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/YaoYinYing/RosettaPy/main.svg)](https://results.pre-commit.ci/latest/github/YaoYinYing/RosettaPy/main)
-
 
 ## Quality
 
@@ -125,7 +129,7 @@ pip install RosettaPy -U
 
 ```python
 from RosettaPy import Rosetta, RosettaScriptsVariableGroup, RosettaEnergyUnitAnalyser
-from RosettaPy.node import RosettaContainer, MpiNode
+from RosettaPy.node import RosettaContainer, MpiNode, Native
 ```
 
 **Create a Rosetta proxy with parameters**
@@ -161,6 +165,7 @@ rosetta = Rosetta(
 **Isolation Mode**
 
 Some Rosetta Apps (Superchange, Cartesian ddG, etc.) may produce files at their working directory, and this may not threadsafe if one runs multiple jobs in parallel in the same directory. In this case, the `isolation` flag can be used to create a temporary directory for each run.
+
 ```diff
 Rosetta(
     ...
@@ -184,7 +189,7 @@ Rosetta(
 
 If one wishes to use the Rosetta container as the task worker, (WSL + Docker Desktop, for example)
 setting a `run_node` option as `RosettaContainer` class would tell the proxy to use it.
-This image names can be found at https://hub.docker.com/r/rosettacommons/rosetta
+This image names can be found at <https://hub.docker.com/r/rosettacommons/rosetta>
 Note that the paths of each task will be mounted into the container and rewritten to the container's path.
 This rewriting feature may fail if the path is mixed with complicated expressions as options.
 
@@ -236,7 +241,6 @@ Rosetta(
 
 Where `node_hint` is one of `["docker", "docker_mpi", "mpi", "wsl", "wsl_mpi", "native"]`
 
-
 **Compose rosetta tasks matrix as inputs**
 
 ```python
@@ -285,9 +289,9 @@ print("-" * 79)
 print(f'Best Hit on this run: {best_hit["decoy"]} - {best_hit["score"]}: {pdb_path}')
 ```
 
-### Fetching additional scripts/database files from the Rosetta GitHub repository.
+### Fetching additional scripts/database files from the Rosetta GitHub repository
 
-> [!WARNING]
+> [!CAUTION]
 > _AGAIN, before using this tool, please **DO** make sure that you have licensed by Rosetta Commons._
 > _For more details of licensing, please check this [page](https://rosettacommons.org/software/download/)._
 
@@ -329,11 +333,12 @@ def clone_db_relax_script():
 
 ```
 
-## Windows? Yes.
-Thanks to the official container image, it is possible to run RosettaPy on Windows.
-Here's the steps one should follow:
+## Windows? Yes
 
-1. Enable `Windows Subsystem for Linux`, and switch to `WSL2`(https://aka.ms/wsl2kernel)
+Thanks to the official container image, it is possible to run RosettaPy on Windows.
+Here are the steps one should follow:
+
+1. Enable `Windows Subsystem for Linux`, and switch to `WSL2`(<https://aka.ms/wsl2kernel>)
 2. Install `Docker Desktop` and enable `WSL2 docker engine`.
 3. Search for the Image `rosettacommons/rosetta:<label>` where `<label>` is the version of Rosetta build you want to use.
 4. Use `RosettaContainer` class as the run node, with the image name you just pulled.
@@ -341,6 +346,22 @@ Here's the steps one should follow:
 6. Build you Rosetta workflow with `RosettaPy` and run it.
 
 During the workflow processing, you will see some active containers at `Containers` tab of `Docker Desktop`.
+
+## Full Operating System Compatibility Table
+
+| Node                 | Linux[x86_64, aarch64] | macOS | Windows |
+| -------------------- | ---------------------- | ----- | ------- |
+| Native[^1]           | ✅                      | ✅     | ❌       |
+| MpiNode[^2]          | ✅                      | ✅     | ❌       |
+| RosettaContainer[^3] | ✅[^6]                  | ✅[^5] | ✅[^6]   |
+| WslWrapper[^4]       | ❌                      | ❌     | ✅       |
+
+[^1]: Rosetta built, installed on local machine.
+[^2]: Rosetta built with `extras=mpi` flag and installed on local machine.
+[^3]: Docker or Docker Desktop(Windows/macOS) installed and launched.
+[^4]: Windows Subsystem for Linux(WSL) installed and switched to WSL2, with Rosetta built and installed on.
+[^5]: Translated with Rosetta2 framework if runs on Apple Silicon Mac, which may cause worthy slow performance.
+[^6]: The official Docker image provided by RosettaCommons exclusively supports machines with x86_64 architecture.
 
 ## Environment Variables
 
@@ -400,3 +421,5 @@ For questions or support, please contact:
 
 - **Name**: Yinying Yao
 - **Email**:yaoyy.hi(a)gmail.com
+
+---
