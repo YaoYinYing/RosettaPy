@@ -1,9 +1,6 @@
 import pytest
 
-# Import the function to be tested
-from RosettaPy.utils.tools import (
-    convert_crlf_to_lf,  # Replace with the actual module name
-)
+from RosettaPy.utils.tools import convert_crlf_to_lf
 
 
 @pytest.fixture

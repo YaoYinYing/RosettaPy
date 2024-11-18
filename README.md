@@ -117,7 +117,7 @@ Examples of valid binary filenames:
 
 ## Installation
 
-You can install `RosettaPy` directly from PyPI:
+One can install `RosettaPy` directly from PyPI:
 
 ```bash
 pip install RosettaPy -U
@@ -127,7 +127,7 @@ pip install RosettaPy -U
 
 `RosettaPy` is designed to handle the complexities of locating and running Rosetta binaries within Python.
 
-### Build Your Own Rosetta Workflow from scratch
+### Build Rosetta Workflow from scratch
 
 1. Import necessary modules
 
@@ -314,7 +314,9 @@ Rosetta(
 )
 ```
 
-#### Pick Your Node Accordingly
+During the workflow processing, one will see some active containers at `Containers` tab of `Docker Desktop`, if `Docker Desktop` is installed. Also, typing `docker ps` in the terminal will show them too. Each of these containers will be destructed immediately after its  task finishes or stopped.
+
+#### Pick Node Accordingly
 
 One can still pick the desire node quickly by calling `node_picker` method.
 
@@ -378,37 +380,43 @@ def clone_db_relax_script():
 
 #### Get Windows Ready for Rosetta Runs
 
-Thanks to the official container image, it is possible to run RosettaPy on Windows.
-Here are the steps one should follow:
+Thanks for Windows Subsystem for Linux(WSL), we provide two simple ways to run Rosetta on Windows.
+
+One must enable `Windows Subsystem for Linux`, then switch to `WSL2` following the instructions on this [page](https://aka.ms/wsl2kernel).
 
 ##### Docker Desktop
 
-1. Enable `Windows Subsystem for Linux`, and switch to `WSL2`(<https://aka.ms/wsl2kernel>)
-2. Install `Docker Desktop` and enable `WSL2 docker engine`.
-3. Search for the Image `rosettacommons/rosetta:<label>` where `<label>` is the version of Rosetta build you want to use.
-   - Note: network proxies may be required for users behind the GFW.
-4. Use `RosettaContainer` class as the run node, with the image name you just pulled.
-5. Make sure all your input files are using `LF` ending instead of `CRLF`. This is fatal for Rosetta to parse input files.
-6. Build you Rosetta workflow with `RosettaPy` and run it.
+1. Install `Docker Desktop` and enable `WSL2 docker engine`.
+2. Search for the Image `rosettacommons/rosetta:<label>` where `<label>` is the version of Rosetta build one want to use.
+   - Note: network proxies or docker registry mirror setting may be required for users behind the GFW.
+3. Use `RosettaContainer` class as the run node, with the image name one just pulled.
+4. Make sure all the input files are using `LF` ending instead of `CRLF`. This is fatal for Rosetta to parse input files.
+   - Note: this issue now can be done by using a context manager `convert_crlf_to_lf` from `RosettaPy.utils.tools`. Example:
 
-During the workflow processing, you will see some active containers at `Containers` tab of `Docker Desktop`.
+    ```python
+    from RosettaPy.utils.tools import convert_crlf_to_lf
+
+    with convert_crlf_to_lf(input_file) as output_file:
+        """Use `output_file` to replace `input_file`."""
+    ```
+
+5. Build Rosetta workflow with `RosettaPy` and run it.
 
 ##### WSL Wrapper
 
-1. Enable `Windows Subsystem for Linux`, and switch to `WSL2`(<https://aka.ms/wsl2kernel>)
-2. Install any recent release of Linux Distribution (e.g., `Ubuntu-22.04`) and setup for the account.
-3. Install build essential tools: `apt-get update && apt-get install build-essential git -y`
-   - Note: network proxies may be required for users behind the GFW.
-4. Install MPI: `apt-get install mpich -y`. MPICH is sufficient for Rosetta.
-5. Install Python: `apt-get install python-is-python3 -y`
-6. Fetch the source code of Rosetta and un-tar it to anywhere convenient. e.g. `/opt/rosetta`
-7. Go to the source code directory and build it according to the Official Rosetta [Build Documentation](https://docs.rosettacommons.org/docs/latest/build_documentation/Build-Documentation).
-8. Environment variables required by RosettaPy are:
+1. Install any recent release of Linux Distribution (e.g., `Ubuntu-22.04`) and setup for the account.
+2. Install build essential tools: `apt-get update && apt-get install build-essential git -y`
+   - Note: network proxies or apt repostory mirror setting may be required for users behind the GFW.
+3. Install MPI: `apt-get install mpich -y`. MPICH is sufficient for Rosetta.
+4. Install Python: `apt-get install python-is-python3 -y`
+5. Fetch the source code of Rosetta and un-tar it to anywhere convenient. e.g. `/opt/rosetta`
+6. Go to the source code directory and build it according to the Official Rosetta [Build Documentation](https://docs.rosettacommons.org/docs/latest/build_documentation/Build-Documentation).
+7. Environment variables required by RosettaPy are:
    1. `ROSETTA_BIN`: to the path of the Rosetta excutables.
    2. `ROSETTA3_DB`: to the path of the Rosetta database.
    3. `ROSETTA_PYTHON_SCRIPTS` to the path of the Rosetta scripts.
-9. Use `WslWrapper` class as the run node. Parameters:
-   1. `rosetta_bin`: `RosettaBinary` with in-wsl `dirname`.
+8. Use `WslWrapper` class as the run node. Parameters:
+   1. `rosetta_bin`: `RosettaBinary` with in-wsl `dirname`(the absolute path of Rosetta binary directory in WSL distro).
    2. `distro`: the name of the Linux Distribution. for example, `'Ubuntu-22.04'`
    3. `user`: the name one just setup as the user in the Linux Distribution.
    4. `nproc`: number of CPU cores to be used.
