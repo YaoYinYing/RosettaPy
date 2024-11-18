@@ -87,7 +87,7 @@ def test_post_init(ROSETTA_PYTHON_SCRIPTS, ROSETTA, ROSETTA3, PYTHON_SCRIPTS_PAT
     os.environ["ROSETTA3"] = ROSETTA3
 
     with tmpdir_manager() as test_ligands:
-        generator = SmallMoleculeParamsGenerator(num_conformer=50, save_dir="./test_ligands/")
+        generator = SmallMoleculeParamsGenerator(num_conformer=50, save_dir=test_ligands)
         assert os.path.abspath(generator._rosetta_python_script_dir) == os.path.abspath(PYTHON_SCRIPTS_PATH)
 
 
