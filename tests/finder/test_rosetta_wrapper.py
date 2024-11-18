@@ -232,7 +232,7 @@ def test_rosetta_use_implicit_mpi_binary(mock_rosetta_bin_container):
 
     with pytest.warns(
         UserWarning,
-        match="MPI nodes are configured and called, yet the binary does not explictly support MPI mode.",
+        match="MPI nodes are configured and called, yet the binary does not explicitly support MPI mode. ",
     ):
         Rosetta(bin=rosetta_binary, run_node=mpi_node, use_mpi=True)
 

@@ -314,7 +314,7 @@ Rosetta(
 )
 ```
 
-During the workflow processing, one will see some active containers at `Containers` tab of `Docker Desktop`, if `Docker Desktop` is installed. Also, typing `docker ps` in the terminal will show them too. Each of these containers will be destructed immediately after its  task finishes or stopped.
+During the workflow processing, one will see some active containers at `Containers` tab of `Docker Desktop`, if `Docker Desktop` is installed. Also, typing `docker ps` in the terminal will show them too. Each of these containers will be destructed immediately after its task finished or stopped.
 
 #### Pick Node Accordingly
 
