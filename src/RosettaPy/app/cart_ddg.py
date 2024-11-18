@@ -2,6 +2,10 @@
 Example Application of Cartesian ddG
 """
 
+# pylint: disable=too-many-arguments
+# pylint: disable=too-many-positional-arguments
+
+
 import os
 from dataclasses import dataclass, field
 from typing import List, Optional
@@ -99,13 +103,15 @@ class CartesianDDG:
 
         Args:
             input_pdb (str): The path to the input PDB file for ddG calculation.
+            mutfiles (List[str]): A list of paths to files containing mutant information.
+            mutants (List[Mutant]): A list of Mutant objects representing the mutants to be analyzed.
             use_legacy (bool, optional): Whether to use the legacy method for ddG calculation. Defaults to False.
             ddg_iteration (int, optional): The number of iterations for the ddG calculation. Defaults to 3.
-
 
         Returns:
             pd.DataFrame: A dataframe containing the ddG calculation results for each mutant.
         """
+        # Initialize Rosetta for Cartesian ddG calculation with specified options and settings
         rosetta = Rosetta(
             bin="cartesian_ddg",
             flags=[f"{script_dir}/deps/cart_ddg/flags/ddG.options"],
@@ -132,11 +138,14 @@ class CartesianDDG:
             run_node=self.node,
         )
 
+        # Generate a list of tasks, each containing the path to a mutfile and the corresponding output file name
         tasks = [{"-ddg:mut_file": mf, "-ddg:out": f"{m.raw_mutant_id}.out"} for mf, m in zip(mutfiles, mutants)]
 
+        # Execute the Cartesian ddG calculation tasks and measure the execution time
         with timing("Cartesian ddG: Evaluation"):
             task_list = rosetta.run(inputs=tasks)  # type: ignore
 
+        # Parse the ddG calculation results for each task and combine them into a single DataFrame
         return pd.concat(
             [
                 RosettaCartesianddGAnalyser(runtime_dir=task.runtime_dir, recursive=True).parse_ddg_files()

@@ -7,6 +7,7 @@ import os
 import shutil
 import tempfile
 import time
+import warnings
 from typing import List, Optional, TypeVar
 
 T = TypeVar("T")
@@ -136,3 +137,47 @@ def squeeze(items: List[T]) -> List[T]:
         reduced_items.append(item)
     # Return the squeezed list of mutants
     return reduced_items
+
+
+@contextlib.contextmanager
+def convert_crlf_to_lf(input_file: str, base_dir: Optional[str] = None):
+    """
+    Context manager to convert a text file with CRLF line endings to LF
+    and yield the path to the temporary file.
+
+    If the input file does not contain any CRLF line endings, it yields None.
+
+    Parameters:
+    - input_file: str, path to the input text file with CRLF line endings.
+    - base_dir: Optional[str], the base directory for the temporary file.
+
+    Yields:
+    - str, path to the newly created temporary file with LF line endings,
+      or the original input file path if no CRLF line endings were found.
+
+    """
+    # Read the entire file content once
+    try:
+        with open(input_file, newline="", encoding="utf-8") as infile:
+            content = infile.read()
+    except OSError as e:
+        raise OSError(f"Failed to read input file {input_file}: {e}") from e
+
+    # Check if the file contains CRLF line endings
+    if "\r\n" not in content:
+        # If no CRLF line endings are found, yield the input file and exit early
+        yield input_file
+        return
+
+    # Proceed to create a temporary file and convert if CRLF exists
+    with tmpdir_manager(base_dir) as tmpdir:
+        output_file_basename = os.path.basename(input_file)
+        output_file = os.path.join(tmpdir, f"converted_file.{output_file_basename}")
+        warnings.warn(UserWarning(f"Converting CRLF line endings to LF: {input_file} -> {output_file}"), stacklevel=2)
+
+        # Write converted content to the temporary file
+        with open(output_file, "w", newline="\n", encoding="utf-8") as outfile:
+            outfile.write(content.replace("\r\n", "\n"))
+
+        # Yield the path to the temporary file
+        yield output_file

@@ -6,7 +6,7 @@ import os
 from typing import List, Optional
 
 from RosettaPy import Rosetta
-from RosettaPy.node import NodeHintT, node_picker
+from RosettaPy.node import NodeClassType, NodeHintT, node_picker
 from RosettaPy.rosetta import RosettaCmdTask
 
 
@@ -31,7 +31,7 @@ def supercharge(
 
     # Initialize the Rosetta object with configuration parameters for the Supercharge protocol
     docker_label = f"_{node_hint}" if node_hint else ""
-    node = node_picker(node_type=node_hint, **node_config)
+    node: NodeClassType = node_picker(node_type=node_hint, **node_config)
     rosetta = Rosetta(
         "supercharge",
         job_id="test_supercharge" + docker_label,

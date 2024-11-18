@@ -26,6 +26,7 @@ from .utils import (
     RosettaScriptsVariableGroup,
     expand_input_dict,
 )
+from .utils.tools import convert_crlf_to_lf
 
 
 @dataclass
@@ -285,7 +286,8 @@ class Rosetta:
                 if not os.path.isfile(flag):
                     warnings.warn(IgnoreMissingFileWarning(f"Ignoring missing flag file: {os.path.abspath(flag)}"))
                     continue
-                cmd.append(f"@{os.path.abspath(flag)}")
+                with convert_crlf_to_lf(os.path.abspath(flag)) as new_flag:
+                    cmd.append(f"@{new_flag}")
 
         if self.opts:
             cmd.extend([opt for opt in self.opts if isinstance(opt, str)])

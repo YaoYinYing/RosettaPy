@@ -17,9 +17,8 @@ def test_which_scontrol_success():
 
 
 def test_which_scontrol_not_found():
-    with patch("shutil.which", return_value=None):
-        with pytest.raises(RuntimeError, match="scontrol not found"):
-            which_scontrol()
+    with patch("shutil.which", return_value=None), pytest.raises(RuntimeError, match="scontrol not found"):
+        which_scontrol()
 
 
 # Test for get_nodes function
