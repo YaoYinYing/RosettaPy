@@ -28,16 +28,16 @@ def create_temp_file(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "input_content, expected_content, contains_crlf, expect_warning",
+    "input_content, expected_content, expect_warning",
     [
         # Positive Cases
-        ("Line 1\nLine 2\n", "Line 1\nLine 2\n", False, False),  # No CRLF
-        ("Line 1\r\nLine 2\n", "Line 1\nLine 2\n", True, True),  # Mixed line endings
-        ("Line 1\r\nLine 2\r\n", "Line 1\nLine 2\n", True, True),  # Only CRLF
-        ("", "", False, False),  # Empty file
+        ("Line 1\nLine 2\n", "Line 1\nLine 2\n", False),  # No CRLF
+        ("Line 1\r\nLine 2\n", "Line 1\nLine 2\n", True),  # Mixed line endings
+        ("Line 1\r\nLine 2\r\n", "Line 1\nLine 2\n", True),  # Only CRLF
+        ("", "", False),  # Empty file
     ],
 )
-def test_convert_crlf_to_lf(create_temp_file, input_content, expected_content, contains_crlf, expect_warning):
+def test_convert_crlf_to_lf(create_temp_file, input_content, expected_content, expect_warning):
     """
     Test the convert_crlf_to_lf function for various input scenarios.
 
@@ -60,6 +60,26 @@ def test_convert_crlf_to_lf(create_temp_file, input_content, expected_content, c
             with open(output_file, encoding="utf-8") as f:
                 output_content = f.read()
             assert output_content == expected_content
+            assert "\r\n" not in output_content
+
     else:
         with convert_crlf_to_lf(input_file) as output_file:
             assert output_file == input_file
+
+
+@pytest.mark.parametrize(
+    "invalid_input, error_type, error_match",
+    [
+        ("tests/data/not_exists/flag.txt", OSError, "Failed to read input file"),  # Invalid input: File does not exist
+        (None, TypeError, "expected str, bytes or os.PathLike object, not NoneType"),  # Invalid input: None
+        (123, OSError, "Bad file descriptor"),  # Invalid input: Non-string
+        ({}, TypeError, "expected str, bytes or os.PathLike object, not"),  # Invalid input: Unsupported type
+    ],
+)
+def test_convert_crlf_to_lf_invalid_inputs(invalid_input, error_type, error_match):
+    """
+    Test the convert_crlf_to_lf function with invalid inputs.
+    """
+    with pytest.raises(error_type, match=error_match):
+        with convert_crlf_to_lf(invalid_input) as _:
+            pass

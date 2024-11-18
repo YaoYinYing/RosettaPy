@@ -157,8 +157,11 @@ def convert_crlf_to_lf(input_file: str, base_dir: Optional[str] = None):
 
     """
     # Read the entire file content once
-    with open(input_file, newline="", encoding="utf-8") as infile:
-        content = infile.read()
+    try:
+        with open(input_file, newline="", encoding="utf-8") as infile:
+            content = infile.read()
+    except OSError as e:
+        raise OSError(f"Failed to read input file {input_file}: {e}") from e
 
     # Check if the file contains CRLF line endings
     if "\r\n" not in content:
@@ -169,7 +172,7 @@ def convert_crlf_to_lf(input_file: str, base_dir: Optional[str] = None):
     # Proceed to create a temporary file and convert if CRLF exists
     with tmpdir_manager(base_dir) as tmpdir:
         output_file = os.path.join(tmpdir, "converted_file.txt")
-        warnings.warn(UserWarning(f"Converting CRLF line endings to LF: {input_file} -> {output_file}"))
+        warnings.warn(UserWarning(f"Converting CRLF line endings to LF: {input_file} -> {output_file}"), stacklevel=2)
 
         # Write converted content to the temporary file
         with open(output_file, "w", newline="\n", encoding="utf-8") as outfile:
