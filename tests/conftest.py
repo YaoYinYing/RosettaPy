@@ -38,15 +38,20 @@ def _make_rosetta_fixture(binary_suffix: str):
 
     @pytest.fixture
     def _fixture(tmp_path):
-        return create_mock_rosetta_bin(tmp_path, f"rosetta_scripts.{binary_suffix}")
+        return create_mock_rosetta_bin(tmp_path, f"rosetta_scripts{binary_suffix}")
 
     return _fixture
 
 
 # Create fixtures using the factory
-mock_rosetta_bin = _make_rosetta_fixture("linuxgccrelease")
-mock_rosetta_mpi_bin = _make_rosetta_fixture("mpi.linuxgccrelease")
-mock_rosetta_static_bin = _make_rosetta_fixture("static.linuxgccrelease")
+mock_rosetta_bin_container = _make_rosetta_fixture("")  # returns 'rosetta_scripts'
+mock_rosetta_bin = _make_rosetta_fixture(".linuxgccrelease")  # returns 'rosetta_scripts.linuxgccrelease'
+mock_rosetta_mpi_bin = _make_rosetta_fixture(".mpi.linuxgccrelease")  # returns 'rosetta_scripts.mpi.linuxgccrelease'
+mock_rosetta_static_bin = _make_rosetta_fixture(
+    ".static.linuxgccrelease"
+)  # returns 'rosetta_scripts.static.linuxgccrelease'
+mock_rosetta_mac_bin = _make_rosetta_fixture(".default.macosclangrelease")
+mock_rosetta_mac_mpi_bin = _make_rosetta_fixture(".mpi.macosclangrelease")
 
 
 def pytest_collection_modifyitems(items: list[Item]):

@@ -136,10 +136,11 @@ def test_rosetta_run_mpi(mock_popen, mock_isfile, mock_rosetta_mpi_bin, user, ui
     rosetta_binary = RosettaBinary(
         os.path.dirname(mock_rosetta_mpi_bin), "rosetta_scripts", "mpi", "linux", "gcc", "release"
     )
-    with patch("shutil.which", return_value="/usr/bin/mpirun") as mock_which_mpirun:
+    with patch("shutil.which", return_value="/usr/bin/mpirun"):
         mpi_node = MpiNode(nproc=4)
-    mpi_node.user = uid
-    rosetta = Rosetta(bin=rosetta_binary, run_node=mpi_node, verbose=True)
+        mpi_node.user = uid
+
+        rosetta = Rosetta(bin=rosetta_binary, run_node=mpi_node, verbose=True, use_mpi=True)
 
     # Mock the process
     mock_process = MagicMock()
@@ -150,10 +151,8 @@ def test_rosetta_run_mpi(mock_popen, mock_isfile, mock_rosetta_mpi_bin, user, ui
     base_cmd = rosetta.compose()
 
     if user == "root":
-        with pytest.warns(UserWarning) as record:
+        with pytest.warns(UserWarning, match="Running Rosetta with MPI as Root User"):
             tasks = rosetta.setup_tasks_with_node(base_cmd=base_cmd, nstruct=2)
-
-            assert any("Running Rosetta with MPI as Root User" in str(warning.message) for warning in record)
 
     else:
         tasks = rosetta.setup_tasks_with_node(base_cmd=base_cmd, nstruct=2)
@@ -187,8 +186,8 @@ def test_rosetta_init_no_mpi_executable(mock_which, mock_rosetta_static_bin):
     "flag_basename,contains_crlf",
     [("ddG_relax.lf.flag", False), ("ddG_relax.crlf.flag", True)],
 )
-def test_rosetta_compose(flag_basename, contains_crlf, mock_rosetta_mpi_bin):
-    os.environ["ROSETTA_BIN"] = os.path.dirname(mock_rosetta_mpi_bin)
+def test_rosetta_compose(flag_basename, contains_crlf, mock_rosetta_bin):
+    os.environ["ROSETTA_BIN"] = os.path.dirname(mock_rosetta_bin)
 
     rosetta_binary = RosettaFinder().find_binary("rosetta_scripts")
 
@@ -221,17 +220,34 @@ def test_rosetta_compose(flag_basename, contains_crlf, mock_rosetta_mpi_bin):
     assert cmd == expected_cmd
 
 
-@patch("shutil.which", return_value="/usr/bin/mpirun")
-def test_rosetta_mpi_warning(mock_which, mock_rosetta_mpi_bin):
-    os.environ["ROSETTA_BIN"] = os.path.dirname(mock_rosetta_mpi_bin)
-
+def test_rosetta_use_implicit_mpi_binary(mock_rosetta_bin_container):
+    os.environ["ROSETTA_BIN"] = os.path.dirname(mock_rosetta_bin_container)
     rosetta_binary = RosettaFinder().find_binary("rosetta_scripts")
+    assert rosetta_binary.mode is None
+
+    with patch("shutil.which", return_value="/usr/bin/mpirun"):
+        mpi_node = MpiNode(nproc=4)
+
+    assert mpi_node.mpi_available
 
     with pytest.warns(
         UserWarning,
-        match="Using MPI binary in static build mode. This may impact performance compared to true MPI execution.",
+        match="MPI nodes are configured and called, yet the binary does not explicitly support MPI mode. ",
     ):
-        rosetta = Rosetta(bin=rosetta_binary)
+        Rosetta(bin=rosetta_binary, run_node=mpi_node, use_mpi=True)
+
+
+def test_rosetta_mpi_disabled_warning(mock_rosetta_mpi_bin):
+    os.environ["ROSETTA_BIN"] = os.path.dirname(mock_rosetta_mpi_bin)
+
+    rosetta_binary = RosettaFinder().find_binary("rosetta_scripts")
+    assert rosetta_binary.mode == "mpi"
+
+    with pytest.warns(
+        UserWarning,
+        match="The binary supports MPI mode, yet the job is not configured to use MPI.",
+    ):
+        rosetta = Rosetta(bin=rosetta_binary, use_mpi=False)
         assert not rosetta.use_mpi
 
 
@@ -259,14 +275,15 @@ def test_rosetta_execute_failure(mock_popen, mock_which, mock_rosetta_static_bin
 
 
 @patch("subprocess.Popen")
-@patch("shutil.which", return_value="/usr/bin/mpirun")
-def test_rosetta_mpi_incompatible_input_warning(mock_which, mock_popen, mock_rosetta_mpi_bin):
+def test_rosetta_mpi_incompatible_input_warning(mock_popen, mock_rosetta_mpi_bin):
     os.environ["ROSETTA_BIN"] = os.path.dirname(mock_rosetta_mpi_bin)
 
     rosetta_binary = RosettaFinder().find_binary("rosetta_scripts")
 
-    mpi_node = MpiNode(nproc=4)
-    rosetta = Rosetta(bin=rosetta_binary, run_node=mpi_node)
+    with patch("shutil.which", return_value="/usr/bin/mpirun"):
+        mpi_node = MpiNode(nproc=4)
+
+    rosetta = Rosetta(bin=rosetta_binary, run_node=mpi_node, use_mpi=True)
 
     # Mock the process
     mock_process = MagicMock()
