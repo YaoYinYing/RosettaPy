@@ -166,10 +166,15 @@ pip install RosettaPy -U
     )
     ```
 
+    RosettaPy uses `Native` node by default.
+
+    It has to be noted that `Native` and `MpiNode` are only available on Linux and macOS.
+    For Windows users, please refer to the `Full Operating System Compatibility Table` and `Get Windows Ready for Rosetta Runs` sections below.
+
 3. Compose rosetta tasks matrix as inputs
 
     ```python
-    tasks = [ # Create tasks for each variant
+    tasks: list[Dict[str, Any]] = [ # Create tasks for each variant
         {
             "rsv": RosettaScriptsVariableGroup.from_dict(
                 {
@@ -214,11 +219,11 @@ pip install RosettaPy -U
     print(f'Best Hit on this run: {best_hit["decoy"]} - {best_hit["score"]}: {pdb_path}')
     ```
 
-    One can also build a customized anaylizer by re-using the `analyser.df` Dataframe.
+    One can also build a customized analyser by re-using the `analyser.df` Dataframe.
 
 ## Advanced Usages
 
-Here is some tips for advanced usages to adjust the workflow to respect to behaviors of some Rosetta workflows and applications.
+Here are some tips for advanced usages to adjust the workflow in respect to behaviors of some Rosetta workflows and applications.
 
 ### Isolation Mode
 
@@ -412,9 +417,9 @@ One must enable `Windows Subsystem for Linux`, then switch to `WSL2` following t
 5. Fetch the source code of Rosetta and un-tar it to anywhere convenient. e.g. `/opt/rosetta`
 6. Go to the source code directory and build it according to the Official Rosetta [Build Documentation](https://docs.rosettacommons.org/docs/latest/build_documentation/Build-Documentation).
 7. Environment variables required by RosettaPy are:
-   1. `ROSETTA_BIN`: to the path of the Rosetta excutables.
-   2. `ROSETTA3_DB`: to the path of the Rosetta database.
-   3. `ROSETTA_PYTHON_SCRIPTS` to the path of the Rosetta scripts.
+   1. `ROSETTA_BIN`: path to the Rosetta executables
+   2. `ROSETTA3_DB`: path to the Rosetta database
+   3. `ROSETTA_PYTHON_SCRIPTS`: path to the Rosetta scripts
 8. Use `WslWrapper` class as the run node. Parameters:
    1. `rosetta_bin`: `RosettaBinary` with in-wsl `dirname`(the absolute path of Rosetta binary directory in WSL distro).
    2. `distro`: the name of the Linux Distribution. for example, `'Ubuntu-22.04'`
