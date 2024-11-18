@@ -85,9 +85,8 @@ def test_timing(capfd):
 
 
 @patch("shutil.which", return_value=None)
-@patch("os.path.isfile", return_value=True)
 @patch("subprocess.Popen")
-def test_rosetta_run_local(mock_popen, mock_isfile, mock_which, mock_rosetta_bin):
+def test_rosetta_run_local(mock_popen, mock_which, mock_rosetta_bin):
     os.environ["ROSETTA_BIN"] = os.path.dirname(mock_rosetta_bin)
 
     nstruct = 10
@@ -103,13 +102,18 @@ def test_rosetta_run_local(mock_popen, mock_isfile, mock_which, mock_rosetta_bin
         run_node=Native(
             nproc=2,
         ),
-        flags=["flags.txt"],
-        opts=["-in:file:s", "input.pdb"],
+        flags=["tests/data/flag_ending/ddG_relax.lf.flag"],
+        opts=["-in:file:s", "tests/data/3fap_hf3_A_short.pdb"],
         verbose=True,
     )
     cmd = rosetta.compose()
 
-    assert cmd == [rosetta_binary.full_path, f"@{os.path.abspath('flags.txt')}", "-in:file:s", "input.pdb"]
+    assert cmd == [
+        rosetta_binary.full_path,
+        f"@{os.path.abspath('tests/data/flag_ending/ddG_relax.lf.flag')}",
+        "-in:file:s",
+        "tests/data/3fap_hf3_A_short.pdb",
+    ]
 
     ret = rosetta.run(nstruct=nstruct)
 
@@ -179,15 +183,35 @@ def test_rosetta_init_no_mpi_executable(mock_which, mock_rosetta_static_bin):
         Rosetta(bin=rosetta_binary, run_node=MpiNode(nproc=0, node_matrix={"node1": 1}))
 
 
-@patch("os.path.isfile", return_value=True)
-def test_rosetta_compose(mock_isfile, mock_rosetta_mpi_bin):
+@pytest.mark.parametrize(
+    "flag_basename,contains_crlf",
+    [("ddG_relax.lf.flag", False), ("ddG_relax.crlf.flag", True)],
+)
+def test_rosetta_compose(flag_basename, contains_crlf, mock_rosetta_mpi_bin):
     os.environ["ROSETTA_BIN"] = os.path.dirname(mock_rosetta_mpi_bin)
 
     rosetta_binary = RosettaFinder().find_binary("rosetta_scripts")
 
-    rosetta = Rosetta(bin=rosetta_binary, flags=["flags.txt"], opts=["-in:file:s", "input.pdb"], verbose=True)
+    rosetta = Rosetta(
+        bin=rosetta_binary,
+        flags=[f"tests/data/flag_ending/{flag_basename}"],
+        opts=["-in:file:s", "tests/data/3fap_hf3_A_short.pdb"],
+        verbose=True,
+    )
 
-    expected_cmd = [rosetta_binary.full_path, f"@{os.path.abspath('flags.txt')}", "-in:file:s", "input.pdb"]
+    expected_cmd = [
+        rosetta_binary.full_path,
+        f"@{os.path.abspath(f'tests/data/flag_ending/{flag_basename}')}",
+        "-in:file:s",
+        "tests/data/3fap_hf3_A_short.pdb",
+    ]
+
+    if contains_crlf:
+        with pytest.warns(UserWarning):
+            cmd = rosetta.compose()
+            assert cmd != expected_cmd
+            return
+
     cmd = rosetta.compose()
     assert cmd == expected_cmd
 
