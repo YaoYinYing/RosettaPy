@@ -14,6 +14,7 @@ from RosettaPy.app.utils.smiles2param import (
     protonate_tertiary_amine,
 )
 from RosettaPy.utils.task import RosettaCmdTask
+from RosettaPy.utils.tools import tmpdir_manager
 
 
 # Test case for deprotonate_acids
@@ -66,7 +67,8 @@ def generator():
     ):
         if k in os.environ:
             os.environ.pop(k)
-    return SmallMoleculeParamsGenerator(num_conformer=50, save_dir="./test_ligands/")
+    with tmpdir_manager() as test_ligands:
+        return SmallMoleculeParamsGenerator(num_conformer=50, save_dir=test_ligands)
 
 
 @pytest.mark.parametrize(
@@ -84,8 +86,9 @@ def test_post_init(ROSETTA_PYTHON_SCRIPTS, ROSETTA, ROSETTA3, PYTHON_SCRIPTS_PAT
     os.environ["ROSETTA"] = ROSETTA
     os.environ["ROSETTA3"] = ROSETTA3
 
-    generator = SmallMoleculeParamsGenerator(num_conformer=50, save_dir="./test_ligands/")
-    assert os.path.abspath(generator._rosetta_python_script_dir) == os.path.abspath(PYTHON_SCRIPTS_PATH)
+    with tmpdir_manager() as test_ligands:
+        generator = SmallMoleculeParamsGenerator(num_conformer=50, save_dir="./test_ligands/")
+        assert os.path.abspath(generator._rosetta_python_script_dir) == os.path.abspath(PYTHON_SCRIPTS_PATH)
 
 
 # Test smile2canon method
@@ -125,7 +128,7 @@ def test_generate_rosetta_input(mock_writer, generator):
         mock_popen.return_value = mock_process
 
         actural_task = generator.generate_rosetta_input(mol_mock, "test_ligand", charge=0)
-        save_dir = os.path.abspath(os.path.join(".", "test_ligands"))
+        save_dir = generator.save_dir
 
         expected_task = RosettaCmdTask(
             cmd=[
