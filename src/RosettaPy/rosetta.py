@@ -110,8 +110,8 @@ class Rosetta:
             # warnings about the disabled MPI mode for MPI-supported binaries.
             if self.bin.mode == "mpi":
                 warnings.warn(
-                    UserWarning("The binary supports MPI mode, yet the job is not configured to use MPI."),
-                    stacklevel=2)
+                    UserWarning("The binary supports MPI mode, yet the job is not configured to use MPI."), stacklevel=2
+                )
             return
 
         # explicitly enable MPI for MpiNode
