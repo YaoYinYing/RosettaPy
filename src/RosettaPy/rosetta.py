@@ -94,7 +94,6 @@ class Rosetta:
 
         # convert a string binary name to a RosettaBinary object according to the node type
         if isinstance(self.bin, str):
-
             if isinstance(self.run_node, RosettaContainer):
                 # for Rosetta Container, use hard-coded bin path
                 self.bin = RosettaBinary(dirname="/usr/local/bin/", binary_name=self.bin)
