@@ -149,7 +149,6 @@ def test_main(
             original_path.insert(0, dir_name)
         monkeypatch.setenv("PATH", f"{os.pathsep.join(original_path)}")
 
-        # assert dir_name in os.environ.get("PATH")
         sys_argv[2] = dir_name
         finder_full_path = mock_rosetta_bin
 
