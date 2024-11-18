@@ -171,7 +171,8 @@ def convert_crlf_to_lf(input_file: str, base_dir: Optional[str] = None):
 
     # Proceed to create a temporary file and convert if CRLF exists
     with tmpdir_manager(base_dir) as tmpdir:
-        output_file = os.path.join(tmpdir, "converted_file.txt")
+        output_file_basename = os.path.basename(input_file)
+        output_file = os.path.join(tmpdir, f"converted_file.{output_file_basename}")
         warnings.warn(UserWarning(f"Converting CRLF line endings to LF: {input_file} -> {output_file}"), stacklevel=2)
 
         # Write converted content to the temporary file

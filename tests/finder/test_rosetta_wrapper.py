@@ -209,8 +209,13 @@ def test_rosetta_compose(flag_basename, contains_crlf, mock_rosetta_mpi_bin):
     if contains_crlf:
         with pytest.warns(UserWarning):
             cmd = rosetta.compose()
-            assert cmd != expected_cmd
-            return
+        # Verify the command structure while allowing for line ending differences
+        assert len(cmd) == len(expected_cmd)
+        assert cmd[0] == expected_cmd[0]  # Binary path should match
+        assert cmd[2:] == expected_cmd[2:]  # Options after flag file should match
+        # Flag file path might differ due to line ending conversion
+        assert cmd[1].startswith("@") and cmd[1].endswith(flag_basename)
+        return
 
     cmd = rosetta.compose()
     assert cmd == expected_cmd
