@@ -220,11 +220,13 @@ class RosettaFinder:
         Raises:
             FileNotFoundError: If the binary is not found.
         """
+        # 0. search from PATH
         bin_in_path = shutil.which(binary_name)
 
         if bin_in_path is not None:
             return RosettaBinary.from_filename(os.path.dirname(bin_in_path), os.path.basename(bin_in_path))
 
+        # search from predefined paths
         pattern = self.build_regex_pattern(binary_name)
         for path in self.search_paths:
             if not (path.exists() and path.is_dir()):
@@ -235,6 +237,7 @@ class RosettaFinder:
                 if not pattern.match(file.name):
                     continue
                 try:
+                    # once found, we can stop searching
                     rosetta_binary = RosettaBinary.from_filename(str(path), file.name)
                     if rosetta_binary.binary_name == binary_name:
                         return rosetta_binary

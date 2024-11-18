@@ -92,33 +92,46 @@ class Rosetta:
         if self.opts is None:
             self.opts = []
 
+        # convert a string binary name to a RosettaBinary object according to the node type
         if isinstance(self.bin, str):
+
             if isinstance(self.run_node, RosettaContainer):
-                # to container
+                # for Rosetta Container, use hard-coded bin path
                 self.bin = RosettaBinary(dirname="/usr/local/bin/", binary_name=self.bin)
             elif isinstance(self.run_node, WslWrapper):
+                # for Wsl that may contains Rosetta built and installed, use the node configured Rosetta binary
                 self.bin = self.run_node.rosetta_bin
             else:
-                # local direct runs
+                # otherwise (MpiNode and Native), search for local installations
                 self.bin = RosettaFinder().find_binary(self.bin)
 
-        if isinstance(self.run_node, MpiNode):
-            if self.bin.mode != "mpi":
-                warnings.warn(
-                    UserWarning(
-                        "MPI nodes are configured but the binary doesn't support MPI mode. "
-                        "This might occur in Dockerized Rosetta container. The job will run in non-MPI mode."
-                    )
-                )
-            self.use_mpi = True
+        # explicitly disable MPI for Native node
+        if isinstance(self.run_node, Native):
+            self.use_mpi = False
+            # warnings about the disabled MPI mode for MPI-supported binaries.
+            if self.bin.mode == "mpi":
+                warnings.warn(UserWarning("The binary supports MPI mode, yet the job is not configured to use MPI."))
             return
 
-        warnings.warn(
-            UserWarning(
-                "Using MPI binary in static build mode. This may impact performance compared to true MPI execution."
-            )
-        )
-        self.use_mpi = False
+        # explicitly enable MPI for MpiNode
+        if isinstance(self.run_node, MpiNode):
+            self.use_mpi = self.run_node.mpi_available
+
+        else:
+            # for the rest of node types
+            # repect to the final choice of user.
+            self.run_node.mpi_available = self.use_mpi
+
+        # warnings about the bin.mode not 'mpi' (None, for example) yet self.use_mpi == True
+        if self.bin.mode != "mpi":
+            if self.use_mpi:
+                warnings.warn(
+                    UserWarning(
+                        "MPI nodes are configured and called, yet the binary does not explictly support MPI mode. "
+                        "This might occur inside Dockerized Rosetta container with `extras=mpi`. "
+                        "The job will respect the user configurations and run tasks in MPI mode."
+                    )
+                )
 
     def setup_tasks_native(
         self,
