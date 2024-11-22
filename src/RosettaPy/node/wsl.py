@@ -102,7 +102,6 @@ class WslWrapper:
     _mpirun_cache = None
 
     def __post_init__(self):
-
         # set the mpi_available flag if mpirun is available
         self.mpi_available = self.has_mpirun
 
