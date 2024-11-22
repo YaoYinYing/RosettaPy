@@ -2,6 +2,9 @@
 
 A Python Utility for Wrapping Rosetta Macromolecural Modeling Suite.
 
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/RosettaPy)](https://pypi.org/project/RosettaPy/)
+[![PyPI - Implementation](https://img.shields.io/pypi/implementation/RosettaPy)](https://pypi.org/project/RosettaPy/)
+
 > [!CAUTION]
 > `RosettaPy` requires `Rosetta` [compiled and installed](https://docs.rosettacommons.org/docs/latest/build_documentation/Build-Documentation).
 > _Before running `RosettaPy`, please **DO** make sure that you have obtained the correct license from Rosetta Commons._
@@ -55,65 +58,17 @@ A Python Utility for Wrapping Rosetta Macromolecural Modeling Suite.
 [![PyPI - Status](https://img.shields.io/pypi/status/RosettaPy)](https://pypi.org/project/RosettaPy/)
 [![PyPI - Wheel](https://img.shields.io/pypi/wheel/RosettaPy)](https://pypi.org/project/RosettaPy/)
 
-## Python version supported
-
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/RosettaPy)](https://pypi.org/project/RosettaPy/)
-[![PyPI - Implementation](https://img.shields.io/pypi/implementation/RosettaPy)](https://pypi.org/project/RosettaPy/)
-
 ## Overview
 
-`RosettaPy` is a Python module designed to locate Rosetta biomolecular modeling suite binaries that follow a specific naming pattern and execute Rosetta in command line. The module includes:
+`RosettaPy` is designed to handle the complexities of locating, composing and running Rosetta binaries within Python.
+The module includes:
 
-| Class/Component                 | Description                                                                                                                                                                                                                   |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **RosettaFinder**               | A class designed to search for binary files within specified directories.                                                                                                                                                     |
-| **RosettaBinary**               | Represents a binary file and its associated attributes, such as path and version.                                                                                                                                             |
-| **RosettaCmdTask**              | Encapsulates a single task for running Rosetta, including command-line arguments and input files.                                                                                                                             |
-| **RosettaRepoManager**          | Fetches necessary directories and files, sets up environment variables, and provides a `partial_clone` method for cloning and setting up repositories.                                                                        |
-| **Rosetta**                     | A command-line wrapper for executing Rosetta runs, simplifying the process of setting up and running commands.                                                                                                                |
-| **RosettaScriptsVariableGroup** | Represents variables used in Rosetta scripts, facilitating their management and use.                                                                                                                                          |
-| **RosettaEnergyUnitAnalyser**   | Analyzes and interprets Rosetta output score files, providing a simplified interface for result analysis.                                                                                                                     |
-| **Example Applications**        | Demonstrates the use of the above components through specific Rosetta applications like PROSS, FastRelax, RosettaLigand, Supercharge, MutateRelax, and Cartesian ddG, each tailored to different computational biology tasks. |
-
-## Features
-
-- **Flexible Binary Search**: Finds Rosetta binaries based on their naming convention.
-- **Platform Support**: Supports Windows, Linux and macOS operating systems.
-- **Container Support**: Works with Docker containers running upon the official Rosetta Docker image.
-- **Customizable Search Paths**: Allows specification of custom directories to search.
-- **Structured Binary Representation**: Uses a dataclass to encapsulate binary attributes.
-- **Command-Line Shortcut**: Provides a quick way to find binaries via the command line.
-- **Available on PyPI**: Installable via `pip` without the need to clone the repository.
-- **Unit Tested**: Includes tests for both classes to ensure functionality.
-
-## Naming Convention
-
-The Rosetta binaries are expected to follow this naming pattern:
-
-```text
-rosetta_scripts[[.mode].oscompilerrelease]
-```
-
-- **Binary Name**: `rosetta_scripts` (default) or specified.
-- **Mode** (optional): `default`, `mpi`, or `static`.
-- **OS** (optional): `linux` or `macos`.
-- **Compiler** (optional): `gcc` or `clang`.
-- **Release** (optional): `release` or `debug`.
-
-For reg expression to match the basenames:
-
-```regex
-^(?P<binary_name>[\w]+)((\.(?P<mode>static|mpi|default|cxx11threadserialization|cxx11threadmpiserialization))?(\.(?P<os>linux|macos)(?P<compiler>gcc|clang)(?P<release>release|debug)))?$
-```
-
-See this [regex101](https://regex101.com/r/Z1XM9b/1) page for more details.
-
-Examples of valid binary filenames:
-
-- `rosetta_scripts` (dockerized Rosetta)
-- `rosetta_scripts.linuxgccrelease`
-- `rosetta_scripts.mpi.macosclangdebug`
-- `rosetta_scripts.static.linuxgccrelease`
+| Key Component                   | Description                                                                                                                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Rosetta**                     | A command-line wrapper for Rosetta that simplifies the setting up and running commands.                                                                             |
+| **RosettaScriptsVariableGroup** | Represents variables used in Rosetta scripts, facilitating their management and use.                                                                                |
+| **RosettaEnergyUnitAnalyser**   | Analyzes and interprets Rosetta output score files, providing a simplified interface for result analysis.                                                           |
+| **Example Applications**        | Demos of specific Rosetta applications like PROSS, FastRelax, RosettaLigand, Supercharge, MutateRelax, and Cartesian ddG for different computational biology tasks. |
 
 ## Installation
 
@@ -123,11 +78,11 @@ One can install `RosettaPy` directly from PyPI:
 pip install RosettaPy -U
 ```
 
-## Basic Usages
+## Getting Started
 
-`RosettaPy` is designed to handle the complexities of locating and running Rosetta binaries within Python.
 
-### Build Rosetta Workflow from scratch
+
+### Building Rosetta Workflow from scratch
 
 1. Import necessary modules
 
@@ -169,7 +124,7 @@ pip install RosettaPy -U
     RosettaPy uses `Native` node by default.
 
     It has to be noted that `Native` and `MpiNode` are only available on Linux and macOS.
-    For Windows users, please refer to the `Full Operating System Compatibility Table` and `Get Windows Ready for Rosetta Runs` sections below.
+    For Windows users, please refer to the `Full Operating System Compatibility Table` and `Getting Windows Ready for Rosetta Runs` sections below.
 
 3. Compose rosetta tasks matrix as inputs
 
@@ -221,7 +176,7 @@ pip install RosettaPy -U
 
     One can also build a customized analyser by re-using the `analyser.df` Dataframe.
 
-## Advanced Usages
+## Being Like a Pro
 
 Here are some tips for advanced usages to adjust the workflow in respect to behaviors of some Rosetta workflows and applications.
 
@@ -236,7 +191,7 @@ Rosetta(
 )
 ```
 
-### Run Node Configurations
+### Running Node Configurations
 
 There are various node configurations that can be used to run Rosetta jobs.
 
@@ -254,9 +209,16 @@ There are various node configurations that can be used to run Rosetta jobs.
 [^3]: Translated with Rosetta2 framework if runs on Apple Silicon Mac, which may cause worthy slow performance.
 [^4]: It's theoretically possible yet no testing is done at all.
 
-#### Reallocate CPU Cores
+#### MPI, or not MPI?
 
-By default, `RosettaPy` uses `Native` node, representing the local machine with Rosetta installed.
+This Flow chart shows how `RosettaPy` decides whether to use MPI or not.
+[![](https://mermaid.ink/img/pako:eNpdku9qwjAUxV8l5JMDfYHCNmal4pgy3EDYOuTa3tqwNglp4hit7778WxWbL83vHE7ObdPTQpRIE1o14qeoQWnyss05sc_T51Z0qDV8hf18sjWcbKz9LucBpX1aY_FN1q-r8z9b9FKJmh2Y3reSPXoelGxiOnTwPoOmcymOLkf6rkyIjueT2exhWKL2Zw5kHmt4vAHNThZmV5AMa8mCd3mJCf44Siq4BsZRDSS9lndds1MgZRTidD50NbHd9nAC1sChwdDSK4tr2_ONLYzopWz8NKGlSxibR-btQ6ztFp3SFlULrLQ_p3fenOoaW8xpYl9LrMA0Oqc5P1srGC3efnlBE23Dp1QJc6xpUrnUKTWyBI0LBkcF7Ugl8A8hLnssmRZqHa6DvxXnP8hGq3w?type=png)](https://mermaid.live/edit#pako:eNpdku9qwjAUxV8l5JMDfYHCNmal4pgy3EDYOuTa3tqwNglp4hit7778WxWbL83vHE7ObdPTQpRIE1o14qeoQWnyss05sc_T51Z0qDV8hf18sjWcbKz9LucBpX1aY_FN1q-r8z9b9FKJmh2Y3reSPXoelGxiOnTwPoOmcymOLkf6rkyIjueT2exhWKL2Zw5kHmt4vAHNThZmV5AMa8mCd3mJCf44Siq4BsZRDSS9lndds1MgZRTidD50NbHd9nAC1sChwdDSK4tr2_ONLYzopWz8NKGlSxibR-btQ6ztFp3SFlULrLQ_p3fenOoaW8xpYl9LrMA0Oqc5P1srGC3efnlBE23Dp1QJc6xpUrnUKTWyBI0LBkcF7Ugl8A8hLnssmRZqHa6DvxXnP8hGq3w)
+
+Before `RosettaContainer` or `WslWrapper` instance is passed as `run_node`, the node itself checks if MPI-related environment is ready. Also, the flag `prohibit_mpi` will force to disable MPI if it is `True`.
+
+#### Reallocating CPU Cores
+
+By default, `RosettaPy` uses `Native` node with 4 CPU cores, representing the local machine with Rosetta installed.
 To specify the number of cores, use the `nproc` parameter.
 
 ```diff
@@ -319,9 +281,18 @@ Rosetta(
 )
 ```
 
+or non-MPI runs with MPI image:
+
+```diff
+Rosetta(
+    ...
++   run_node=RosettaContainer(image="rosettacommons/rosetta:mpi", prohibit_mpi=True), # override MPI setting
+)
+```
+
 During the workflow processing, one will see some active containers at `Containers` tab of `Docker Desktop`, if `Docker Desktop` is installed. Also, typing `docker ps` in the terminal will show them too. Each of these containers will be destructed immediately after its task finished or stopped.
 
-#### Pick Node Accordingly
+#### Picking Node Accordingly
 
 One can still pick the desire node quickly by calling `node_picker` method.
 
@@ -383,7 +354,7 @@ def clone_db_relax_script():
 
 ```
 
-#### Get Windows Ready for Rosetta Runs
+#### Getting Windows Ready for Rosetta Runs
 
 Thanks for Windows Subsystem for Linux(WSL), we provide two simple ways to run Rosetta on Windows.
 
@@ -436,6 +407,35 @@ The `RosettaFinder` searches the following directories by default:
 2. `ROSETTA3/bin`
 3. `ROSETTA/main/source/bin/`
 4. A custom search path provided during initialization.
+
+## Naming Convention
+
+The Rosetta binaries are expected to follow this naming pattern:
+
+```text
+rosetta_scripts[[.mode].oscompilerrelease]
+```
+
+- **Binary Name**: `rosetta_scripts` (default) or specified.
+- **Mode** (optional): `default`, `mpi`, or `static`.
+- **OS** (optional): `linux` or `macos`.
+- **Compiler** (optional): `gcc` or `clang`.
+- **Release** (optional): `release` or `debug`.
+
+For reg expression to match the basenames:
+
+```regex
+^(?P<binary_name>[\w]+)((\.(?P<mode>static|mpi|default|cxx11threadserialization|cxx11threadmpiserialization))?(\.(?P<os>linux|macos)(?P<compiler>gcc|clang)(?P<release>release|debug)))?$
+```
+
+See this [regex101](https://regex101.com/r/Z1XM9b/1) page for more details.
+
+Examples of valid binary filenames:
+
+- `rosetta_scripts` (dockerized Rosetta)
+- `rosetta_scripts.linuxgccrelease`
+- `rosetta_scripts.mpi.macosclangdebug`
+- `rosetta_scripts.static.linuxgccrelease`
 
 ## Running Tests
 
