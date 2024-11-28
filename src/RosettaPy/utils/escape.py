@@ -96,16 +96,19 @@ class Colors:
             # Attach the method to the class with a lowercase name
             setattr(cls, attr_name, classmethod(color_method))
 
-    # Cancel SGR codes if not writing to a terminal
-    if not __import__("sys").stdout.isatty():
-        for _ in dir():
-            if isinstance(_, str) and _[0] != "_":
-                locals()[_] = ""
-    else:
-        # Set Windows console in VT mode
-        if __import__("platform").system() == "Windows":
-            kernel32 = __import__("ctypes").windll.kernel32
-            kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
+    try:
+        # Cancel SGR codes if not writing to a terminal
+        if not __import__("sys").stdout.isatty():
+            for _ in dir():
+                if isinstance(_, str) and _[0] != "_":
+                    locals()[_] = ""
+        else:
+            # Set Windows console in VT mode
+            if __import__("platform").system() == "Windows":
+                kernel32 = __import__("ctypes").windll.kernel32
+                kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
+    except AttributeError as e:
+        print(f"Could not set console color: {e}")
 
 
 Colors._create_class_methods()
