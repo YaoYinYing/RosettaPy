@@ -47,7 +47,7 @@ class RosettaLigand:
     box_size: int = 30
     move_distance: float = 0.5
     gridwidth: int = 45
-    chain_id_for_dock = "B"
+    chain_id_for_dock: str = "B"
     start_from_xyz: Optional[Tuple[float, float, float]] = None
 
     node: NodeClassType = field(default_factory=Native)
