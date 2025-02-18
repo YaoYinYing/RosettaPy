@@ -157,12 +157,27 @@ class Rosetta:
             if inputs:
                 base_cmd_copy.extend(tree.flatten([expand_input_dict(input_dict) for input_dict in inputs]))
 
+            suffix = None
+            if "-suffix" in base_cmd_copy:
+                user_suffix_idx = base_cmd_copy.index("-suffix")
+                suffix = base_cmd_copy[user_suffix_idx + 1]
+                base_cmd_copy.pop(user_suffix_idx + 1)
+                base_cmd_copy.pop(user_suffix_idx)
+
+                warnings.warn(
+                    UserWarning(
+                        "Option `-suffix` has already been specified in the base command. "
+                        f"This will be merged as `{suffix}_xxxxx`"
+                    ),
+                    stacklevel=2,
+                )
+
             cmd_jobs = [
                 RosettaCmdTask(
                     cmd=base_cmd_copy
                     + [
                         "-suffix",
-                        f"_{i:05}",
+                        f"{suffix or ''}_{i:05}",
                         "-no_nstruct_label",
                         "-out:file:scorefile",
                         f"{self.job_id}.score.{i:05}.sc",
