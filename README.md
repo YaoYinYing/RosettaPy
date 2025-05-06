@@ -19,8 +19,9 @@ A Python Utility for Wrapping Rosetta Macromolecural Modeling Suite.
 
 ![GitHub License](https://img.shields.io/github/license/YaoYinYing/RosettaPy)
 
-## Doc
-[![Static Badge](https://tinyurl.com/RosettaPy-DeepWiki)](https://deepwiki.com/YaoYinYing/RosettaPy)
+
+## Documentation
+[![DeepWiki Documentation](https://tinyurl.com/RosettaPy-DeepWiki)](https://deepwiki.com/YaoYinYing/RosettaPy)
 
 
 ## CI Status
