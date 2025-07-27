@@ -1,4 +1,4 @@
-name: Pylint
+name: Fuck U Code Scan
 
 on:
   push:
@@ -13,15 +13,15 @@ env:
   lint-python-version: "3.11"
 
 jobs:
-  UpdateLinting:
+  scan-code:
     runs-on: "ubuntu-latest"
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Linting
-        uses: YaoYinYing/fuck-u-code-github-action@144cfe0dd1d01e5c5f66ee2faf4f61a200dc93b4
+      - name: Scaning
+        uses: YaoYinYing/fuck-u-code-github-action@44be7324f03e1b157f2bec711a35d784aec97364
         with:
           target-path: src # scan src package only
           reverse-score: "true"
