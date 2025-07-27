@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Scaning
-        uses: YaoYinYing/fuck-u-code-github-action@44be7324f03e1b157f2bec711a35d784aec97364
+        uses: YaoYinYing/fuck-u-code-github-action@2bc455b240f79fde12c76db8a0170a6600876d28
         with:
           target-path: src # scan src package only
           reverse-score: "true"
