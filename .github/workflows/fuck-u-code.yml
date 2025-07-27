@@ -21,11 +21,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Scaning
-        uses: YaoYinYing/fuck-u-code-github-action@b6b2fb71e1922e34835db5778d5a013e3e663f08
+        uses: YaoYinYing/fuck-u-code-github-action@48ac6a2279a80bde8bf1016092fc60155e579afa
         with:
           target-path: src # scan src package only
           reverse-score: "true"
-          badge-text: fuck-u-code score
+          badge-text: fuck--u--code score
           badge-file-name: fuck-u-code_scan
           badge-logo-id: python
           badge-artifact-name: upload-my-awesome-badge-${{ github.run_id }}
