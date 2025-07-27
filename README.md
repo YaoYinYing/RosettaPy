@@ -40,6 +40,7 @@ A Python Utility for Wrapping Rosetta Macromolecural Modeling Suite.
 [![Maintainability](https://api.codeclimate.com/v1/badges/56830e8844e9ef6075c2/maintainability)](https://codeclimate.com/github/YaoYinYing/RosettaPy/maintainability)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/4d6b6f78e59b4c38a0362d2d83fc9815)](https://app.codacy.com/gh/YaoYinYing/RosettaPy/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![Pylint](https://github-image-cache.yaoyy.moe/badge_dir_with_uniq_name/RosettaPy/pylint/pylint_scan.svg)](https://github.com/YaoYinYing/pylint-github-action)
+[![fuck-u-code score](https://github-image-cache.yaoyy.moe/badge_dir_with_uniq_name/RosettaPy/fuck-u-code/fuck-u-code_scan.svg)](https://github.com/YaoYinYing/fuck-u-code-github-action)
 [![GitHub repo size](https://img.shields.io/github/repo-size/YaoYinYing/RosettaPy)](https://github.com/YaoYinYing/RosettaPy)
 
 [![DeepSource](https://app.deepsource.com/gh/YaoYinYing/RosettaPy.svg/?label=active+issues&show_trend=true&token=1lA-hDEsz7RiQl-oBFsiLziT)](https://app.deepsource.com/gh/YaoYinYing/RosettaPy/)
