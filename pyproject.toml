@@ -61,7 +61,7 @@ test = [
     "pytest<=8.4.1",
     "pytest-order",
     "pytest-github-actions-annotate-failures",
-    "shellcheck-py==0.10.0.1",
+    "shellcheck-py>=0.10.0.1",
     "pre-commit",
     "virtualenv<=20.33.1"
 ]
