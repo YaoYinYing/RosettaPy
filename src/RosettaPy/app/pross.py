@@ -5,10 +5,11 @@ Example Application of PROSS Reimplemented with RosettaPy
 # pylint: disable=too-many-instance-attributes
 
 import os
-from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from collections.abc import Sequence
+from typing import Any, List, Mapping, Optional, Tuple, Union
 
 from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser, RosettaScriptsVariableGroup
+from RosettaPy.app.abc import RosettaAppBase
 from RosettaPy.app.utils import PDBProcessor
 from RosettaPy.node import NodeClassType, NodeHintT, node_picker
 from RosettaPy.node.native import Native
@@ -17,42 +18,37 @@ from RosettaPy.utils import timing
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
 
-@dataclass
-class PROSS:
+class PROSS(RosettaAppBase):
     """
     PROSS Application
     """
 
-    pdb: str = ""
-    pssm: str = ""
+    def __init__(
+        self,
+        pdb: str = "",
+        pssm: str = "",
+        res_to_fix: str = "1A",
+        res_to_restrict: str = "1A",
+        job_id: str = "pross",
+        save_dir: str = "pross",
+        user_opts: Optional[List] = None,
+        node_hint: NodeHintT = "native",
+        node_config: Optional[Mapping[str, Any]] = None,
+        **kwargs,
+    ):
+        super().__init__(job_id, save_dir, user_opts, node_hint, node_config, **kwargs)
 
-    res_to_fix: str = "1A"
-    res_to_restrict: str = "1A"
+        self.pdb = pdb
+        self.pssm = pssm
+        self.res_to_fix = res_to_fix
+        self.res_to_restrict = res_to_restrict
 
-    save_dir: str = "tests/outputs"
-    job_id: str = "pross"
-
-    c_alpha_constaints: str = ""
-    seq_len: int = 0
-    instance: str = ""
-
-    node: NodeClassType = field(default_factory=Native)
-
-    def __post_init__(self):
-        """
-        Method called after object initialization.
-
-        This method is responsible for validating and setting up the PDB file,
-        creating the instance name, ensuring the correct PDB file path,
-        creating necessary directory structures, and generating the Carbon Alpha constraints file path
-        along with determining the sequence length.
-        """
         # Check if the PDB file exists; if not, raise an exception
         if not os.path.isfile(self.pdb):
             raise FileNotFoundError(f"PDB is given yet not found - {self.pdb}")
 
         # Extract the instance name from the PDB file path, removing the file extension
-        self.instance = os.path.basename(self.pdb)[:-4]
+        self._instance = os.path.basename(self.pdb)[:-4]
         # Get the absolute path of the PDB file
         self.pdb = os.path.abspath(self.pdb)
 
@@ -62,11 +58,11 @@ class PROSS:
         self.save_dir = os.path.abspath(self.save_dir)
 
         # Generate the path for the CA constraints file
-        self.c_alpha_constaints = os.path.join(self.save_dir, self.job_id, f"{self.instance}_bbCA.cst")
+        self._c_alpha_constaints = os.path.join(self.save_dir, self.job_id, f"{self._instance}_bbCA.cst")
         # Convert the PDB file to constraints and determine the sequence length
-        self.seq_len = PDBProcessor.convert_pdb_to_constraints(self.pdb, self.c_alpha_constaints)
+        self._seq_len = PDBProcessor.convert_pdb_to_constraints(self.pdb, self._c_alpha_constaints)
 
-    def refine(self, nstruct=1) -> str:
+    def refine(self, nstruct=1, opts: Optional[Sequence[Union[str, RosettaScriptsVariableGroup]]] = None) -> str:
         """
         Refine the protein structure using PROSS.
 
@@ -81,6 +77,8 @@ class PROSS:
         and other necessary options, conducts the refinement in a designated output directory,
         and identifies the best refined structure based on energy scores.
         """
+        if not opts:
+            opts = []
         # Construct the directory path for storing refinement results
         refinement_dir = os.path.join(self.save_dir, self.job_id, "refinement")
 
@@ -94,12 +92,14 @@ class PROSS:
                 RosettaScriptsVariableGroup.from_dict(
                     {
                         "cst_value": "0.4",
-                        "cst_full_path": self.c_alpha_constaints,
+                        "cst_full_path": self._c_alpha_constaints,
                         "pdb_reference": self.pdb,
                         "res_to_fix": self.res_to_fix,
                     }
                 ),
-            ],
+            ]
+            + list(opts)
+            + list(self.user_opts),
             output_dir=refinement_dir,
             save_all_together=False,
             job_id="pross_refinement",
@@ -119,12 +119,14 @@ class PROSS:
 
         # Ensure the best refined PDB file exists
         if not os.path.isfile(best_refined_pdb):
-            raise RuntimeError(f"Refinement against {self.instance} failed.")
+            raise RuntimeError(f"Refinement against {self._instance} failed.")
 
         # Return the absolute path of the best refined PDB file
         return os.path.abspath(best_refined_pdb)
 
-    def filterscan(self, refined_pdb: str) -> Tuple[List[str], str]:
+    def filterscan(
+        self, refined_pdb: str, opts: Optional[Sequence[Union[str, RosettaScriptsVariableGroup]]] = None
+    ) -> Tuple[List[str], str]:
         """
         Perform filterscan on the refined PDB file to generate residue designability filters.
 
@@ -135,6 +137,8 @@ class PROSS:
             Tuple[List[str], str]: A tuple containing a list of merged filter files and the directory path
             of the filterscan results.
         """
+        if not opts:
+            opts = []
 
         # Define the threshold for each filter
         filter_thresholds = [0.5, -0.45, -0.75, -1, -1.25, -1.5, -1.8, -2]
@@ -174,7 +178,7 @@ class PROSS:
                 RosettaScriptsVariableGroup.from_dict(
                     {
                         "cst_value": "0.4",
-                        "cst_full_path": self.c_alpha_constaints,
+                        "cst_full_path": self._c_alpha_constaints,
                         "pdb_reference": self.pdb,
                         "res_to_fix": self.res_to_fix,
                         "resfiles_path": resfiles_path,
@@ -183,24 +187,32 @@ class PROSS:
                         "res_to_restrict": self.res_to_restrict,
                     }
                 ),
-            ],
+            ]
+            + list(opts)
+            + list(self.user_opts),
             output_dir=filterscan_dir,
             save_all_together=True,
-            job_id=f"{self.instance}.filterscan",
+            job_id=f"{self._instance}.filterscan",
             run_node=self.node,
         )
 
         # Run filterscan protocol
         with timing("PROSS: Filterscan"):
-            rosetta.run(inputs=[{"-parser:script_vars": f"current_res={i}"} for i in range(1, self.seq_len + 1)])
+            rosetta.run(inputs=[{"-parser:script_vars": f"current_res={i}"} for i in range(1, self._seq_len + 1)])
 
         # Merge resfiles
-        merged_filters = merge_resfiles(filterscan_dir, self.seq_len)
+        merged_filters = merge_resfiles(filterscan_dir, self._seq_len)
 
         # Return the list of merged filter files and the directory path of the filterscan results
         return [os.path.basename(f) for f in merged_filters], filterscan_dir
 
-    def design(self, filters: List[str], refined_pdb: str, filterscan_dir):
+    def design(
+        self,
+        filters: List[str],
+        refined_pdb: str,
+        filterscan_dir,
+        opts: Optional[Sequence[Union[str, RosettaScriptsVariableGroup]]] = None,
+    ):
         """
         Performs protein design process.
 
@@ -215,6 +227,8 @@ class PROSS:
         Returns:
         - pdb_path (str): The path to the PDB file of the best decoy.
         """
+        if not opts:
+            opts = []
         design_dir = os.path.join(self.save_dir, self.job_id, "design")
 
         rosetta = Rosetta(
@@ -229,16 +243,18 @@ class PROSS:
                 RosettaScriptsVariableGroup.from_dict(
                     {
                         "cst_value": "0.4",
-                        "cst_full_path": self.c_alpha_constaints,
+                        "cst_full_path": self._c_alpha_constaints,
                         "pdb_reference": self.pdb,
                         "res_to_fix": self.res_to_fix,
                         "pssm_full_path": self.pssm,
                     }
                 ),
-            ],
+            ]
+            + list(opts)
+            + list(self.user_opts),
             output_dir=design_dir,
             save_all_together=False,
-            job_id=f"{self.instance}_design",
+            job_id=f"{self._instance}_design",
             run_node=self.node,
         )
 
@@ -248,7 +264,7 @@ class PROSS:
                     {
                         "-parser:script_vars": f"in_resfile={filterscan_dir}/resfiles/{rf}",
                         "-out:suffix": f'_{rf.replace("designable_aa_resfile.", "")}',
-                        "-out:file:scorefile": f'{self.instance}_design_{rf.replace("designable_aa_resfile.", "")}.sc',
+                        "-out:file:scorefile": f'{self._instance}_design_{rf.replace("designable_aa_resfile.", "")}.sc',
                     }
                     for rf in filters
                 ]
@@ -331,7 +347,7 @@ def merge_resfiles(filterscan_res_dir: str, seq_length: int) -> List[str]:
 
 
 def main(
-    node_hint: Optional[NodeHintT] = None,
+    node_hint: NodeHintT = "native",
 ):
     """
     Test
@@ -344,7 +360,7 @@ def main(
         pdb="tests/data/3fap_hf3_A_short.pdb",
         pssm="tests/data/3fap_hf3_A_ascii_mtx_file_short",
         job_id="pross_reduce" + docker_label,
-        node=node_picker(node_type=node_hint),
+        node_hint=node_hint,
     )
     best_refined = pross.refine(4)
 

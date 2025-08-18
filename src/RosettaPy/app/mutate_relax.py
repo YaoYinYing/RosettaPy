@@ -3,13 +3,14 @@ Example Application of Mutate and Relax Protocol against Clustered Sequences.
 """
 
 import os
-from dataclasses import dataclass, field
-from typing import List, Optional
+from collections.abc import Sequence
+from typing import Any, List, Mapping, Optional, Union
 
 from Bio.Data import IUPACData
 from Bio.SeqIO import parse
 
 from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser, RosettaScriptsVariableGroup
+from RosettaPy.app.abc import RosettaAppBase
 from RosettaPy.node import NodeClassType, NodeHintT, node_picker
 from RosettaPy.node.native import Native
 from RosettaPy.utils import timing
@@ -17,8 +18,7 @@ from RosettaPy.utils import timing
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
 
-@dataclass
-class ScoreClusters:
+class ScoreClusters(RosettaAppBase):
     """
     A class used to score clusters of protein structures.
 
@@ -30,18 +30,21 @@ class ScoreClusters:
     node (NodeClassType): The node configuration for running the relaxation. Defaults to Native(nproc=4).
     """
 
-    pdb: str
-    chain_id: str
+    def __init__(
+        self,
+        pdb: str,
+        chain_id: str,
+        job_id: str = "score_clusters",
+        save_dir: str = "tests/outputs",
+        user_opts: Optional[List] = None,
+        node_hint: NodeHintT = "native",
+        node_config: Optional[Mapping[str, Any]] = None,
+        **kwargs,
+    ):
+        super().__init__(job_id, save_dir, user_opts, node_hint, node_config, **kwargs)
 
-    save_dir: str = "tests/outputs"
-    job_id: str = "score_clusters"
-
-    node: NodeClassType = field(default_factory=Native)
-
-    def __post_init__(self):
-        """
-        Performs checks and setups after object initialization.
-        """
+        self.pdb = pdb
+        self.chain_id = chain_id
         # Check if the PDB file exists
         if not os.path.isfile(self.pdb):
             raise FileNotFoundError(f"PDB is given yet not found - {self.pdb}")
@@ -53,7 +56,9 @@ class ScoreClusters:
         os.makedirs(os.path.join(self.save_dir, self.job_id), exist_ok=True)
         self.save_dir = os.path.abspath(self.save_dir)
 
-    def score(self, branch: str, variants: List[str]) -> RosettaEnergyUnitAnalyser:
+    def score(
+        self, branch: str, variants: List[str], opts: Optional[Sequence[Union[str, RosettaScriptsVariableGroup]]] = None
+    ) -> RosettaEnergyUnitAnalyser:
         """
         Scores the provided variants within a specific branch.
 
@@ -64,6 +69,8 @@ class ScoreClusters:
         Returns:
         RosettaEnergyUnitAnalyser: An object containing the analysis of the scoring results.
         """
+        if not opts:
+            opts = []
         score_dir = os.path.join(self.save_dir, self.job_id, f"branch_{branch}")
         os.makedirs(score_dir, exist_ok=True)
 
@@ -75,7 +82,9 @@ class ScoreClusters:
                 os.path.abspath(self.pdb),
                 "-parser:protocol",
                 f"{script_dir}/deps/mutate_relax/xml/mutant_validation_temp.xml",
-            ],
+            ]
+            + list(opts)
+            + list(self.user_opts),
             output_dir=score_dir,
             save_all_together=True,
             job_id=f"branch_{branch}",
@@ -101,7 +110,7 @@ class ScoreClusters:
 
         return RosettaEnergyUnitAnalyser(rosetta.output_scorefile_dir)
 
-    def run(self, cluster_dir: str):
+    def run(self, cluster_dir: str, opts: Optional[Sequence[Union[str, RosettaScriptsVariableGroup]]] = None):
         """
         Runs the scoring process on clusters within the specified directory.
 
@@ -119,7 +128,7 @@ class ScoreClusters:
         res: List[RosettaEnergyUnitAnalyser] = []
 
         for c, v in clusters.items():
-            res.append(self.score(branch=c, variants=v))
+            res.append(self.score(branch=c, variants=v, opts=opts))
 
         return res
 

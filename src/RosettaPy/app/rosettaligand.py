@@ -7,10 +7,11 @@ Example Application of RosettaLigand
 
 import os
 import warnings
-from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from collections.abc import Sequence
+from typing import Any, List, Mapping, Optional, Tuple, Union
 
 from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser, RosettaScriptsVariableGroup
+from RosettaPy.app.abc import RosettaAppBase
 from RosettaPy.node import NodeClassType, NodeHintT, node_picker
 from RosettaPy.node.native import Native
 from RosettaPy.rosetta import IgnoreMissingFileWarning
@@ -19,8 +20,7 @@ from RosettaPy.utils import timing
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
 
-@dataclass
-class RosettaLigand:
+class RosettaLigand(RosettaAppBase):
     """
     Class for performing ligand docking using Rosetta.
 
@@ -39,18 +39,41 @@ class RosettaLigand:
         node (NodeClassType): The node configuration for running the relaxation. Defaults to Native(nproc=4).
     """
 
-    pdb: str = ""
-    ligands: List[str] = field(default_factory=list)
-    save_dir: str = "tests/outputs"
-    job_id: str = "rosettaligand"
-    cst: Optional[str] = None
-    box_size: int = 30
-    move_distance: float = 0.5
-    gridwidth: int = 45
-    chain_id_for_dock: str = "B"
-    start_from_xyz: Optional[Tuple[float, float, float]] = None
+    def __init__(
+        self,
+        pdb: str,
+        ligands: List[str],
+        cst: Optional[str] = None,
+        box_size: int = 30,
+        move_distance: float = 0.5,
+        gridwidth: int = 45,
+        chain_id_for_dock: str = "B",
+        start_from_xyz: Optional[Tuple[float, float, float]] = None,
+        job_id: str = "rosettaligand",
+        save_dir: str = "tests/outputs",
+        user_opts: Optional[List] = None,
+        node_hint: NodeHintT = "native",
+        node_config: Optional[Mapping[str, Any]] = None,
+        **kwargs,
+    ):
+        super().__init__(job_id, save_dir, user_opts, node_hint, node_config, **kwargs)
 
-    node: NodeClassType = field(default_factory=Native)
+        self.pdb = pdb
+        self.ligands = ligands
+        self.cst = cst
+        self.box_size = box_size
+        self.move_distance = move_distance
+        self.gridwidth = gridwidth
+        self.chain_id_for_dock = chain_id_for_dock
+        self.start_from_xyz = start_from_xyz
+
+        if not os.path.isfile(self.pdb):
+            raise FileNotFoundError(f"PDB is given yet not found - {self.pdb}")
+        self.instance = os.path.basename(self.pdb)[:-4]
+        self.pdb = os.path.abspath(self.pdb)
+
+        os.makedirs(os.path.join(self.save_dir, self.job_id), exist_ok=True)
+        self.save_dir = os.path.abspath(self.save_dir)
 
     @property
     def has_startfrom(self) -> bool:
@@ -115,18 +138,6 @@ class RosettaLigand:
             return '<Add mover_name="cstadd"/>'
         return ""
 
-    def __post_init__(self):
-        """
-        Post-initialization actions including validation of PDB file path and setting absolute paths.
-        """
-        if not os.path.isfile(self.pdb):
-            raise FileNotFoundError(f"PDB is given yet not found - {self.pdb}")
-        self.instance = os.path.basename(self.pdb)[:-4]
-        self.pdb = os.path.abspath(self.pdb)
-
-        os.makedirs(os.path.join(self.save_dir, self.job_id), exist_ok=True)
-        self.save_dir = os.path.abspath(self.save_dir)
-
     @property
     def opts_ligand(self) -> List[str]:
         """
@@ -148,16 +159,20 @@ class RosettaLigand:
             ligands.extend(["-extra_res_fa", os.path.abspath(l)])
         return ligands
 
-    def dock(self, nstruct: int = 1_000) -> str:
+    def dock(
+        self, nstruct: int = 1_000, opts: Optional[Sequence[Union[str, RosettaScriptsVariableGroup]]] = None
+    ) -> str:
         """
         Performs docking using Rosetta and returns the path to the best hit PDB file.
 
         Returns:
             str: Path to the best hit PDB file.
         """
+        if not opts:
+            opts = []
         docking_dir = os.path.join(self.save_dir, self.job_id, "docking")
 
-        opts = [
+        dock_opts = [
             "-parser:protocol",
             f"{script_dir}/deps/rosettaligand/xmls/rosetta_ligand.xml",
             "-out:prefix",
@@ -181,7 +196,7 @@ class RosettaLigand:
         rosetta = Rosetta(
             bin="rosetta_scripts",
             flags=[os.path.join(script_dir, "deps/rosettaligand/flags/rosetta_ligand.flags")],
-            opts=opts,
+            opts=dock_opts + list(opts) + list(self.user_opts),
             output_dir=docking_dir,
             save_all_together=False,
             job_id=f"{self.instance}_{self.job_id}",
@@ -208,7 +223,7 @@ class RosettaLigand:
 
 def main(
     startfrom=None,
-    node_hint: Optional[NodeHintT] = None,
+    node_hint: NodeHintT = "native",
 ):
     """
     Test
@@ -222,11 +237,11 @@ def main(
         ligands=["tests/data/lig/lig.fa.params"],
         start_from_xyz=startfrom,
         job_id="rosettaligand" + docker_label if startfrom is None else "rosettaligand_startfrom" + docker_label,
-        node=node_picker(node_type=node_hint),
+        node_hint=node_hint,
     )
 
     runner.dock(
-        nstruct=4,
+        nstruct=1,
     )
 
 

@@ -8,6 +8,7 @@ This module provides a class for running Rosetta command-line applications. It s
 import copy
 import os
 import warnings
+from contextlib import ExitStack
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, List, Optional, Union
@@ -40,6 +41,7 @@ class Rosetta:
         opts (List[str]): List of command-line options.
         use_mpi (bool): Whether to use MPI for execution.
         run_node (MpiNode|RosettaContainer): Run node configuration.
+
     """
 
     bin: Union[RosettaBinary, str]
@@ -55,6 +57,8 @@ class Rosetta:
 
     isolation: bool = False
     verbose: bool = False
+
+    enable_progressbar: bool = True
 
     @property
     def output_pdb_dir(self) -> str:
@@ -271,7 +275,14 @@ class Rosetta:
             return self.run_node.run(tasks)
 
         tasks = self.setup_tasks_native(cmd, inputs, nstruct)
-        with joblib_progress(f"Processing {self.job_id} via {self.run_node.__class__.__name__}...", total=len(tasks)):
+
+        with ExitStack() as stack:
+            if self.enable_progressbar:
+                stack.enter_context(
+                    joblib_progress(
+                        f"Processing {self.job_id} via {self.run_node.__class__.__name__}", total=len(tasks)
+                    )
+                )
             return self.run_node.run(tasks)
 
     @property

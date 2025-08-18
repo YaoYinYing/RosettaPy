@@ -7,12 +7,18 @@ Example Application of Cartesian ddG
 
 
 import os
-from dataclasses import dataclass, field
-from typing import List, Optional
+from collections.abc import Sequence
+from typing import Any, List, Mapping, Optional, Union
 
 import pandas as pd
 
-from RosettaPy import Rosetta, RosettaCartesianddGAnalyser, RosettaEnergyUnitAnalyser
+from RosettaPy import (
+    Rosetta,
+    RosettaCartesianddGAnalyser,
+    RosettaEnergyUnitAnalyser,
+    RosettaScriptsVariableGroup,
+)
+from RosettaPy.app.abc import RosettaAppBase
 from RosettaPy.common.mutation import Mutant, mutpdb2mutfile
 from RosettaPy.node import NodeClassType, NodeHintT, node_picker
 from RosettaPy.node.native import Native
@@ -21,8 +27,7 @@ from RosettaPy.utils import timing
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
 
-@dataclass
-class CartesianDDG:
+class CartesianDDG(RosettaAppBase):
     """
     A class for performing Cartesian ddG (delta delta G) calculations on protein structures.
 
@@ -34,28 +39,25 @@ class CartesianDDG:
         node (NodeClassType): The node configuration for running the relaxation. Defaults to Native(nproc=4).
     """
 
-    pdb: str
-    save_dir: str = "tests/outputs"
-    job_id: str = "cart_ddg"
+    def __init__(
+        self,
+        pdb: str,
+        job_id: str = "cart_ddg",
+        save_dir: str = "tests/outputs",
+        user_opts: Optional[List] = None,
+        node_hint: NodeHintT = "native",
+        node_config: Optional[Mapping[str, Any]] = None,
+        **kwargs,
+    ):
+        super().__init__(job_id, save_dir, user_opts, node_hint, node_config, **kwargs)
+        self.pdb = pdb
 
-    node: NodeClassType = field(default_factory=Native)
-
-    def __post_init__(self):
-        """
-        Post-initialization method to perform checks and set up the working directory.
-
-        Raises:
-            FileNotFoundError: If the specified PDB file does not exist.
-        """
         if not os.path.isfile(self.pdb):
             raise FileNotFoundError(f"PDB is given yet not found - {self.pdb}")
         self.instance = os.path.basename(self.pdb)[:-4]
         self.pdb = os.path.abspath(self.pdb)
 
-        os.makedirs(os.path.join(self.save_dir, self.job_id), exist_ok=True)
-        self.save_dir = os.path.abspath(self.save_dir)
-
-    def relax(self, nstruct_relax: int = 30):
+    def relax(self, nstruct_relax: int = 30, opts: Optional[Sequence[Union[str, RosettaScriptsVariableGroup]]] = None):
         """
         Method to perform structure relaxation using Rosetta.
         Args:
@@ -64,6 +66,8 @@ class CartesianDDG:
         Returns:
             str: The path to the best relaxed PDB file.
         """
+        if not opts:
+            opts = []
         rosetta = Rosetta(
             bin="relax",
             flags=[f"{script_dir}/deps/cart_ddg/flags/ddG_relax.flag"],
@@ -76,7 +80,9 @@ class CartesianDDG:
                 f"{self.instance}_relax_",
                 "-out:file:scorefile",
                 f"{self.instance}_relax.sc",
-            ],
+            ]
+            + list(opts)
+            + list(self.user_opts),
             save_all_together=True,
             output_dir=os.path.join(self.save_dir, f"{self.job_id}_relax"),
             job_id=f"cart_ddg_relax_{self.instance}",
@@ -96,7 +102,13 @@ class CartesianDDG:
         return pdb_path
 
     def cartesian_ddg(
-        self, input_pdb, mutfiles: List[str], mutants: List[Mutant], use_legacy: bool = False, ddg_iteration: int = 3
+        self,
+        input_pdb,
+        mutfiles: List[str],
+        mutants: List[Mutant],
+        use_legacy: bool = False,
+        ddg_iteration: int = 3,
+        opts: Optional[Sequence[Union[str, RosettaScriptsVariableGroup]]] = None,
     ):
         """
         Method to perform Cartesian ddG calculation using Rosetta.
@@ -111,6 +123,8 @@ class CartesianDDG:
         Returns:
             pd.DataFrame: A dataframe containing the ddG calculation results for each mutant.
         """
+        if not opts:
+            opts = []
         # Initialize Rosetta for Cartesian ddG calculation with specified options and settings
         rosetta = Rosetta(
             bin="cartesian_ddg",
@@ -130,7 +144,9 @@ class CartesianDDG:
                 str(ddg_iteration),
                 "-ddg:output_dir",
                 os.path.join(self.save_dir, self.job_id),
-            ],
+            ]
+            + list(opts)
+            + list(self.user_opts),
             isolation=True,
             save_all_together=True,
             output_dir=os.path.join(self.save_dir, f"{self.job_id}_cart_ddg"),
@@ -169,7 +185,7 @@ def main(
     cart_ddg = CartesianDDG(
         pdb="tests/data/3fap_hf3_A_short.pdb",
         job_id="cart_ddg" + docker_label if not legacy else "cart_ddg_legacy" + docker_label,
-        node=node_picker(node_type=node_hint),
+        node_hint=node_hint or "native",
     )
 
     mutfiles, mutants = mutpdb2mutfile(
@@ -179,13 +195,10 @@ def main(
     )
 
     pdb_path = cart_ddg.relax(
-        nstruct_relax=4,
+        nstruct_relax=1,
     )
     df = cart_ddg.cartesian_ddg(
-        input_pdb=pdb_path,
-        mutfiles=mutfiles,
-        mutants=mutants,
-        use_legacy=legacy,
+        input_pdb=pdb_path, mutfiles=mutfiles, mutants=mutants, use_legacy=legacy, ddg_iteration=1
     )
 
     print(df)
