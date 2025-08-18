@@ -23,6 +23,7 @@ def test_app_rosettaligand(start_from, test_node_hint):
     main(start_from, test_node_hint)
 
 
+@pytest.mark.order(-1)
 @pytest.mark.integration
 def test_app_supercharge(test_node_hint):
     """

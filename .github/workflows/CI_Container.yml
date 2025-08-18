@@ -58,7 +58,7 @@ jobs:
 
       - name: Run test cases
         run: |
-          pytest tests/ -m 'integration'
+          pytest tests/ -n 4 -m 'integration'
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5

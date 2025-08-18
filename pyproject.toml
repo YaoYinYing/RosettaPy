@@ -60,6 +60,7 @@ test = [
     "pytest-runner",
     "pytest<=8.4.1",
     "pytest-order",
+    "pytest-xdist>=3.6.1",
     "pytest-github-actions-annotate-failures",
     "shellcheck-py>=0.10.0.1",
     "pre-commit",

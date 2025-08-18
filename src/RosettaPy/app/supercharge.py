@@ -94,7 +94,7 @@ def main(
     """
 
     pdb = "tests/data/3fap_hf3_A.pdb"
-    supercharge(pdb, node_hint=node_hint)
+    supercharge(pdb, node_hint=node_hint, abs_target_charge=10)
 
 
 if __name__ == "__main__":

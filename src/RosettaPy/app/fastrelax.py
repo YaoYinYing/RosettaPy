@@ -4,11 +4,11 @@ Example Application of FastRelax.
 
 import os
 import warnings
-from dataclasses import dataclass, field
-from typing import Optional
+from typing import Any, List, Mapping, Optional, Sequence, Union
 
-from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser
-from RosettaPy.node import Native, NodeClassType, NodeHintT, node_picker
+from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser, RosettaScriptsVariableGroup
+from RosettaPy.app.abc import RosettaAppBase
+from RosettaPy.node import NodeHintT
 from RosettaPy.utils import timing
 from RosettaPy.utils.repository import partial_clone
 
@@ -77,8 +77,7 @@ def get_relax_scripts_from_db(script_name: str) -> str:
     )
 
 
-@dataclass
-class FastRelax:
+class FastRelax(RosettaAppBase):
     """
     A class for performing fast relaxation on protein structures using Rosetta.
 
@@ -91,38 +90,40 @@ class FastRelax:
         node (NodeClassType): The node configuration for running the relaxation. Defaults to Native(nproc=4).
     """
 
-    pdb: str
-    save_dir: str = "tests/outputs"
-    job_id: str = "fastrelax"
-    relax_script: str = "MonomerRelax2019"
-    dualspace: bool = False
-    node: NodeClassType = field(default_factory=Native)
+    def __init__(
+        self,
+        pdb: str,
+        job_id: str = "fastrelax",
+        save_dir: str = "tests/outputs",
+        relax_script: str = "MonomerRelax2019",
+        dualspace: bool = False,
+        user_opts: Optional[List] = None,
+        node_hint: NodeHintT = "native",
+        node_config: Optional[Mapping[str, Any]] = None,
+        **kwargs,
+    ):
+        super().__init__(job_id, save_dir, user_opts, node_hint, node_config, **kwargs)
 
-    def __post_init__(self):
-        """
-        Post-initialization processing for FastRelax class instances.
+        self.pdb = pdb
+        self.relax_script = relax_script
+        self.dualspace = dualspace
 
-        - Checks if the provided PDB file exists.
-        - Sets the instance name based on the PDB file name.
-        - Sets the absolute path for the PDB file.
-        - Creates the save directory if it does not exist.
-        - Issues a warning if the relax_script ends with .txt.
-        - Retrieves the full name of the relax_script using get_relax_scripts_from_db.
-        """
         if not os.path.isfile(self.pdb):
             raise FileNotFoundError(f"PDB is given yet not found - {self.pdb}")
         self.instance = os.path.basename(self.pdb)[:-4]
         self.pdb = os.path.abspath(self.pdb)
-
-        os.makedirs(os.path.join(self.save_dir, self.job_id), exist_ok=True)
-        self.save_dir = os.path.abspath(self.save_dir)
 
         if self.relax_script.endswith(".txt"):
             warnings.warn(RelaxScriptInputWarning("Relaxscript argument should not have extensions."))
 
         self.relax_script = get_relax_scripts_from_db(self.relax_script)
 
-    def run(self, nstruct: int = 8, default_repeats: int = 15) -> RosettaEnergyUnitAnalyser:
+    def run(
+        self,
+        nstruct: int = 8,
+        default_repeats: int = 15,
+        opts: Optional[Sequence[Union[str, RosettaScriptsVariableGroup]]] = None,
+    ) -> RosettaEnergyUnitAnalyser:
         """
         Runs the fast relaxation process using the specified parameters.
 
@@ -133,6 +134,8 @@ class FastRelax:
         Returns:
             RosettaEnergyUnitAnalyser: An object for analyzing the energy units of the generated structures.
         """
+        if not opts:
+            opts = []
         # Configure and run Rosetta for fast relaxation
         rosetta = Rosetta(
             bin="relax",
@@ -151,7 +154,9 @@ class FastRelax:
                 "ref2015_cart" if self.dualspace else "ref2015",
                 "-relax:dualspace",
                 "true" if self.dualspace else "false",
-            ],
+            ]
+            + list(opts)
+            + list(self.user_opts),
             save_all_together=True,
             output_dir=os.path.join(self.save_dir, self.job_id),
             job_id=f"fastrelax_{self.instance}_{os.path.basename(self.relax_script)}",
@@ -166,7 +171,7 @@ class FastRelax:
 
 def main(
     dualspace: bool = False,
-    node_hint: Optional[NodeHintT] = None,
+    node_hint: NodeHintT = "native",
 ):
     """
     Test
@@ -177,18 +182,18 @@ def main(
             pdb="tests/data/3fap_hf3_A.pdb",
             dualspace=True,
             job_id="fastrelax_dualspace" + docker_label,
-            node=node_picker(node_type=node_hint),
+            node_hint=node_hint,
         )
     else:
         scorer = FastRelax(
             pdb="tests/data/3fap_hf3_A.pdb",
-            node=node_picker(node_type=node_hint),
+            node_hint=node_hint,
             job_id="fast_relax" + docker_label,
         )
 
     analyser = scorer.run(
-        nstruct=4,
-        default_repeats=3,
+        nstruct=1,
+        default_repeats=1,
     )
     best_hit = analyser.best_decoy
 
