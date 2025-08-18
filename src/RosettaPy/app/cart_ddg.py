@@ -7,8 +7,7 @@ Example Application of Cartesian ddG
 
 
 import os
-from collections.abc import Sequence
-from typing import Any, List, Mapping, Optional, Union
+from typing import Any, List, Mapping, Optional, Sequence, Union
 
 import pandas as pd
 
@@ -20,8 +19,7 @@ from RosettaPy import (
 )
 from RosettaPy.app.abc import RosettaAppBase
 from RosettaPy.common.mutation import Mutant, mutpdb2mutfile
-from RosettaPy.node import NodeClassType, NodeHintT, node_picker
-from RosettaPy.node.native import Native
+from RosettaPy.node import NodeHintT
 from RosettaPy.utils import timing
 
 script_dir = os.path.dirname(os.path.abspath(__file__))

@@ -4,12 +4,11 @@ Example Application of FastRelax.
 
 import os
 import warnings
-from collections.abc import Sequence
-from typing import Any, List, Mapping, Optional, Union
+from typing import Any, List, Mapping, Optional, Sequence, Union
 
 from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser, RosettaScriptsVariableGroup
 from RosettaPy.app.abc import RosettaAppBase
-from RosettaPy.node import Native, NodeClassType, NodeHintT, node_picker
+from RosettaPy.node import NodeHintT
 from RosettaPy.utils import timing
 from RosettaPy.utils.repository import partial_clone
 
@@ -184,7 +183,7 @@ def main(
             pdb="tests/data/3fap_hf3_A.pdb",
             dualspace=True,
             job_id="fastrelax_dualspace" + docker_label,
-            node=node_picker(node_type=node_hint),
+            node_hint=node_hint,
         )
     else:
         scorer = FastRelax(

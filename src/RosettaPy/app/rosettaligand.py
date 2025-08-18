@@ -7,13 +7,11 @@ Example Application of RosettaLigand
 
 import os
 import warnings
-from collections.abc import Sequence
-from typing import Any, List, Mapping, Optional, Tuple, Union
+from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 
 from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser, RosettaScriptsVariableGroup
 from RosettaPy.app.abc import RosettaAppBase
-from RosettaPy.node import NodeClassType, NodeHintT, node_picker
-from RosettaPy.node.native import Native
+from RosettaPy.node import NodeHintT
 from RosettaPy.rosetta import IgnoreMissingFileWarning
 from RosettaPy.utils import timing
 
@@ -240,9 +238,7 @@ def main(
         node_hint=node_hint,
     )
 
-    runner.dock(
-        nstruct=1,
-    )
+    runner.dock(nstruct=1)
 
 
 if __name__ == "__main__":

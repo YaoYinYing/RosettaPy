@@ -5,14 +5,12 @@ Example Application of PROSS Reimplemented with RosettaPy
 # pylint: disable=too-many-instance-attributes
 
 import os
-from collections.abc import Sequence
-from typing import Any, List, Mapping, Optional, Tuple, Union
+from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 
 from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser, RosettaScriptsVariableGroup
 from RosettaPy.app.abc import RosettaAppBase
 from RosettaPy.app.utils import PDBProcessor
-from RosettaPy.node import NodeClassType, NodeHintT, node_picker
-from RosettaPy.node.native import Native
+from RosettaPy.node import NodeHintT
 from RosettaPy.utils import timing
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -362,7 +360,7 @@ def main(
         job_id="pross_reduce" + docker_label,
         node_hint=node_hint,
     )
-    best_refined = pross.refine(4)
+    best_refined = pross.refine(1)
 
     filters, filterscan_dir = pross.filterscan(best_refined)
     pross.design(filters=filters, refined_pdb=best_refined, filterscan_dir=filterscan_dir)

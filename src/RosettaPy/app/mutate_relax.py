@@ -3,16 +3,14 @@ Example Application of Mutate and Relax Protocol against Clustered Sequences.
 """
 
 import os
-from collections.abc import Sequence
-from typing import Any, List, Mapping, Optional, Union
+from typing import Any, List, Mapping, Optional, Sequence, Union
 
 from Bio.Data import IUPACData
 from Bio.SeqIO import parse
 
 from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser, RosettaScriptsVariableGroup
 from RosettaPy.app.abc import RosettaAppBase
-from RosettaPy.node import NodeClassType, NodeHintT, node_picker
-from RosettaPy.node.native import Native
+from RosettaPy.node import NodeHintT
 from RosettaPy.utils import timing
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -220,7 +218,7 @@ class ScoreClusters(RosettaAppBase):
 
 def main(
     num_mut: int = 1,
-    node_hint: Optional[NodeHintT] = None,
+    node_hint: NodeHintT = "native",
 ):
     """
     Test
@@ -232,7 +230,7 @@ def main(
     scorer = ScoreClusters(
         pdb="tests/data/1SUO.pdb",
         chain_id="A",
-        node=node_picker(node_type=node_hint),
+        node_hint=node_hint,
         job_id=f"score_cluster_{docker_label}_{str(num_mut)}",
     )
 
