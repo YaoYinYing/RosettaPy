@@ -56,9 +56,9 @@ class PROSS(RosettaAppBase):
         self.save_dir = os.path.abspath(self.save_dir)
 
         # Generate the path for the CA constraints file
-        self._c_alpha_constaints = os.path.join(self.save_dir, self.job_id, f"{self._instance}_bbCA.cst")
+        self._c_alpha_constraints = os.path.join(self.save_dir, self.job_id, f"{self._instance}_bbCA.cst")
         # Convert the PDB file to constraints and determine the sequence length
-        self._seq_len = PDBProcessor.convert_pdb_to_constraints(self.pdb, self._c_alpha_constaints)
+        self._seq_len = PDBProcessor.convert_pdb_to_constraints(self.pdb, self._c_alpha_constraints)
 
     def refine(self, nstruct=1, opts: Optional[Sequence[Union[str, RosettaScriptsVariableGroup]]] = None) -> str:
         """
@@ -90,7 +90,7 @@ class PROSS(RosettaAppBase):
                 RosettaScriptsVariableGroup.from_dict(
                     {
                         "cst_value": "0.4",
-                        "cst_full_path": self._c_alpha_constaints,
+                        "cst_full_path": self._c_alpha_constraints,
                         "pdb_reference": self.pdb,
                         "res_to_fix": self.res_to_fix,
                     }
@@ -176,7 +176,7 @@ class PROSS(RosettaAppBase):
                 RosettaScriptsVariableGroup.from_dict(
                     {
                         "cst_value": "0.4",
-                        "cst_full_path": self._c_alpha_constaints,
+                        "cst_full_path": self._c_alpha_constraints,
                         "pdb_reference": self.pdb,
                         "res_to_fix": self.res_to_fix,
                         "resfiles_path": resfiles_path,
@@ -241,7 +241,7 @@ class PROSS(RosettaAppBase):
                 RosettaScriptsVariableGroup.from_dict(
                     {
                         "cst_value": "0.4",
-                        "cst_full_path": self._c_alpha_constaints,
+                        "cst_full_path": self._c_alpha_constraints,
                         "pdb_reference": self.pdb,
                         "res_to_fix": self.res_to_fix,
                         "pssm_full_path": self.pssm,

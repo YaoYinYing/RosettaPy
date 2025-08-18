@@ -43,7 +43,7 @@ class RosettaAppBase(ABC):
 
         self.job_id = job_id
         self.save_dir = save_dir
-        self.user_opts = user_opts or {}
+        self.user_opts = user_opts or []
 
         self.kwargs = kwargs
         self.node: NodeClassType = self._get_node(node_hint, node_config or {})

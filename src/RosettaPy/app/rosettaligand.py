@@ -70,9 +70,6 @@ class RosettaLigand(RosettaAppBase):
         self.instance = os.path.basename(self.pdb)[:-4]
         self.pdb = os.path.abspath(self.pdb)
 
-        os.makedirs(os.path.join(self.save_dir, self.job_id), exist_ok=True)
-        self.save_dir = os.path.abspath(self.save_dir)
-
     @property
     def has_startfrom(self) -> bool:
         """

@@ -50,10 +50,6 @@ class ScoreClusters(RosettaAppBase):
         self.instance = os.path.basename(self.pdb)[:-4]
         self.pdb = os.path.abspath(self.pdb)
 
-        # Create directory to save results
-        os.makedirs(os.path.join(self.save_dir, self.job_id), exist_ok=True)
-        self.save_dir = os.path.abspath(self.save_dir)
-
     def score(
         self, branch: str, variants: List[str], opts: Optional[Sequence[Union[str, RosettaScriptsVariableGroup]]] = None
     ) -> RosettaEnergyUnitAnalyser:

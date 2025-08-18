@@ -95,6 +95,8 @@ class FastRelax(RosettaAppBase):
         pdb: str,
         job_id: str = "fastrelax",
         save_dir: str = "tests/outputs",
+        relax_script: str = "MonomerRelax2019",
+        dualspace: bool = False,
         user_opts: Optional[List] = None,
         node_hint: NodeHintT = "native",
         node_config: Optional[Mapping[str, Any]] = None,
@@ -103,16 +105,13 @@ class FastRelax(RosettaAppBase):
         super().__init__(job_id, save_dir, user_opts, node_hint, node_config, **kwargs)
 
         self.pdb = pdb
-        self.relax_script: str = "MonomerRelax2019"
-        self.dualspace: bool = False
+        self.relax_script = relax_script
+        self.dualspace = dualspace
 
         if not os.path.isfile(self.pdb):
             raise FileNotFoundError(f"PDB is given yet not found - {self.pdb}")
         self.instance = os.path.basename(self.pdb)[:-4]
         self.pdb = os.path.abspath(self.pdb)
-
-        os.makedirs(os.path.join(self.save_dir, self.job_id), exist_ok=True)
-        self.save_dir = os.path.abspath(self.save_dir)
 
         if self.relax_script.endswith(".txt"):
             warnings.warn(RelaxScriptInputWarning("Relaxscript argument should not have extensions."))
