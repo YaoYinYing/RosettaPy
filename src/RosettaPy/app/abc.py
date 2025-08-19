@@ -62,12 +62,14 @@ class RosettaAppBase(ABC):
 
     @node.setter
     def node(self, node_setting: Tuple[Optional[NodeHintT], Optional[Mapping[str, Any]]] = (None, None)):
-        if not any(node_setting):
+        """Update the node by (hint, config). Pass None to keep current value."""
+        if node_setting == (None, None):
             return
-        if node_setting[0]:
-            self._node_hint = node_setting[0]
-        if node_setting[1]:
-            self._node_config = node_setting[1]
+        hint, config = node_setting
+        if hint is not None:
+            self._node_hint = hint
+        if config is not None:
+            self._node_config = config
         self._node = self._get_node(self.node_hint, self.node_config)
 
     @property
