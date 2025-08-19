@@ -4,7 +4,7 @@ High-level Rosetta application base class
 
 import os
 from abc import ABC
-from typing import Any, List, Mapping, Optional
+from typing import Any, List, Mapping, Optional, Tuple
 
 from RosettaPy.node import NodeClassType, NodeHintT, node_picker
 
@@ -44,15 +44,54 @@ class RosettaAppBase(ABC):
         self.job_id = job_id
         self.save_dir = save_dir
         self.user_opts = user_opts or []
+        self._node_hint: NodeHintT = node_hint
+        self._node_config = node_config
 
         self.kwargs = kwargs
-        self.node: NodeClassType = self._get_node(node_hint, node_config or {})
 
         # Create job directory and ensure save directory is absolute path
         os.makedirs(os.path.join(self.save_dir, self.job_id), exist_ok=True)
         self.save_dir = os.path.abspath(self.save_dir)
 
-    def _get_node(self, node_hint: NodeHintT, node_config: Mapping[str, Any]) -> NodeClassType:
+        self._node = self._get_node(self._node_hint, self._node_config or {})
+
+    @property
+    def node(self) -> NodeClassType:
+
+        return self._node
+
+    @node.setter
+    def node(self, node_setting: Tuple[Optional[NodeHintT], Optional[Mapping[str, Any]]] = (None, None)):
+        if not any(node_setting):
+            return
+        if node_setting[0]:
+            self._node_hint = node_setting[0]
+        if node_setting[1]:
+            self._node_config = node_setting[1]
+        self._node = self._get_node(self.node_hint, self.node_config)
+
+    @property
+    def node_hint(self) -> NodeHintT:
+        """
+        Get the node hint information
+
+        Returns:
+            NodeHintT: The node hint information
+        """
+        return self._node_hint
+
+    @property
+    def node_config(self) -> Mapping[str, Any]:
+        """
+        Get the node configuration information
+
+        Returns:
+            Mapping[str, Any]: Node configuration dictionary, returns empty dict if not set
+        """
+        return self._node_config or {}
+
+    @staticmethod
+    def _get_node(node_hint: NodeHintT, node_config: Mapping[str, Any]) -> NodeClassType:
         """
         Get the appropriate node instance based on hint and configuration
 
