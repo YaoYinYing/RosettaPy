@@ -33,12 +33,42 @@ release = "0.1.0"
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
     "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
     "sphinx.ext.ifconfig",
     "sphinx.ext.viewcode",  # Add links to highlighted source code
     "sphinx.ext.napoleon",  # to render Google format docstrings
     "sphinx.ext.githubpages",
+    "sphinx_copybutton",
+]
+
+# Autosummary settings
+autosummary_generate = True
+
+# Autodoc defaults
+autodoc_default_options = {
+    "members": True,
+    "undoc-members": True,
+    "show-inheritance": True,
+    "inherited-members": True,
+}
+
+# Display type hints in the description
+autodoc_typehints = "description"
+
+# Mock heavy/optional third-party deps during doc build
+autodoc_mock_imports = [
+    "Bio",
+    "pandas",
+    "numpy",
+    "matplotlib",
+    "docker",
+    "git",
+    "rdkit",
+    "joblib",
+    "joblib_progress",
+    "tree",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
