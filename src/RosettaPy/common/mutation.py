@@ -5,6 +5,7 @@ Module for processing protein chain, sequence, mutant and mutation.
 import os
 import warnings
 from dataclasses import dataclass, field
+from string import Template
 from typing import Dict, List, Tuple, Union, ValuesView
 
 import Bio
@@ -261,6 +262,25 @@ class Mutant:
     _pdb_fp: str = ""
     _mutant_id: str = ""
     _wt_score: float = 0.0
+
+    def format_as(self, mutation_template_str: str = "${chain_id}${wt_res}${position}${mut_res}", separator: str = "_"):
+        """
+        Format mutation information according to specified template string
+
+        Args:
+            mutation_template_str (str):
+                Template string for mutation formatting, default is '${chain_id}${wt_res}${position}${mut_res}'
+            separator (str):
+                Separator used to join multiple mutations, default is "_"
+
+        Returns:
+            str: Formatted mutation string
+        """
+        # Use template string to substitute mutation object attributes
+        template = Template(mutation_template_str)
+        mutations_str = map(lambda m: template.substitute(m.__dict__), self.mutations)
+        # Join all mutation strings with separator
+        return separator.join(mutations_str)
 
     def get_mutated_chain(self, chain_id) -> str:
         """

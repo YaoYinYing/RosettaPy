@@ -50,11 +50,6 @@ class PROSS(RosettaAppBase):
         # Get the absolute path of the PDB file
         self.pdb = os.path.abspath(self.pdb)
 
-        # Create the save directory, without raising an exception if the directory already exists
-        os.makedirs(os.path.join(self.save_dir, self.job_id), exist_ok=True)
-        # Set the absolute path for the save directory
-        self.save_dir = os.path.abspath(self.save_dir)
-
         # Generate the path for the CA constraints file
         self._c_alpha_constraints = os.path.join(self.save_dir, self.job_id, f"{self._instance}_bbCA.cst")
         # Convert the PDB file to constraints and determine the sequence length
