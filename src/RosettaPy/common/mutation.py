@@ -130,7 +130,7 @@ def build_continuous_sequence(polypeptides: List[Polypeptide.Polypeptide], gap_h
     for pp in polypeptides:
         start = pp[0].get_id()[1]
         end = pp[-1].get_id()[1]
-        seq[start:end] = pp.get_sequence()
+        seq[start - 1 : end] = pp.get_sequence()
 
     return "".join(seq)
 

@@ -1,6 +1,6 @@
 import copy
 import os
-from typing import Dict
+from typing import Dict, List
 
 import pytest
 
@@ -369,20 +369,26 @@ class TestSequenceFromPDB:
     """
 
     @pytest.mark.parametrize(
-        "pdb_filename, expect_missing",
+        "pdb_filename, expect_missing, full_length",
         [
-            ("tests/data/8x3e.cleaned.pdb", [range(43)]),
-            ("tests/data/8x3e.cleaned_missing.pdb", [range(43), range(129, 135)]),
+            ("tests/data/3fap_hf3_A.pdb", [], 107),  # no missing residues
+            ("tests/data/8x3e.cleaned.pdb", [range(42)], 466),  # 1-42, 1-indexed
+            ("tests/data/8x3e.cleaned_missing.pdb", [range(42), range(128, 134)], 466),  # 129-134, 1-indexed
         ],
     )
-    def test_parse_sequence_missing_res(self, pdb_filename, expect_missing):
+    def test_parse_sequence_missing_res(self, pdb_filename, expect_missing: List[range], full_length):
         seq_noX = RosettaPyProteinSequence.from_pdb(pdb_filename)
         seq_hasX = RosettaPyProteinSequence.from_pdb(pdb_filename, keep_missing=True)
-        assert seq_noX.chains[0].sequence != seq_hasX.chains[0].sequence, "Sequences should be different"
+        if expect_missing:
+            assert seq_noX.chains[0].sequence != seq_hasX.chains[0].sequence, "Sequences should be different"
+        assert len(seq_hasX.chains[0].sequence) == full_length
+
+        assert "X" not in seq_noX.chains[0].sequence, "Missing residue should be removed"
+        if expect_missing:
+            assert "X" in seq_hasX.chains[0].sequence, "Missing residue should be kept"
+        assert seq_hasX.chains[0].sequence.replace("X", "") == seq_noX.chains[0].sequence
 
         for missing_range in expect_missing:
-            assert "X" not in seq_noX.chains[0].sequence, "Missing residue should be removed"
-            assert "X" in seq_hasX.chains[0].sequence, "Missing residue should be kept"
 
             assert seq_noX.chains[0].sequence[missing_range.start : missing_range.stop] != "X" * (
                 missing_range.stop - missing_range.start
