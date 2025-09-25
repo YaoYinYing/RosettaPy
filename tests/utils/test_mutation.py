@@ -11,6 +11,7 @@ from RosettaPy.common import (
     RosettaPyProteinSequence,
     mutants2mutfile,
 )
+from RosettaPy.common.mutation import build_continuous_sequence
 
 # Test cases for the Mutation class
 
@@ -360,3 +361,32 @@ def test_non_xtal(chains_with_xtal, mutations, expected_chains_without_xtal, exp
     # Check the mutations
     for m in mutant_non_xtal.mutations:
         assert m in expected_mutations, f"Expected {m} in mutations {expected_mutations}"
+
+
+class TestSequenceFromPDB:
+    """
+    Tests the parse_pdb_sequences function.
+    """
+
+    @pytest.mark.parametrize(
+        "pdb_filename, expect_missing",
+        [
+            ("tests/data/8x3e.cleaned.pdb", [range(43)]),
+            ("tests/data/8x3e.cleaned_missing.pdb", [range(43), range(129, 135)]),
+        ],
+    )
+    def test_parse_sequence_missing_res(self, pdb_filename, expect_missing):
+        seq_noX = RosettaPyProteinSequence.from_pdb(pdb_filename)
+        seq_hasX = RosettaPyProteinSequence.from_pdb(pdb_filename, keep_missing=True)
+        assert seq_noX.chains[0].sequence != seq_hasX.chains[0].sequence, "Sequences should be different"
+
+        for missing_range in expect_missing:
+            assert "X" not in seq_noX.chains[0].sequence, "Missing residue should be removed"
+            assert "X" in seq_hasX.chains[0].sequence, "Missing residue should be kept"
+
+            assert seq_noX.chains[0].sequence[missing_range.start : missing_range.stop] != "X" * (
+                missing_range.stop - missing_range.start
+            ), "Missing residue should be removed"
+            assert seq_hasX.chains[0].sequence[missing_range.start : missing_range.stop] == "X" * (
+                missing_range.stop - missing_range.start
+            ), "Missing residue should be kept"

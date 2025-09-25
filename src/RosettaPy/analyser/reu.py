@@ -3,6 +3,7 @@ Analysis tool of Rosetta Energy Unit
 """
 
 import os
+import sys
 import warnings
 from dataclasses import dataclass
 from typing import Dict, Literal, Optional, Tuple, Union
@@ -126,3 +127,15 @@ class RosettaEnergyUnitAnalyser:
         ).head(rank)
 
         return self.df2dict(dfs=df, k=score_term)
+
+
+def best_decoy():
+    """
+    Prints the best decoy from a score file.
+
+    Usage:
+    best_decoy <score_file>
+    """
+    score_file = sys.argv[1]
+    analyser = RosettaEnergyUnitAnalyser(score_file=score_file)
+    print(analyser.best_decoy["decoy"])
