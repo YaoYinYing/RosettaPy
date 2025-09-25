@@ -9,7 +9,11 @@ from string import Template
 from typing import Dict, List, Tuple, Union, ValuesView
 
 import Bio
-from Bio.PDB import PDBParser, PPBuilder  # type: ignore
+from Bio.PDB import PDBParser  # type: ignore
+from Bio.PDB import PPBuilder  # type: ignore
+from Bio.PDB import (
+    Polypeptide,
+)
 from Bio.PDB.PDBExceptions import PDBConstructionWarning
 
 from RosettaPy.utils.tools import squeeze
@@ -60,15 +64,16 @@ class Chain:
         return len(self.sequence)
 
 
-def parse_pdb_sequences(pdb_filename: str) -> Union[List[Chain], None]:
+def parse_pdb_sequences(pdb_filename: str, keep_missing: bool = False) -> List[Chain]:
     """
     Parse sequences from a PDB file using Biopython.
 
     Parameters:
     pdb_filename (str): Path to the PDB file.
+    keep_missing (bool, optional): If True, keep missing residues in the sequence as 'X'. Defaults to False.
 
     Returns:
-    dict: A dictionary mapping chain IDs to their sequences.
+    List[Chain]: List[Chain]: One Chain per chain ID parsed from the first model.
     """
     if not os.path.exists(pdb_filename):
         raise FileNotFoundError(f"PDB file {pdb_filename} not found.")
@@ -83,23 +88,59 @@ def parse_pdb_sequences(pdb_filename: str) -> Union[List[Chain], None]:
 
     ppb = PPBuilder()
 
-    if structure is None or len(structure) == 0:
+    if structure is None:
         raise ValueError("Invalid PDB file.")
 
     chains: List[Chain] = []
 
     for model in structure:
-
         for chain in model:
             chain_id = chain.get_id()
             polypeptides = ppb.build_peptides(chain)
-
-            seq = "".join([str(pp.get_sequence()) for pp in polypeptides])
+            if not keep_missing:
+                seq = "".join([str(pp.get_sequence()) for pp in polypeptides])
+            else:
+                seq = build_continuous_sequence(polypeptides)
 
             chains.append(Chain(chain_id=str(chain_id), sequence=seq))
 
         # only the first model is considered
         return chains
+    raise ValueError("No resfiles found")
+
+
+def build_continuous_sequence(polypeptides: List[Polypeptide.Polypeptide], gap_holder: str = "X") -> str:
+    """
+    Build a continuous amino acid sequence string from multiple polypeptide chains
+
+    This function integrates multiple polypeptide chains into a continuous sequence,
+    maintaining their positional relationships in the original structure.
+    Positions not covered by any polypeptide chain are filled with 'X' characters.
+
+    Parameters:
+        polypeptides (List[Polypeptide.Polypeptide]): A list of polypeptide chains
+        gap_holder (str, optional): The character used to fill gaps in the sequence. Defaults to 'X'.
+
+    Returns:
+        str: A continuous sequence string with gaps filled by 'X'
+    """
+
+    if not polypeptides:
+        return ""
+    # Determine the maximum residue position across all segments
+    full_length: int = max(pp[-1].get_id()[1] for pp in polypeptides)
+
+    # Initialize the sequence with 'X' characters up to the last residue position
+    seq = [gap_holder for _ in range(full_length)]
+
+    # Fill in the actual sequences from each polypeptide chain
+    for pp in polypeptides:
+        start = pp[0].get_id()[1]  # 1-based
+        end = pp[-1].get_id()[1]  # 1-based inclusive
+        # if the slice is matched, replace it one by one, no length changed
+        seq[start - 1 : end] = pp.get_sequence()
+
+    return "".join(seq)
 
 
 @dataclass
@@ -191,7 +232,7 @@ class RosettaPyProteinSequence:
         return {chain.chain_id: chain.sequence for chain in self.chains}
 
     @classmethod
-    def from_pdb(cls, pdb_file: str) -> "RosettaPyProteinSequence":
+    def from_pdb(cls, pdb_file: str, keep_missing=False) -> "RosettaPyProteinSequence":
         """
         Parse a PDB file and extract the amino acid sequence for each chain.
 
@@ -203,10 +244,7 @@ class RosettaPyProteinSequence:
                              from the PDB structure.
         """
 
-        chains = parse_pdb_sequences(pdb_file)
-        if chains is None:
-            raise RuntimeError(f"Failed to parse PDB file {pdb_file}.")
-
+        chains = parse_pdb_sequences(pdb_file, keep_missing=keep_missing)
         return cls(chains=chains)
 
     def calculate_jump_index(self, chain_id: str, position: int) -> int:
