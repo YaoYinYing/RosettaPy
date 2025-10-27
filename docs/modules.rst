@@ -1,7 +1,2 @@
-src
-===
+.. This file is replaced by the new API reference structure.
 
-.. toctree::
-   :maxdepth: 4
-
-   python_package
