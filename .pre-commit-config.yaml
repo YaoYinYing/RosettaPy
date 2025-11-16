@@ -21,7 +21,7 @@ repos:
       - id: isort
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.21.0
+    rev: v3.21.1
     hooks:
       - id: pyupgrade
         args:
@@ -31,7 +31,7 @@ repos:
           # - --keep-runtime-typing
 
   - repo: https://github.com/hadialqattan/pycln
-    rev: v2.5.0
+    rev: v2.6.0
     hooks:
       - id: pycln
         args: [--config=pyproject.toml]
@@ -50,7 +50,7 @@ repos:
       # - id: rst-inline-touching-normal
 
   - repo: https://github.com/mgedmin/check-manifest
-    rev: "0.50"
+    rev: "0.51"
     hooks:
       - id: check-manifest
         stages: [manual]
