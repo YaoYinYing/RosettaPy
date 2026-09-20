@@ -70,12 +70,12 @@ class RosettaBinaryRequest:
         return self.name is not None
 
     @classmethod
-    def from_name(cls, name: str) -> "RosettaBinaryRequest":
+    def from_name(cls, name: str) -> RosettaBinaryRequest:
         """Build a request for a logical executable name."""
         return cls(name=name)
 
     @classmethod
-    def from_path(cls, path: Any) -> "RosettaBinaryRequest":
+    def from_path(cls, path: Any) -> RosettaBinaryRequest:
         """Build a request for an explicit executable path."""
         return cls(path=Path(path))
 

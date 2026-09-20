@@ -13,7 +13,7 @@ starts and exits with a non-zero code MUST be reported as a failed
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
     from .result import ExecutionResult
@@ -39,7 +39,7 @@ class ExecutionError(RosettaPyError):
     :class:`~RosettaPy.core.result.ExecutionResult`.
     """
 
-    def __init__(self, message: str, *, partial_result: Optional["ExecutionResult"] = None) -> None:
+    def __init__(self, message: str, *, partial_result: ExecutionResult | None = None) -> None:
         super().__init__(message)
         self.message = message
         self.partial_result = partial_result
@@ -72,8 +72,8 @@ class BinaryResolutionError(ExecutionError):
         request: str,
         *,
         detail: str = "",
-        environment: Optional[Any] = None,
-        partial_result: Optional["ExecutionResult"] = None,
+        environment: Any | None = None,
+        partial_result: ExecutionResult | None = None,
     ) -> None:
         message = f"Could not resolve executable {request!r}"
         if environment is not None:

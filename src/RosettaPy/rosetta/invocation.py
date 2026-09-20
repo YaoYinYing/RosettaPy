@@ -111,7 +111,7 @@ class RosettaInvocation:
             return self.nstruct
         return 1
 
-    def with_script_vars(self, variables: Mapping[str, str]) -> "RosettaInvocation":
+    def with_script_vars(self, variables: Mapping[str, str]) -> RosettaInvocation:
         """
         Return a copy of this invocation with additional RosettaScripts variables.
 
@@ -123,11 +123,11 @@ class RosettaInvocation:
             merged[key] = value
         return replace(self, script_vars=merged)
 
-    def with_options(self, options: Iterable[str]) -> "RosettaInvocation":
+    def with_options(self, options: Iterable[str]) -> RosettaInvocation:
         """Return a copy of this invocation with additional command-line options appended."""
         return replace(self, options=self.options + tuple(options))
 
-    def with_flags(self, flags: Iterable[Any]) -> "RosettaInvocation":
+    def with_flags(self, flags: Iterable[Any]) -> RosettaInvocation:
         """Return a copy of this invocation with additional flag files appended."""
         return replace(self, flags=self.flags + tuple(Path(flag) for flag in flags))
 

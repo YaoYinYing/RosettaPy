@@ -75,7 +75,11 @@ class TestCompilerContract:
 
     def test_rejects_wrong_context_type(self, compiler):
         with pytest.raises(TypeError, match="CompileContext"):
-            compiler.compile(RosettaInvocation(binary=RosettaBinaryRequest(name="rosetta_scripts")), None)  # type: ignore[arg-type]
+            compiler.compile(
+                RosettaInvocation(
+                    binary=RosettaBinaryRequest(
+                        name="rosetta_scripts")),
+                None)  # type: ignore[arg-type]
 
     def test_declares_its_identity(self, compiler):
         assert compiler.identity == "rosetta_compiler"
@@ -489,7 +493,8 @@ class TestCompileContextValidation:
 
     def test_is_frozen(self):
         with pytest.raises(dataclasses.FrozenInstanceError):
-            CompileContext(run_id="run", work_dir=Path("/w"), output_dir=Path("/o")).run_id = "other"  # type: ignore[misc]
+            CompileContext(run_id="run", work_dir=Path("/w"), output_dir=Path("/o")
+                           ).run_id = "other"  # type: ignore[misc]
 
     def test_requires_no_execution_environment_information(self):
         fields = set(CompileContext.__dataclass_fields__)

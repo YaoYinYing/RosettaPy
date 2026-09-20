@@ -180,7 +180,7 @@ class TestBoundaryDetectorIsEffective:
         fixture = CORE_ROOT / "_boundary_probe.py"
         fixture.write_text("import subprocess\nfrom RosettaPy.utils import task\n", encoding="utf-8")
         try:
-            resolved = imported_modules(fixture)
+            imported_modules(fixture)
             assert _offends("subprocess", "subprocess")
             assert _offends("RosettaPy.utils", "utils")
         finally:

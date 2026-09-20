@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping as MappingABC
-from typing import Any, Dict, Mapping, Sequence, Union
+from typing import Any, Mapping, Sequence, Union
 
 JSONScalar = Union[None, bool, int, float, str]
 """Scalar values representable as JSON."""
@@ -66,7 +66,7 @@ def ensure_json_value(value: Any, *, where: str = "value") -> None:
         raise TypeError(f"{where} must be JSON-serializable: {exc}") from exc
 
 
-def freeze_json_mapping(value: Any, *, where: str = "metadata") -> Dict[str, JSONValue]:
+def freeze_json_mapping(value: Any, *, where: str = "metadata") -> dict[str, JSONValue]:
     """
     Validate a JSON mapping and return a detached, plain-``dict`` copy.
 
@@ -80,7 +80,7 @@ def freeze_json_mapping(value: Any, *, where: str = "metadata") -> Dict[str, JSO
     return dict(value)
 
 
-def freeze_string_mapping(value: Any, *, where: str = "env") -> Dict[str, str]:
+def freeze_string_mapping(value: Any, *, where: str = "env") -> dict[str, str]:
     """
     Validate a ``str``-to-``str`` mapping and return a detached copy.
 

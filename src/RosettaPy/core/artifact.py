@@ -12,7 +12,7 @@ container or another namespace.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Sequence
@@ -192,6 +192,6 @@ class ArtifactManifest:
         }
 
     @classmethod
-    def from_artifacts(cls, artifacts: Sequence[Artifact], **kwargs: Any) -> "ArtifactManifest":
+    def from_artifacts(cls, artifacts: Sequence[Artifact], **kwargs: Any) -> ArtifactManifest:
         """Build a manifest from any artifact sequence."""
         return cls(artifacts=tuple(artifacts), **kwargs)
