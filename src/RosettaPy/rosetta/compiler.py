@@ -21,7 +21,6 @@ from typing import TYPE_CHECKING, Mapping
 from ..core._json import freeze_string_mapping
 from ..core._naming import validate_logical_identifier
 from ..core.artifact import ArtifactExpectation, ArtifactRole
-from ..core.errors import CompilationError
 from ..core.task import ResourceRequest, TaskSpec
 from .invocation import NStructMode, RosettaInvocation
 
@@ -208,7 +207,8 @@ class RosettaCompiler:
             arguments[:] = result
         return last_value
 
-    def _render_output_arguments(self, output_root: Path, scorefile_name: str) -> list[str]:
+    @staticmethod
+    def _render_output_arguments(output_root: Path, scorefile_name: str) -> list[str]:
         """
         Render output-path and output-name options for one task.
 

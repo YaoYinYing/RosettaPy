@@ -193,6 +193,10 @@ class TestBoundaryDetectorIsEffective:
         assert any(_offends(module, "subprocess") or "joblib" in module for module in resolved)
 
 
+_BACKEND_IDENTITIES = {"native", "docker", "mpi", "slurm", "wsl"}
+"""Backend identity strings the kernel must never switch on."""
+
+
 class TestNoBackendBranching:
     def test_kernel_does_not_branch_on_executor_identity(self):
         """
@@ -211,9 +215,10 @@ class TestNoBackendBranching:
                             if isinstance(child, ast.Name) and child.id in {"isinstance", "type"}
                         ]
                         for child in ast.walk(node):
-                            if isinstance(child, ast.Constant) and isinstance(child.value, str):
-                                if child.value in {"native", "docker", "mpi", "slurm", "wsl"} and names:
-                                    suspicious.append(f"{path.name}: {ast.dump(node)[:80]}")
+                            if not isinstance(child, ast.Constant) or not isinstance(child.value, str):
+                                continue
+                            if child.value in _BACKEND_IDENTITIES and names:
+                                suspicious.append(f"{path.name}: {ast.dump(node)[:80]}")
         assert suspicious == []
 
     def test_kernel_does_not_reference_container_or_scheduler_tokens(self):

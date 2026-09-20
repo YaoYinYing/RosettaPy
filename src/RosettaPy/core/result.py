@@ -90,6 +90,15 @@ class ExecutionResult:
     provenance: Mapping[str, JSONValue] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        self._validate_identity()
+        self._validate_timing()
+        object.__setattr__(self, "duration_seconds", float(self.duration_seconds))
+        if not isinstance(self.artifacts, ArtifactManifest):
+            raise TypeError("ExecutionResult.artifacts must be an ArtifactManifest")
+        object.__setattr__(self, "provenance", freeze_json_mapping(self.provenance, where="ExecutionResult.provenance"))
+
+    def _validate_identity(self) -> None:
+        """Validate the task identity, status, and terminator fields."""
         if not isinstance(self.task_id, str) or not self.task_id:
             raise TypeError("ExecutionResult.task_id must be a non-empty str")
         if not isinstance(self.status, ExecutionStatus):
@@ -102,6 +111,9 @@ class ExecutionResult:
                 raise TypeError(f"ExecutionResult.{name} must be a str, got {type(value).__name__}")
         if not self.executor:
             raise ValueError("ExecutionResult.executor must not be empty")
+
+    def _validate_timing(self) -> None:
+        """Validate timestamps and duration."""
         for name in ("started_at", "finished_at"):
             value = getattr(self, name)
             if not isinstance(value, datetime):
@@ -112,10 +124,6 @@ class ExecutionResult:
             raise TypeError("ExecutionResult.duration_seconds must be a number")
         if self.duration_seconds < 0:
             raise ValueError("ExecutionResult.duration_seconds must not be negative")
-        object.__setattr__(self, "duration_seconds", float(self.duration_seconds))
-        if not isinstance(self.artifacts, ArtifactManifest):
-            raise TypeError("ExecutionResult.artifacts must be an ArtifactManifest")
-        object.__setattr__(self, "provenance", freeze_json_mapping(self.provenance, where="ExecutionResult.provenance"))
 
     @property
     def succeeded(self) -> bool:
