@@ -6,8 +6,8 @@ import os
 from typing import List, Optional
 
 from RosettaPy import Rosetta
+from RosettaPy._legacy_rosetta import RosettaCmdTask
 from RosettaPy.node import NodeClassType, NodeHintT, node_picker
-from RosettaPy.rosetta import RosettaCmdTask
 
 
 def supercharge(

@@ -4,8 +4,8 @@ Welcome to RosettaPy.
 
 from __future__ import annotations
 
+from ._legacy_rosetta import MpiNode, Rosetta, RosettaScriptsVariableGroup
 from .analyser import RosettaCartesianddGAnalyser, RosettaEnergyUnitAnalyser
-from .rosetta import MpiNode, Rosetta, RosettaScriptsVariableGroup
 from .rosetta_finder import RosettaBinary, RosettaFinder, main
 from .utils import isolate, timing
 
