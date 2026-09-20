@@ -10,9 +10,9 @@ import warnings
 from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 
 from RosettaPy import Rosetta, RosettaEnergyUnitAnalyser, RosettaScriptsVariableGroup
+from RosettaPy._legacy_rosetta import IgnoreMissingFileWarning
 from RosettaPy.app.abc import RosettaAppBase
 from RosettaPy.node import NodeHintT
-from RosettaPy.rosetta import IgnoreMissingFileWarning
 from RosettaPy.utils import timing
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
