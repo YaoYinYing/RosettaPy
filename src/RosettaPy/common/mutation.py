@@ -9,11 +9,11 @@ from string import Template
 from typing import Dict, List, Tuple, Union, ValuesView
 
 import Bio
-from Bio.PDB import PDBParser  # type: ignore
-from Bio.PDB import PPBuilder  # type: ignore
-from Bio.PDB import (
+from Bio.PDB import (  # type: ignore
+    PDBParser,
     Polypeptide,
 )
+from Bio.PDB import PPBuilder  # type: ignore
 from Bio.PDB.PDBExceptions import PDBConstructionWarning
 
 from RosettaPy.utils.tools import squeeze

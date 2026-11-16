@@ -32,7 +32,7 @@ def test_squeeze():
 
     with pytest.raises(TypeError, match="unhashable type: 'Person'"):
         # TypeError: unhashable type: 'Person'
-        person_set = {p for p in unsorted_list}  # type: ignore
+        person_set = {*unsorted_list}  # type: ignore
 
     squeezed_list = squeeze(unsorted_list)
     assert squeezed_list == [p1, p2, p4]
@@ -50,7 +50,7 @@ def test_squeeze_hashable():
     squeezed_list = squeeze(unsorted_list)
     assert squeezed_list == list({p1, p2, p4})
 
-    person_set = {p for p in unsorted_list}
+    person_set = {*unsorted_list}
     assert len(person_set) == 3
     assert all(p in squeezed_list for p in person_set)
 
